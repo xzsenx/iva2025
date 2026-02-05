@@ -13,18 +13,18 @@
   },
   {
     "id": 2,
-    "name": "аыуаыуа",
-    "price": 2900333,
-    "popular": 10,
+    "name": "Букет из роз Эсклорер",
+    "price": 2490,
+    "popular": 2,
     "category": "roses",
-    "badge": "hit",
-    "desc": "ыуаыуа",
+    "badge": "season",
+    "desc": "",
     "sizes": [
       "S",
       "M",
       "L"
     ],
-    "stock": 25,
+    "stock": 1,
     "img": "https://images.unsplash.com/photo-1455659817273-f96807779a8a?w=600&q=80"
   },
   {

@@ -92,6 +92,8 @@ const app = (() => {
 
   /* ── Filter & Sort ── */
   function getFilteredList() {
+    /* Каждый раз читаем актуальные данные из localStorage (связь с админкой) */
+    BOUQUETS = getProducts();
     let list = [...BOUQUETS];
 
     if (currentCategory !== "all") {
@@ -137,9 +139,12 @@ const app = (() => {
         <div class="card__info">
           <div class="card__name">${b.name}</div>
           <div class="card__price">${formatPrice(b.price)}</div>
+          ${b.stock != null && b.stock <= 0
+            ? `<div class="card__stock card__stock--out">Нет в наличии</div>`
+            : `${b.stock != null && b.stock <= 5 ? `<div class="card__stock card__stock--low">Осталось: ${b.stock}</div>` : ""}
           <button class="card__add-btn" onclick="event.stopPropagation(); app.quickAdd(${b.id})">
             В корзину
-          </button>
+          </button>`}
         </div>
       </div>`
       )
@@ -148,6 +153,7 @@ const app = (() => {
 
   /* ── Product Page ── */
   function showProduct(id) {
+    BOUQUETS = getProducts();
     const b = BOUQUETS.find((x) => x.id === id);
     if (!b) return;
     currentProduct = b;
@@ -168,6 +174,13 @@ const app = (() => {
         <h1 class="product-body__name">${b.name}</h1>
         <div class="product-body__price">${formatPrice(b.price)}</div>
         <p class="product-body__desc">${b.desc}</p>
+        ${b.stock != null
+          ? b.stock <= 0
+            ? `<div class="product-body__stock product-body__stock--out">Нет в наличии</div>`
+            : b.stock <= 5
+              ? `<div class="product-body__stock product-body__stock--low">Осталось: ${b.stock} шт.</div>`
+              : `<div class="product-body__stock">В наличии: ${b.stock} шт.</div>`
+          : ""}
         ${
           b.sizes
             ? `<p class="sizes__label">Размер</p>
@@ -184,9 +197,9 @@ const app = (() => {
         }
       </div>
       <div class="product-actions">
-        <button class="btn btn--primary btn--lg" onclick="app.addToCart()">
-          Добавить в корзину — ${formatPrice(b.price)}
-        </button>
+        ${b.stock != null && b.stock <= 0
+          ? `<button class="btn btn--primary btn--lg" disabled style="opacity:.5;cursor:not-allowed">Нет в наличии</button>`
+          : `<button class="btn btn--primary btn--lg" onclick="app.addToCart()">Добавить в корзину — ${formatPrice(b.price)}</button>`}
       </div>
     `;
 

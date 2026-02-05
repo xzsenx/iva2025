@@ -1,5 +1,5 @@
 /* ============================================================
-   IVA — Админ-панель  |  CRUD товаров, localStorage
+   IVA — Админ-панель  |  CRUD товаров, localStorage, Excel
    ============================================================ */
 
 (() => {
@@ -125,6 +125,7 @@
           <div class="product-row__meta">
             <span class="product-row__price">${formatPrice(p.price)}</span>
             <span>${categoryName(p.category)}</span>
+            ${stockTag(p.stock)}
             ${badgeTag(p.badge)}
           </div>
         </div>
@@ -136,7 +137,6 @@
       )
       .join("");
 
-    // Drag & Drop
     setupDragDrop();
   }
 
@@ -149,6 +149,13 @@
     if (!badge) return "";
     const labels = { hit:"Hit", season:"Сезон", new:"New" };
     return `<span class="badge-sm badge-sm--${badge}">${labels[badge]}</span>`;
+  }
+
+  function stockTag(stock) {
+    if (stock == null) return "";
+    if (stock <= 0) return `<span style="color:var(--danger);font-weight:600">нет</span>`;
+    if (stock <= 5) return `<span style="color:var(--gold);font-weight:600">${stock} шт.</span>`;
+    return `<span style="color:var(--accent)">${stock} шт.</span>`;
   }
 
   /* ── Drag & Drop ── */
@@ -205,6 +212,7 @@
     productForm.reset();
     imgPreview.classList.remove("visible");
     $("#fPopular").value = 5;
+    $("#fStock").value = 10;
     openModal();
   }
 
@@ -217,6 +225,7 @@
     $("#fId").value       = p.id;
     $("#fName").value     = p.name;
     $("#fPrice").value    = p.price;
+    $("#fStock").value    = p.stock != null ? p.stock : "";
     $("#fPopular").value  = p.popular || 5;
     $("#fCategory").value = p.category;
     $("#fBadge").value    = p.badge || "";
@@ -244,6 +253,8 @@
     if ($("#fSizeM").checked) sizes.push("M");
     if ($("#fSizeL").checked) sizes.push("L");
 
+    const stockVal = $("#fStock").value;
+
     const data = {
       id:       editingId || nextId(),
       name:     $("#fName").value.trim(),
@@ -253,6 +264,7 @@
       badge:    $("#fBadge").value || null,
       desc:     $("#fDesc").value.trim(),
       sizes:    sizes.length ? sizes : null,
+      stock:    stockVal !== "" ? parseInt(stockVal) : null,
       img:      $("#fImg").value.trim(),
     };
 
@@ -291,18 +303,51 @@
     });
   }
 
-  /* ── Export / Import ── */
+  /* ── Export Excel ── */
   function doExport() {
-    const blob = new Blob([JSON.stringify(products, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "iva-products.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast("JSON экспортирован");
+    if (typeof XLSX === "undefined") {
+      toast("Ошибка: библиотека XLSX не загрузилась");
+      return;
+    }
+
+    const rows = products.map((p) => ({
+      "ID":          p.id,
+      "Название":    p.name,
+      "Цена":        p.price,
+      "Остаток":     p.stock != null ? p.stock : "",
+      "Популярность":p.popular,
+      "Категория":   categoryName(p.category),
+      "Категория_ID":p.category,
+      "Бейдж":       p.badge || "",
+      "Описание":    p.desc || "",
+      "Размеры":     p.sizes ? p.sizes.join(",") : "",
+      "Фото URL":    p.img || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    /* Ширина колонок */
+    ws["!cols"] = [
+      { wch: 5 },  // ID
+      { wch: 28 }, // Название
+      { wch: 10 }, // Цена
+      { wch: 10 }, // Остаток
+      { wch: 14 }, // Популярность
+      { wch: 14 }, // Категория
+      { wch: 14 }, // Категория_ID
+      { wch: 8 },  // Бейдж
+      { wch: 40 }, // Описание
+      { wch: 10 }, // Размеры
+      { wch: 60 }, // Фото
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Товары");
+    XLSX.writeFile(wb, "iva-products.xlsx");
+    toast("Excel экспортирован");
   }
 
+  /* ── Import Excel ── */
   function doImport() {
     importFile.click();
   }
@@ -310,23 +355,56 @@
   function handleImport(e) {
     const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const data = JSON.parse(ev.target.result);
-        if (Array.isArray(data)) {
-          products = data;
-          saveProducts();
-          renderList();
-          toast(`Импортировано ${data.length} товаров`);
-        } else {
-          toast("Ошибка: ожидается массив");
+        if (typeof XLSX === "undefined") {
+          toast("Ошибка: библиотека XLSX не загрузилась");
+          return;
         }
-      } catch {
-        toast("Ошибка чтения JSON");
+
+        const data = new Uint8Array(ev.target.result);
+        const wb = XLSX.read(data, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+
+        if (!rows.length) {
+          toast("Файл пустой");
+          return;
+        }
+
+        /* Маппинг колонок Excel → структура товара */
+        const catMap = { "Букеты":"bouquets", "Розы":"roses", "Композиции":"compose", "Подарки":"gifts" };
+
+        const imported = rows.map((r, i) => {
+          const sizesStr = (r["Размеры"] || "").toString().trim();
+          const sizes = sizesStr ? sizesStr.split(",").map((s) => s.trim()).filter(Boolean) : null;
+
+          return {
+            id:       r["ID"] ? parseInt(r["ID"]) : i + 1,
+            name:     (r["Название"] || "").toString().trim(),
+            price:    parseInt(r["Цена"]) || 0,
+            stock:    r["Остаток"] !== "" && r["Остаток"] != null ? parseInt(r["Остаток"]) : null,
+            popular:  parseInt(r["Популярность"]) || 5,
+            category: r["Категория_ID"] || catMap[r["Категория"]] || "bouquets",
+            badge:    r["Бейдж"] ? r["Бейдж"].toString().trim().toLowerCase() : null,
+            desc:     (r["Описание"] || "").toString().trim(),
+            sizes:    sizes,
+            img:      (r["Фото URL"] || r["Фото"] || "").toString().trim(),
+          };
+        });
+
+        products = imported;
+        saveProducts();
+        renderList();
+        toast(`Импортировано ${imported.length} товаров`);
+      } catch (err) {
+        console.error(err);
+        toast("Ошибка чтения Excel");
       }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
     importFile.value = "";
   }
 

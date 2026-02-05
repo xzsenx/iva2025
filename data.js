@@ -19,6 +19,7 @@ const _DEFAULT_BOUQUETS = [
     badge: "new",
     desc: "Лёгкий букет из эвкалипта и хлопка — идеальный подарок для любого случая.",
     sizes: ["S", "M", "L"],
+    stock: 12,
     img: "https://images.unsplash.com/photo-1487530811176-3780de880c2d?w=600&q=80",
   },
   {
@@ -30,6 +31,7 @@ const _DEFAULT_BOUQUETS = [
     badge: "hit",
     desc: "Букет из 25 свежих красных роз премиального сорта. Классика, проверенная временем.",
     sizes: ["S", "M", "L"],
+    stock: 25,
     img: "https://images.unsplash.com/photo-1455659817273-f96807779a8a?w=600&q=80",
   },
   {
@@ -41,6 +43,7 @@ const _DEFAULT_BOUQUETS = [
     badge: "season",
     desc: "Сезонный букет из пышных пионов: от нежно‑розового до белого. Лимитированная серия.",
     sizes: ["M", "L"],
+    stock: 8,
     img: "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?w=600&q=80",
   },
   {
@@ -52,6 +55,7 @@ const _DEFAULT_BOUQUETS = [
     badge: null,
     desc: "Воздушный букет из белых хризантем с гипсофилой — элегантность и свежесть.",
     sizes: ["S", "M", "L"],
+    stock: 15,
     img: "https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=600&q=80",
   },
   {
@@ -63,6 +67,7 @@ const _DEFAULT_BOUQUETS = [
     badge: "hit",
     desc: "Пионовидные розы сорта Juliet: персиковые лепестки с ароматом жасмина.",
     sizes: ["S", "M", "L"],
+    stock: 6,
     img: "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=600&q=80",
   },
   {
@@ -74,6 +79,7 @@ const _DEFAULT_BOUQUETS = [
     badge: "new",
     desc: "Натуральная лаванда из Прованса. Тонкий аромат и стильная крафт‑упаковка.",
     sizes: ["S", "M"],
+    stock: 20,
     img: "https://images.unsplash.com/photo-1468327768560-75b778cbb551?w=600&q=80",
   },
 
@@ -87,6 +93,7 @@ const _DEFAULT_BOUQUETS = [
     badge: "hit",
     desc: "Роскошная коробка с миксом роз и эвкалипта. Не нужна ваза — подарок сразу готов.",
     sizes: ["M", "L"],
+    stock: 5,
     img: "https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=600&q=80",
   },
   {
@@ -98,6 +105,7 @@ const _DEFAULT_BOUQUETS = [
     badge: "season",
     desc: "Плетёная корзина с полевыми цветами, лимониумом и зеленью. Создаёт атмосферу юга Франции.",
     sizes: ["L"],
+    stock: 3,
     img: "https://images.unsplash.com/photo-1471696035578-3d8c78d99571?w=600&q=80",
   },
 
@@ -111,6 +119,7 @@ const _DEFAULT_BOUQUETS = [
     badge: "new",
     desc: "Ароматическая свеча ручной работы из соевого воска. Горит 40 часов.",
     sizes: null,
+    stock: 30,
     img: "https://images.unsplash.com/photo-1602028915047-37269d1a73f7?w=600&q=80",
   },
   {
@@ -122,9 +131,14 @@ const _DEFAULT_BOUQUETS = [
     badge: "hit",
     desc: "Мини‑букет + свеча + открытка ручной работы в стильной подарочной упаковке.",
     sizes: null,
+    stock: 10,
     img: "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?w=600&q=80",
   },
 ];
 
-/* Если админка сохранила товары в localStorage — используем их */
-const BOUQUETS = JSON.parse(localStorage.getItem("iva_products") || "null") || _DEFAULT_BOUQUETS;
+/* Если админка сохранила товары в localStorage — используем их.
+   getProducts() — всегда возвращает актуальные данные (для динамической связки с админкой). */
+function getProducts() {
+  return JSON.parse(localStorage.getItem("iva_products") || "null") || _DEFAULT_BOUQUETS;
+}
+let BOUQUETS = getProducts();

@@ -406,9 +406,9 @@
     </div>
 
     <div class="io-bar">
-      <button class="btn btn--outline btn--sm" id="exportBtn">Экспорт JSON</button>
-      <button class="btn btn--outline btn--sm" id="importBtn">Импорт JSON</button>
-      <input type="file" id="importFile" accept=".json">
+      <button class="btn btn--outline btn--sm" id="exportBtn">Экспорт Excel</button>
+      <button class="btn btn--outline btn--sm" id="importBtn">Импорт Excel</button>
+      <input type="file" id="importFile" accept=".xlsx,.xls">
       <button class="btn btn--danger btn--sm" id="resetBtn">Сбросить к исходным</button>
     </div>
 
@@ -436,9 +436,16 @@
             <input type="number" name="price" id="fPrice" placeholder="3500" min="0" required>
           </label>
           <label class="field">
+            <span class="field__label">Остаток (шт.)</span>
+            <input type="number" name="stock" id="fStock" placeholder="10" min="0">
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
             <span class="field__label">Популярность (1-10)</span>
             <input type="number" name="popular" id="fPopular" placeholder="5" min="1" max="10">
           </label>
+          <div class="field"></div>
         </div>
 
         <div class="field-row">
@@ -501,6 +508,7 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="data.js"></script>
   <script src="admin.js"></script>
 </body>

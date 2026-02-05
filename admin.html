@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>IVA — Админ-панель</title>
+  <style>
+    /* ── Переменные (те же, что и в витрине) ── */
+    :root {
+      --bg:        #3D4F4C;
+      --bg-light:  #4A5E5A;
+      --bg-card:   rgba(0,0,0,.22);
+      --cream:     #EDE6DA;
+      --cream-dim: rgba(237,230,218,.6);
+      --pink:      #C9A4A0;
+      --pink-light:#D4B5B1;
+      --accent:    #A8C5A0;
+      --gold:      #C8B07A;
+      --danger:    #C97070;
+      --radius:    14px;
+      --radius-sm: 10px;
+      --transition: .25s cubic-bezier(.4,0,.2,1);
+    }
+
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--cream);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Login Screen ── */
+    .login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .login-screen.hidden { display:none; }
+    .login-logo { font-size:32px; font-weight:800; letter-spacing:3px; margin-bottom:6px; }
+    .login-sub  { font-size:13px; color:var(--cream-dim); margin-bottom:32px; }
+    .login-box {
+      width: 100%;
+      max-width: 340px;
+    }
+    .login-box input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 15px;
+      color: var(--cream);
+      margin-bottom: 14px;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+    .login-box input:focus { outline:none; border-color:var(--pink); box-shadow:0 0 0 3px rgba(201,164,160,.2); }
+    .login-error { color:var(--danger); font-size:13px; margin-bottom:10px; display:none; }
+
+    /* ── Admin Panel ── */
+    .admin-panel { display:none; }
+    .admin-panel.visible { display:block; }
+
+    /* Header */
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      position: sticky; top:0; z-index:50;
+      background: var(--bg);
+    }
+    .admin-header__left { display:flex; align-items:center; gap:12px; }
+    .admin-header__logo { font-size:20px; font-weight:800; letter-spacing:2px; }
+    .admin-header__tag {
+      font-size: 11px;
+      background: var(--pink);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .admin-header__actions { display:flex; gap:8px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      padding: 10px 16px;
+      font-family: inherit;
+    }
+    .btn:active { transform:scale(.96); }
+    .btn--primary { background:var(--pink); color:#fff; }
+    .btn--primary:hover { background:var(--pink-light); }
+    .btn--outline { background:transparent; border:1px solid rgba(255,255,255,.15); color:var(--cream); }
+    .btn--outline:hover { border-color:rgba(255,255,255,.3); }
+    .btn--danger  { background:transparent; border:1px solid rgba(201,112,112,.3); color:var(--danger); }
+    .btn--danger:hover { background:rgba(201,112,112,.1); }
+    .btn--sm { padding:6px 12px; font-size:12px; }
+    .btn--lg { padding:14px 20px; font-size:15px; width:100%; border-radius:var(--radius); }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .toolbar__count { font-size:14px; color:var(--cream-dim); }
+
+    /* Product list */
+    .product-list {
+      padding: 0 20px 100px;
+    }
+    .product-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,.06);
+      transition: var(--transition);
+      cursor: grab;
+    }
+    .product-row:active { cursor:grabbing; }
+    .product-row.dragging {
+      opacity: .5;
+      transform: scale(.97);
+    }
+    .product-row.drag-over {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 2px rgba(201,164,160,.3);
+    }
+    .product-row__drag {
+      color: var(--cream-dim);
+      font-size: 18px;
+      cursor: grab;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .product-row__img {
+      width: 56px; height: 56px;
+      border-radius: 10px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .product-row__info { flex:1; min-width:0; }
+    .product-row__name {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .product-row__meta {
+      font-size: 12px;
+      color: var(--cream-dim);
+      margin-top: 2px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .product-row__price { color:var(--pink-light); font-weight:600; }
+    .product-row__actions { display:flex; gap:6px; flex-shrink:0; }
+
+    .badge-sm {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+    .badge-sm--hit    { background:var(--pink);   color:#fff; }
+    .badge-sm--season { background:var(--accent);  color:#2a3a2a; }
+    .badge-sm--new    { background:var(--gold);    color:#2a2a1a; }
+
+    /* ── Modal / Form ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.open { display:flex; }
+
+    .modal {
+      background: var(--bg-light);
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px 20px 32px;
+      animation: slideUp .3s ease;
+    }
+    @keyframes slideUp {
+      from { transform:translateY(100%); opacity:0; }
+      to   { transform:translateY(0); opacity:1; }
+    }
+    .modal__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal__title { font-size:18px; font-weight:700; }
+    .modal__close {
+      background: none; border:none; color:var(--cream-dim);
+      font-size: 24px; cursor:pointer; padding:4px;
+    }
+    .modal__close:hover { color:var(--cream); }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 16px;
+    }
+    .field__label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--cream-dim);
+      margin-bottom: 5px;
+      letter-spacing: .3px;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      background: var(--bg-card);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 14px;
+      color: var(--cream);
+      font-family: inherit;
+      transition: var(--transition);
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      outline: none;
+      border-color: var(--pink);
+      box-shadow: 0 0 0 3px rgba(201,164,160,.2);
+    }
+    .field textarea { resize:vertical; min-height:60px; }
+    .field select {
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg fill='%23EDE6DA' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 18px;
+    }
+    .field-row { display:flex; gap:12px; }
+    .field-row .field { flex:1; }
+
+    /* Checkboxes */
+    .checkbox-group {
+      display: flex; gap: 12px; flex-wrap: wrap;
+    }
+    .checkbox-pill {
+      cursor: pointer;
+    }
+    .checkbox-pill input { display:none; }
+    .checkbox-pill span {
+      display: block;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,255,255,.12);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--cream-dim);
+      transition: var(--transition);
+    }
+    .checkbox-pill input:checked + span {
+      background: var(--pink);
+      color: #fff;
+      border-color: var(--pink);
+    }
+
+    /* Image preview */
+    .img-preview {
+      width: 100%;
+      height: 140px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      margin-top: 8px;
+      display: none;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .img-preview.visible { display:block; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%; transform: translateX(-50%) translateY(20px);
+      background: rgba(0,0,0,.7);
+      backdrop-filter: blur(12px);
+      color: var(--cream);
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0;
+      transition: var(--transition);
+      z-index: 999;
+      pointer-events: none;
+    }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* Confirm dialog */
+    .confirm-overlay {
+      position: fixed; inset:0;
+      background: rgba(0,0,0,.6);
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .confirm-overlay.open { display:flex; }
+    .confirm-box {
+      background: var(--bg-light);
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 340px;
+      width: 90%;
+      text-align: center;
+    }
+    .confirm-box__text { font-size:15px; margin-bottom:20px; line-height:1.5; }
+    .confirm-box__actions { display:flex; gap:10px; }
+    .confirm-box__actions .btn { flex:1; }
+
+    /* ── Import/Export bar ── */
+    .io-bar {
+      display: flex;
+      gap: 8px;
+      padding: 0 20px 12px;
+    }
+    #importFile { display:none; }
+
+    /* ── Responsive ── */
+    @media (min-width: 600px) {
+      .modal {
+        border-radius: var(--radius);
+        margin: auto;
+        max-height: 85vh;
+      }
+      .modal-overlay { align-items:center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ====== LOGIN ====== -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-logo">IVA</div>
+    <div class="login-sub">Админ-панель</div>
+    <div class="login-box">
+      <input type="password" id="loginPass" placeholder="Пароль" autofocus>
+      <div class="login-error" id="loginError">Неверный пароль</div>
+      <button class="btn btn--primary btn--lg" id="loginBtn">Войти</button>
+    </div>
+  </div>
+
+  <!-- ====== ADMIN PANEL ====== -->
+  <div class="admin-panel" id="adminPanel">
+
+    <header class="admin-header">
+      <div class="admin-header__left">
+        <span class="admin-header__logo">IVA</span>
+        <span class="admin-header__tag">Админ</span>
+      </div>
+      <div class="admin-header__actions">
+        <a href="index.html" class="btn btn--outline btn--sm" target="_blank">Витрина</a>
+        <button class="btn btn--outline btn--sm" id="logoutBtn">Выйти</button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <span class="toolbar__count" id="productCount"></span>
+      <button class="btn btn--primary" id="addProductBtn">+ Добавить товар</button>
+    </div>
+
+    <div class="io-bar">
+      <button class="btn btn--outline btn--sm" id="exportBtn">Экспорт JSON</button>
+      <button class="btn btn--outline btn--sm" id="importBtn">Импорт JSON</button>
+      <input type="file" id="importFile" accept=".json">
+      <button class="btn btn--danger btn--sm" id="resetBtn">Сбросить к исходным</button>
+    </div>
+
+    <div class="product-list" id="productList"></div>
+  </div>
+
+  <!-- ====== MODAL: Add / Edit Product ====== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title" id="modalTitle">Добавить товар</h2>
+        <button class="modal__close" id="modalClose">&times;</button>
+      </div>
+      <form id="productForm">
+        <input type="hidden" name="id" id="fId">
+
+        <label class="field">
+          <span class="field__label">Название</span>
+          <input type="text" name="name" id="fName" placeholder="Букет весенний" required>
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span class="field__label">Цена (руб.)</span>
+            <input type="number" name="price" id="fPrice" placeholder="3500" min="0" required>
+          </label>
+          <label class="field">
+            <span class="field__label">Популярность (1-10)</span>
+            <input type="number" name="popular" id="fPopular" placeholder="5" min="1" max="10">
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label class="field">
+            <span class="field__label">Категория</span>
+            <select name="category" id="fCategory">
+              <option value="bouquets">Букеты</option>
+              <option value="roses">Розы</option>
+              <option value="compose">Композиции</option>
+              <option value="gifts">Подарки</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field__label">Бейдж</span>
+            <select name="badge" id="fBadge">
+              <option value="">Нет</option>
+              <option value="hit">Hit</option>
+              <option value="season">Сезон</option>
+              <option value="new">New</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field__label">Описание</span>
+          <textarea name="desc" id="fDesc" placeholder="Краткое описание товара..."></textarea>
+        </label>
+
+        <div class="field">
+          <span class="field__label">Размеры</span>
+          <div class="checkbox-group">
+            <label class="checkbox-pill"><input type="checkbox" name="sizeS" id="fSizeS"><span>S</span></label>
+            <label class="checkbox-pill"><input type="checkbox" name="sizeM" id="fSizeM"><span>M</span></label>
+            <label class="checkbox-pill"><input type="checkbox" name="sizeL" id="fSizeL"><span>L</span></label>
+          </div>
+        </div>
+
+        <label class="field">
+          <span class="field__label">URL фото</span>
+          <input type="url" name="img" id="fImg" placeholder="https://images.unsplash.com/...">
+          <img class="img-preview" id="imgPreview" alt="preview">
+        </label>
+
+        <button type="submit" class="btn btn--primary btn--lg" id="formSubmitBtn">Сохранить</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== CONFIRM DIALOG ====== -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <div class="confirm-box__text" id="confirmText"></div>
+      <div class="confirm-box__actions">
+        <button class="btn btn--outline" id="confirmCancel">Отмена</button>
+        <button class="btn btn--danger" id="confirmOk">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

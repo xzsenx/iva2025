@@ -1,15 +1,15 @@
 [
   {
     "id": 1,
-    "name": "Букет 1",
-    "price": 32003,
-    "popular": 5,
+    "name": "Авторский букет с нотками Нового Года",
+    "price": 6890,
+    "popular": 1,
     "category": "bouquets",
-    "badge": "new",
+    "badge": "hit",
     "desc": "",
     "sizes": null,
-    "stock": 12,
-    "img": "https://images.unsplash.com/photo-1487530811176-3780de880c2d?w=600&q=80"
+    "stock": 1,
+    "img": "https://image2url.com/r2/default/images/1770325854300-0b53e6a0-8ab9-4f71-98fe-1de754089448.png"
   },
   {
     "id": 2,

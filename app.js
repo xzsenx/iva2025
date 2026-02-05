@@ -404,10 +404,13 @@ const app = (() => {
   }
 
   /* ── Init ── */
-  function init() {
+  async function init() {
     renderCategories();
-    renderGrid();
     updateCartBadge();
+
+    /* Загружаем товары с GitHub Pages, потом перерисовываем */
+    await fetchProducts();
+    renderGrid();
 
     els.sort.addEventListener("change", (e) => {
       currentSort = e.target.value;

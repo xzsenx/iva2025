@@ -1,16 +1,22 @@
 /* ============================================================
-   IVA — Админ-панель  |  CRUD товаров, localStorage, Excel
+   IVA — Админ-панель  |  CRUD товаров, GitHub API, Excel
    ============================================================ */
 
 (() => {
   const ADMIN_PASS = "iva2025";
   const STORAGE_KEY = "iva_products";
+  const TOKEN_KEY  = "iva_gh_token";
+
+  /* GitHub API */
+  const GH_API = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`;
 
   /* ── State ── */
   let products = [];
   let editingId = null;
   let confirmCallback = null;
   let dragSrcIdx = null;
+  let ghToken = localStorage.getItem(TOKEN_KEY) || "";
+  let fileSha = null; // SHA текущего файла на GitHub (нужен для обновления)
 
   /* ── DOM ── */
   const $ = (s) => document.querySelector(s);
@@ -38,12 +44,13 @@
   const confirmOk     = $("#confirmOk");
   const confirmCancel = $("#confirmCancel");
   const toastEl       = $("#toast");
+  const syncStatus    = $("#syncStatus");
 
   /* ── Helpers ── */
   function toast(msg) {
     toastEl.textContent = msg;
     toastEl.classList.add("show");
-    setTimeout(() => toastEl.classList.remove("show"), 1800);
+    setTimeout(() => toastEl.classList.remove("show"), 2200);
   }
 
   function formatPrice(n) {
@@ -52,6 +59,13 @@
 
   function nextId() {
     return products.length ? Math.max(...products.map((p) => p.id)) + 1 : 1;
+  }
+
+  function setSyncStatus(text, color) {
+    if (syncStatus) {
+      syncStatus.textContent = text;
+      syncStatus.style.color = color || "var(--cream-dim)";
+    }
   }
 
   /* ── Auth ── */
@@ -80,25 +94,118 @@
     loginPass.value = "";
   }
 
-  function showPanel() {
+  async function showPanel() {
     loginScreen.classList.add("hidden");
     adminPanel.classList.add("visible");
-    loadProducts();
+
+    /* Проверяем токен */
+    if (!ghToken) {
+      promptToken();
+    }
+
+    await loadProducts();
     renderList();
   }
 
-  /* ── Data ── */
-  function loadProducts() {
+  /* ── GitHub Token ── */
+  function promptToken() {
+    const t = prompt(
+      "Введи GitHub Personal Access Token (ghp_...):\n\n" +
+      "Нужен для сохранения товаров на GitHub.\n" +
+      "Создай на: github.com/settings/tokens/new?scopes=repo"
+    );
+    if (t && t.trim().startsWith("ghp_")) {
+      ghToken = t.trim();
+      localStorage.setItem(TOKEN_KEY, ghToken);
+      toast("Токен сохранён");
+    } else if (t) {
+      toast("Неверный формат токена");
+    }
+  }
+
+  /* ── Data: Load from GitHub ── */
+  async function loadProducts() {
+    setSyncStatus("Загрузка...", "var(--gold)");
+    try {
+      /* Читаем через GitHub API (чтобы получить SHA) */
+      const res = await fetch(GH_API, {
+        headers: ghToken ? { "Authorization": `token ${ghToken}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        fileSha = data.sha;
+        const content = atob(data.content.replace(/\n/g, ""));
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed)) {
+          products = parsed;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+          setSyncStatus("Синхронизировано ✓", "var(--accent)");
+          return;
+        }
+      }
+    } catch (err) {
+      console.log("GitHub load error:", err);
+    }
+
+    /* Фолбэк — localStorage или дефолт */
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try { products = JSON.parse(stored); } catch { products = [..._DEFAULT_BOUQUETS]; }
     } else {
       products = [..._DEFAULT_BOUQUETS];
     }
+    setSyncStatus("Офлайн (локальные данные)", "var(--danger)");
   }
 
-  function saveProducts() {
+  /* ── Data: Save to GitHub ── */
+  async function saveProducts() {
+    /* Всегда сохраняем локально */
     localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+
+    /* Пушим на GitHub */
+    if (!ghToken) {
+      setSyncStatus("Нет токена — только локально", "var(--danger)");
+      toast("Сохранено локально (нет GitHub-токена)");
+      return;
+    }
+
+    setSyncStatus("Публикация...", "var(--gold)");
+
+    try {
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(products, null, 2))));
+
+      const body = {
+        message: "Обновление товаров из админки",
+        content: content,
+        branch: GITHUB_BRANCH,
+      };
+      if (fileSha) body.sha = fileSha;
+
+      const res = await fetch(GH_API, {
+        method: "PUT",
+        headers: {
+          "Authorization": `token ${ghToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        fileSha = data.content.sha;
+        setSyncStatus("Опубликовано ✓", "var(--accent)");
+        toast("Сохранено и опубликовано на сайт");
+      } else {
+        const err = await res.json();
+        console.error("GitHub save error:", err);
+        setSyncStatus("Ошибка публикации", "var(--danger)");
+        toast("Ошибка GitHub: " + (err.message || res.status));
+      }
+    } catch (err) {
+      console.error("GitHub save error:", err);
+      setSyncStatus("Ошибка сети", "var(--danger)");
+      toast("Сохранено локально, ошибка сети");
+    }
   }
 
   /* ── Render List ── */
@@ -187,7 +294,6 @@
           products.splice(targetIdx, 0, moved);
           saveProducts();
           renderList();
-          toast("Порядок изменён");
         }
       });
     });
@@ -245,7 +351,7 @@
     openModal();
   }
 
-  function handleFormSubmit(e) {
+  async function handleFormSubmit(e) {
     e.preventDefault();
 
     const sizes = [];
@@ -271,15 +377,13 @@
     if (editingId) {
       const idx = products.findIndex((p) => p.id === editingId);
       if (idx !== -1) products[idx] = data;
-      toast("Товар обновлён");
     } else {
       products.push(data);
-      toast("Товар добавлен");
     }
 
-    saveProducts();
-    renderList();
     closeModal();
+    renderList();
+    await saveProducts();
   }
 
   /* ── Delete ── */
@@ -295,11 +399,10 @@
 
   function confirmDelete(id) {
     const p = products.find((x) => x.id === id);
-    showConfirm(`Удалить «${p ? p.name : "товар"}»?`, () => {
+    showConfirm(`Удалить «${p ? p.name : "товар"}»?`, async () => {
       products = products.filter((x) => x.id !== id);
-      saveProducts();
       renderList();
-      toast("Товар удалён");
+      await saveProducts();
     });
   }
 
@@ -325,20 +428,9 @@
     }));
 
     const ws = XLSX.utils.json_to_sheet(rows);
-
-    /* Ширина колонок */
     ws["!cols"] = [
-      { wch: 5 },  // ID
-      { wch: 28 }, // Название
-      { wch: 10 }, // Цена
-      { wch: 10 }, // Остаток
-      { wch: 14 }, // Популярность
-      { wch: 14 }, // Категория
-      { wch: 14 }, // Категория_ID
-      { wch: 8 },  // Бейдж
-      { wch: 40 }, // Описание
-      { wch: 10 }, // Размеры
-      { wch: 60 }, // Фото
+      { wch: 5 }, { wch: 28 }, { wch: 10 }, { wch: 10 }, { wch: 14 },
+      { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 40 }, { wch: 10 }, { wch: 60 },
     ];
 
     const wb = XLSX.utils.book_new();
@@ -357,30 +449,22 @@
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
-        if (typeof XLSX === "undefined") {
-          toast("Ошибка: библиотека XLSX не загрузилась");
-          return;
-        }
+        if (typeof XLSX === "undefined") { toast("Ошибка: XLSX не загрузилась"); return; }
 
         const data = new Uint8Array(ev.target.result);
         const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws);
 
-        if (!rows.length) {
-          toast("Файл пустой");
-          return;
-        }
+        if (!rows.length) { toast("Файл пустой"); return; }
 
-        /* Маппинг колонок Excel → структура товара */
         const catMap = { "Букеты":"bouquets", "Розы":"roses", "Композиции":"compose", "Подарки":"gifts" };
 
-        const imported = rows.map((r, i) => {
+        products = rows.map((r, i) => {
           const sizesStr = (r["Размеры"] || "").toString().trim();
           const sizes = sizesStr ? sizesStr.split(",").map((s) => s.trim()).filter(Boolean) : null;
-
           return {
             id:       r["ID"] ? parseInt(r["ID"]) : i + 1,
             name:     (r["Название"] || "").toString().trim(),
@@ -395,10 +479,9 @@
           };
         });
 
-        products = imported;
-        saveProducts();
         renderList();
-        toast(`Импортировано ${imported.length} товаров`);
+        await saveProducts();
+        toast(`Импортировано ${products.length} товаров`);
       } catch (err) {
         console.error(err);
         toast("Ошибка чтения Excel");
@@ -409,12 +492,15 @@
   }
 
   function doReset() {
-    showConfirm("Сбросить все товары к исходным? Текущие изменения будут потеряны.", () => {
+    showConfirm("Сбросить все товары к исходным? Текущие изменения будут потеряны.", async () => {
       products = [..._DEFAULT_BOUQUETS];
-      saveProducts();
       renderList();
-      toast("Товары сброшены к исходным");
+      await saveProducts();
     });
+  }
+
+  function changeToken() {
+    promptToken();
   }
 
   /* ── Image preview ── */
@@ -448,10 +534,13 @@
   });
   confirmCancel.addEventListener("click", hideConfirm);
 
+  const tokenBtn = $("#tokenBtn");
+  if (tokenBtn) tokenBtn.addEventListener("click", changeToken);
+
   /* ── Init ── */
   checkAuth();
 
-  /* ── Public API (for inline onclick) ── */
+  /* ── Public API ── */
   window.adminApp = {
     editProduct: openEditForm,
     confirmDelete,

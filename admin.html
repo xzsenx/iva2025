@@ -401,7 +401,10 @@
     </header>
 
     <div class="toolbar">
-      <span class="toolbar__count" id="productCount"></span>
+      <div>
+        <span class="toolbar__count" id="productCount"></span>
+        <span id="syncStatus" style="font-size:12px;margin-left:10px"></span>
+      </div>
       <button class="btn btn--primary" id="addProductBtn">+ Добавить товар</button>
     </div>
 
@@ -410,6 +413,7 @@
       <button class="btn btn--outline btn--sm" id="importBtn">Импорт Excel</button>
       <input type="file" id="importFile" accept=".xlsx,.xls">
       <button class="btn btn--danger btn--sm" id="resetBtn">Сбросить к исходным</button>
+      <button class="btn btn--outline btn--sm" id="tokenBtn">Токен</button>
     </div>
 
     <div class="product-list" id="productList"></div>

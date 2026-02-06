@@ -59,22 +59,6 @@
     "img": "https://image2url.com/r2/default/images/1770413212673-d7c7e5dd-19fe-4405-b772-ff2230498101.png"
   },
   {
-    "id": 5,
-    "name": "Floré No.1",
-    "price": 6200,
-    "popular": 9,
-    "category": "roses",
-    "badge": "hit",
-    "desc": "",
-    "sizes": [
-      "S",
-      "M",
-      "L"
-    ],
-    "stock": 6,
-    "img": "https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=600&q=80"
-  },
-  {
     "id": 6,
     "name": "Soft Silence",
     "price": 2400,

@@ -9,7 +9,7 @@
     "desc": "",
     "sizes": null,
     "stock": 1,
-    "img": "https://image2url.com/r2/default/images/1770325854300-0b53e6a0-8ab9-4f71-98fe-1de754089448.png"
+    "img": "https://postimg.cc/yDw9cNRD"
   },
   {
     "id": 2,
@@ -44,7 +44,7 @@
   },
   {
     "id": 4,
-    "name": "Эстетика утра",
+    "name": "Ð­ÑÑÐµÑÐ¸ÐºÐ° ÑÑÑÐ°",
     "price": 3800,
     "popular": 8,
     "category": "bouquets",
@@ -60,7 +60,7 @@
   },
   {
     "id": 5,
-    "name": "Летний флекс",
+    "name": "ÐÐµÑÐ½Ð¸Ð¹ ÑÐ»ÐµÐºÑ",
     "price": 6200,
     "popular": 9,
     "category": "roses",
@@ -76,7 +76,7 @@
   },
   {
     "id": 6,
-    "name": "Белый минимал",
+    "name": "ÐÐµÐ»ÑÐ¹ Ð¼Ð¸Ð½Ð¸Ð¼Ð°Ð»",
     "price": 2400,
     "popular": 4,
     "category": "bouquets",
@@ -91,7 +91,7 @@
   },
   {
     "id": 7,
-    "name": "Сладкая классика",
+    "name": "Ð¡Ð»Ð°Ð´ÐºÐ°Ñ ÐºÐ»Ð°ÑÑÐ¸ÐºÐ°",
     "price": 5500,
     "popular": 6,
     "category": "compose",
@@ -106,7 +106,7 @@
   },
   {
     "id": 8,
-    "name": "Розовая тишина",
+    "name": "Ð Ð¾Ð·Ð¾Ð²Ð°Ñ ÑÐ¸ÑÐ¸Ð½Ð°",
     "price": 7200,
     "popular": 3,
     "category": "compose",
@@ -120,7 +120,7 @@
   },
   {
     "id": 9,
-    "name": "Мягкий свет",
+    "name": "ÐÑÐ³ÐºÐ¸Ð¹ ÑÐ²ÐµÑ",
     "price": 1800,
     "popular": 6,
     "category": "gifts",
@@ -132,7 +132,7 @@
   },
   {
     "id": 10,
-    "name": "Объятие весны",
+    "name": "ÐÐ±ÑÑÑÐ¸Ðµ Ð²ÐµÑÐ½Ñ",
     "price": 4900,
     "popular": 8,
     "category": "gifts",

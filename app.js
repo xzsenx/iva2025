@@ -119,6 +119,58 @@ const app = (() => {
   }
 
   /* ── Product Grid ── */
+  function getCartQty(productId) {
+    return cart
+      .filter((i) => i.id === productId)
+      .reduce((s, i) => s + i.qty, 0);
+  }
+
+  function cardBottomHTML(b) {
+    if (b.stock != null && b.stock <= 0) {
+      return `<div class="card__stock card__stock--out">Нет в наличии</div>`;
+    }
+    const qty = getCartQty(b.id);
+    const stockHTML = b.stock != null && b.stock <= 5
+      ? `<div class="card__stock card__stock--low">Осталось: ${b.stock}</div>` : "";
+    if (qty > 0) {
+      const maxReached = b.stock != null && qty >= b.stock;
+      return `${stockHTML}
+        <div class="card__qty">
+          <button class="card__qty-btn${qty === 1 ? " card__qty-btn--remove" : ""}"
+                  onclick="event.stopPropagation(); app.cardMinus(${b.id})">
+            ${qty === 1 ? "✕" : "−"}
+          </button>
+          <span class="card__qty-num">${qty}</span>
+          <button class="card__qty-btn${maxReached ? " card__qty-btn--disabled" : ""}"
+                  onclick="event.stopPropagation(); app.cardPlus(${b.id})"
+                  ${maxReached ? "disabled" : ""}>+</button>
+        </div>`;
+    }
+    return `${stockHTML}
+      <button class="card__add-btn" onclick="event.stopPropagation(); app.quickAdd(${b.id})">
+        В корзину
+      </button>`;
+  }
+
+  function updateCardBottom(id) {
+    const b = BOUQUETS.find((x) => x.id === id);
+    if (!b) return;
+    const card = els.grid.querySelector(`.card[data-id="${id}"]`);
+    if (!card) return;
+    const info = card.querySelector(".card__info");
+    // Remove old bottom (qty counter or add-btn or stock-out)
+    const oldQty = info.querySelector(".card__qty");
+    const oldBtn = info.querySelector(".card__add-btn");
+    const oldStock = info.querySelector(".card__stock");
+    if (oldQty) oldQty.remove();
+    if (oldBtn) oldBtn.remove();
+    if (oldStock) oldStock.remove();
+    // Insert new bottom
+    const temp = document.createElement("div");
+    temp.innerHTML = cardBottomHTML(b);
+    while (temp.firstChild) info.appendChild(temp.firstChild);
+  }
+
   function renderGrid() {
     const list = getFilteredList();
 
@@ -139,12 +191,7 @@ const app = (() => {
         <div class="card__info">
           <div class="card__name">${b.name}</div>
           <div class="card__price">${formatPrice(b.price)}</div>
-          ${b.stock != null && b.stock <= 0
-            ? `<div class="card__stock card__stock--out">Нет в наличии</div>`
-            : `${b.stock != null && b.stock <= 5 ? `<div class="card__stock card__stock--low">Осталось: ${b.stock}</div>` : ""}
-          <button class="card__add-btn" onclick="event.stopPropagation(); app.quickAdd(${b.id})">
-            В корзину
-          </button>`}
+          ${cardBottomHTML(b)}
         </div>
       </div>`
       )
@@ -239,16 +286,49 @@ const app = (() => {
     const size = b.sizes ? b.sizes[0] : null;
     addItemToCart(id, size);
     toast("Добавлено в корзину");
+    updateCardBottom(id);
+  }
+
+  function cardPlus(id) {
+    const b = BOUQUETS.find((x) => x.id === id);
+    if (!b) return;
+    const size = b.sizes ? b.sizes[0] : null;
+    addItemToCart(id, size);
+    updateCardBottom(id);
+  }
+
+  function cardMinus(id) {
+    const b = BOUQUETS.find((x) => x.id === id);
+    if (!b) return;
+    const size = b.sizes ? b.sizes[0] : null;
+    const key = `${id}_${size || ""}`;
+    const item = cart.find((i) => i.key === key);
+    if (!item) return;
+    item.qty--;
+    if (item.qty <= 0) {
+      cart = cart.filter((i) => i.key !== key);
+    }
+    saveCart();
+    updateCardBottom(id);
   }
 
   function addToCart() {
     if (!currentProduct) return;
-    addItemToCart(currentProduct.id, selectedSize);
+    if (addItemToCart(currentProduct.id, selectedSize) === false) return;
     toast("Добавлено в корзину");
     showCatalog();
   }
 
   function addItemToCart(id, size) {
+    const b = BOUQUETS.find((x) => x.id === id);
+    /* Проверяем лимит по stock */
+    if (b && b.stock != null) {
+      const totalInCart = getCartQty(id);
+      if (totalInCart >= b.stock) {
+        toast("Максимум: " + b.stock + " шт.");
+        return false;
+      }
+    }
     const key = `${id}_${size || ""}`;
     const existing = cart.find((i) => i.key === key);
     if (existing) {
@@ -257,17 +337,57 @@ const app = (() => {
       cart.push({ key, id, size, qty: 1 });
     }
     saveCart();
+    return true;
   }
 
   function changeQty(key, delta) {
     const item = cart.find((i) => i.key === key);
     if (!item) return;
+
+    /* Проверка stock при увеличении */
+    if (delta > 0) {
+      const b = BOUQUETS.find((x) => x.id === item.id);
+      if (b && b.stock != null && getCartQty(item.id) >= b.stock) {
+        toast("Максимум: " + b.stock + " шт.");
+        return;
+      }
+    }
+
     item.qty += delta;
     if (item.qty <= 0) {
       cart = cart.filter((i) => i.key !== key);
+      saveCart();
+      renderCart();
+      return;
     }
     saveCart();
-    renderCart();
+    updateCartItem(key);
+  }
+
+  function updateCartItem(key) {
+    const item = cart.find((i) => i.key === key);
+    if (!item) return;
+    const b = BOUQUETS.find((x) => x.id === item.id);
+    if (!b) return;
+
+    const row = els.cartBody.querySelector(`.cart-item[data-key="${key}"]`);
+    if (!row) { renderCart(); return; }
+
+    row.querySelector(".cart-item__price").textContent = formatPrice(b.price * item.qty);
+    row.querySelector(".cart-item__qty").textContent = item.qty;
+
+    const minusBtn = row.querySelector(".qty-btn:last-child");
+    if (item.qty === 1) {
+      minusBtn.classList.add("qty-btn--remove");
+      minusBtn.innerHTML = "✕";
+    } else {
+      minusBtn.classList.remove("qty-btn--remove");
+      minusBtn.innerHTML = "−";
+    }
+
+    /* Обновляем итого */
+    const totalEl = els.cartFooter.querySelector(".cart-total__sum");
+    if (totalEl) totalEl.textContent = formatPrice(cartTotal());
   }
 
   /* ── Cart Screen ── */
@@ -275,7 +395,13 @@ const app = (() => {
     if (cart.length === 0) {
       els.cartBody.innerHTML = `
         <div class="cart-empty">
-          <div class="cart-empty__icon">🛒</div>
+          <div class="cart-empty__icon">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+          </div>
           <div class="cart-empty__text">Корзина пуста</div>
         </div>`;
       els.cartFooter.innerHTML = "";
@@ -287,7 +413,7 @@ const app = (() => {
         const b = BOUQUETS.find((x) => x.id === item.id);
         if (!b) return "";
         return `
-        <div class="cart-item">
+        <div class="cart-item" data-key="${item.key}">
           <img class="cart-item__img" src="${b.img}" alt="${b.name}">
           <div class="cart-item__info">
             <div class="cart-item__name">${b.name}</div>
@@ -403,10 +529,26 @@ const app = (() => {
     showScreen("catalog");
   }
 
+  /* ── Promo Banner ── */
+  function loadPromo() {
+    const saved = localStorage.getItem("iva_promo");
+    if (saved) {
+      try {
+        const p = JSON.parse(saved);
+        const el = (id) => document.getElementById(id);
+        if (p.emoji) el("promoEmoji").textContent = p.emoji;
+        if (p.title) el("promoTitle").textContent = p.title;
+        if (p.text)  el("promoText").textContent = p.text;
+        if (p.hidden) el("promoBanner").style.display = "none";
+      } catch {}
+    }
+  }
+
   /* ── Init ── */
   async function init() {
     renderCategories();
     updateCartBadge();
+    loadPromo();
 
     /* Загружаем товары с GitHub Pages, потом перерисовываем */
     await fetchProducts();
@@ -427,6 +569,8 @@ const app = (() => {
     showCart,
     showCheckout,
     quickAdd,
+    cardPlus,
+    cardMinus,
     addToCart,
     selectSize,
     changeQty,

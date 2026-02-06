@@ -515,13 +515,44 @@
     }
   }
 
+  /* ── Promo Banner ── */
+  const promoEmojiInput = $("#promoEmoji");
+  const promoTitleInput = $("#promoTitle");
+  const promoTextInput  = $("#promoText");
+  const promoSaveBtn    = $("#promoSaveBtn");
+
+  function loadPromo() {
+    const saved = localStorage.getItem("iva_promo");
+    if (saved) {
+      try {
+        const p = JSON.parse(saved);
+        if (p.emoji) promoEmojiInput.value = p.emoji;
+        if (p.title) promoTitleInput.value = p.title;
+        if (p.text)  promoTextInput.value  = p.text;
+      } catch {}
+    }
+  }
+
+  function savePromo() {
+    const data = {
+      emoji: promoEmojiInput.value.trim(),
+      title: promoTitleInput.value.trim(),
+      text:  promoTextInput.value.trim(),
+    };
+    localStorage.setItem("iva_promo", JSON.stringify(data));
+    toast("Промо-баннер сохранён");
+  }
+
+  promoSaveBtn.addEventListener("click", savePromo);
+  loadPromo();
+
   /* ── Event Listeners ── */
   loginBtn.addEventListener("click", doLogin);
   loginPass.addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
   logoutBtn.addEventListener("click", doLogout);
   addProductBtn.addEventListener("click", openAddForm);
   modalClose.addEventListener("click", closeModal);
-  modalOverlay.addEventListener("click", (e) => { if (e.target === modalOverlay) closeModal(); });
+  modalOverlay.addEventListener("mousedown", (e) => { if (e.target === modalOverlay) closeModal(); });
   productForm.addEventListener("submit", handleFormSubmit);
   imgInput.addEventListener("input", updateImgPreview);
   exportBtn.addEventListener("click", doExport);

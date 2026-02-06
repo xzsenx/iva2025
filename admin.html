@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>IVA — Админ-панель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     /* ── Переменные (те же, что и в витрине) ── */
     :root {
@@ -20,12 +23,14 @@
       --radius:    14px;
       --radius-sm: 10px;
       --transition: .25s cubic-bezier(.4,0,.2,1);
+      --font-serif: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+      --font-sans:  'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
     *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      font-family: var(--font-sans);
       background: var(--bg);
       color: var(--cream);
       min-height: 100vh;
@@ -42,7 +47,7 @@
       padding: 40px 20px;
     }
     .login-screen.hidden { display:none; }
-    .login-logo { font-size:32px; font-weight:800; letter-spacing:3px; margin-bottom:6px; }
+    .login-logo { font-family:var(--font-serif); font-size:34px; font-weight:700; letter-spacing:4px; margin-bottom:6px; }
     .login-sub  { font-size:13px; color:var(--cream-dim); margin-bottom:32px; }
     .login-box {
       width: 100%;
@@ -78,7 +83,7 @@
       background: var(--bg);
     }
     .admin-header__left { display:flex; align-items:center; gap:12px; }
-    .admin-header__logo { font-size:20px; font-weight:800; letter-spacing:2px; }
+    .admin-header__logo { font-family:var(--font-serif); font-size:22px; font-weight:700; letter-spacing:3px; }
     .admin-header__tag {
       font-size: 11px;
       background: var(--pink);
@@ -179,7 +184,7 @@
       gap: 10px;
       flex-wrap: wrap;
     }
-    .product-row__price { color:var(--pink-light); font-weight:600; }
+    .product-row__price { color:var(--pink-light); font-weight:600; letter-spacing:.3px; }
     .product-row__actions { display:flex; gap:6px; flex-shrink:0; }
 
     .badge-sm {
@@ -228,7 +233,7 @@
       justify-content: space-between;
       margin-bottom: 20px;
     }
-    .modal__title { font-size:18px; font-weight:700; }
+    .modal__title { font-family:var(--font-serif); font-size:20px; font-weight:700; }
     .modal__close {
       background: none; border:none; color:var(--cream-dim);
       font-size: 24px; cursor:pointer; padding:4px;
@@ -377,7 +382,7 @@
 
   <!-- ====== LOGIN ====== -->
   <div class="login-screen" id="loginScreen">
-    <div class="login-logo">IVA</div>
+    <div class="login-logo">ИВА</div>
     <div class="login-sub">Админ-панель</div>
     <div class="login-box">
       <input type="password" id="loginPass" placeholder="Пароль" autofocus>
@@ -391,7 +396,7 @@
 
     <header class="admin-header">
       <div class="admin-header__left">
-        <span class="admin-header__logo">IVA</span>
+        <span class="admin-header__logo">ИВА</span>
         <span class="admin-header__tag">Админ</span>
       </div>
       <div class="admin-header__actions">
@@ -414,6 +419,30 @@
       <input type="file" id="importFile" accept=".xlsx,.xls">
       <button class="btn btn--danger btn--sm" id="resetBtn">Сбросить к исходным</button>
       <button class="btn btn--outline btn--sm" id="tokenBtn">Токен</button>
+    </div>
+
+    <!-- Promo editor -->
+    <div style="padding:0 20px 16px;">
+      <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:14px;font-weight:600">Промо-баннер</span>
+          <button class="btn btn--outline btn--sm" id="promoSaveBtn">Сохранить</button>
+        </div>
+        <div class="field-row">
+          <label class="field" style="flex:0 0 70px">
+            <span class="field__label">Эмоджи</span>
+            <input type="text" id="promoEmoji" value="🌿" maxlength="4" style="text-align:center">
+          </label>
+          <label class="field">
+            <span class="field__label">Заголовок</span>
+            <input type="text" id="promoTitle" value="Букет дня">
+          </label>
+        </div>
+        <label class="field" style="margin-bottom:0">
+          <span class="field__label">Описание</span>
+          <input type="text" id="promoText" value="Нежный минимал — сегодня со скидкой">
+        </label>
+      </div>
     </div>
 
     <div class="product-list" id="productList"></div>

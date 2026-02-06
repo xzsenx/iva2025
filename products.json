@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "name": "Авторский букет с нотками Нового Года",
+    "name": "Нежный рассвет",
     "price": 6890,
     "popular": 1,
     "category": "bouquets",
@@ -13,7 +13,7 @@
   },
   {
     "id": 2,
-    "name": "Букет из роз Эсклорер",
+    "name": "ÐÑÐºÐµÑ Ð¸Ð· ÑÐ¾Ð· Ð­ÑÐºÐ»Ð¾ÑÐµÑ",
     "price": 2490,
     "popular": 2,
     "category": "roses",
@@ -29,7 +29,7 @@
   },
   {
     "id": 3,
-    "name": "Букет 2",
+    "name": "ÐÑÐºÐµÑ 2",
     "price": 4500,
     "popular": 7,
     "category": "bouquets",
@@ -44,7 +44,7 @@
   },
   {
     "id": 4,
-    "name": "Букет 3",
+    "name": "ÐÑÐºÐµÑ 3",
     "price": 3800,
     "popular": 8,
     "category": "bouquets",
@@ -60,7 +60,7 @@
   },
   {
     "id": 5,
-    "name": "Букет 4",
+    "name": "ÐÑÐºÐµÑ 4",
     "price": 6200,
     "popular": 9,
     "category": "roses",
@@ -76,7 +76,7 @@
   },
   {
     "id": 6,
-    "name": "Букет 5",
+    "name": "ÐÑÐºÐµÑ 5",
     "price": 2400,
     "popular": 4,
     "category": "bouquets",
@@ -91,7 +91,7 @@
   },
   {
     "id": 7,
-    "name": "Букет 6",
+    "name": "ÐÑÐºÐµÑ 6",
     "price": 5500,
     "popular": 6,
     "category": "compose",
@@ -106,7 +106,7 @@
   },
   {
     "id": 8,
-    "name": "Букет 7",
+    "name": "ÐÑÐºÐµÑ 7",
     "price": 7200,
     "popular": 3,
     "category": "compose",
@@ -120,7 +120,7 @@
   },
   {
     "id": 9,
-    "name": "Букет 8",
+    "name": "ÐÑÐºÐµÑ 8",
     "price": 1800,
     "popular": 6,
     "category": "gifts",
@@ -132,7 +132,7 @@
   },
   {
     "id": 10,
-    "name": "Букет 9",
+    "name": "ÐÑÐºÐµÑ 9",
     "price": 4900,
     "popular": 8,
     "category": "gifts",

@@ -105,20 +105,6 @@
     "img": "https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=600&q=80"
   },
   {
-    "id": 8,
-    "name": "Petal Theory",
-    "price": 7200,
-    "popular": 3,
-    "category": "compose",
-    "badge": "season",
-    "desc": "",
-    "sizes": [
-      "L"
-    ],
-    "stock": 3,
-    "img": "https://images.unsplash.com/photo-1471696035578-3d8c78d99571?w=600&q=80"
-  },
-  {
     "id": 9,
     "name": "Floral State",
     "price": 1800,

@@ -41,7 +41,10 @@ const app = (() => {
   if (tg) {
     tg.ready();
     tg.expand();
-    // Можно использовать tg.themeParams для адаптации цветов
+    try {
+      tg.setHeaderColor("#3D4F4C");
+      tg.setBackgroundColor("#3D4F4C");
+    } catch {}
   }
 
   /* ── Toast ── */
@@ -67,10 +70,20 @@ const app = (() => {
   }
 
   /* ── Navigation ── */
+  let catalogScrollY = 0;
+
   function showScreen(name) {
+    /* Запоминаем скролл каталога перед уходом */
+    if (screens.catalog.classList.contains("active") && name !== "catalog") {
+      catalogScrollY = window.scrollY;
+    }
     Object.values(screens).forEach((s) => s.classList.remove("active"));
     screens[name].classList.add("active");
-    window.scrollTo(0, 0);
+    if (name === "catalog") {
+      window.scrollTo(0, catalogScrollY);
+    } else {
+      window.scrollTo(0, 0);
+    }
   }
 
   /* ── Categories ── */
@@ -316,6 +329,7 @@ const app = (() => {
     if (!currentProduct) return;
     if (addItemToCart(currentProduct.id, selectedSize) === false) return;
     toast("Добавлено в корзину");
+    updateCardBottom(currentProduct.id);
     showCatalog();
   }
 
@@ -353,15 +367,18 @@ const app = (() => {
       }
     }
 
+    const productId = item.id;
     item.qty += delta;
     if (item.qty <= 0) {
       cart = cart.filter((i) => i.key !== key);
       saveCart();
       renderCart();
+      updateCardBottom(productId);
       return;
     }
     saveCart();
     updateCartItem(key);
+    updateCardBottom(productId);
   }
 
   function updateCartItem(key) {

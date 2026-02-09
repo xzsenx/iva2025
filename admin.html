@@ -460,6 +460,17 @@
       <button class="btn btn--outline btn--sm" id="tokenBtn">Токен</button>
     </div>
 
+    <!-- Token editor (hidden by default) -->
+    <div style="padding:0 20px 12px;display:none" id="tokenPanel">
+      <div style="background:var(--bg-card);border-radius:var(--radius);padding:14px 16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
+        <div style="font-size:12px;font-weight:600;color:var(--cream-dim);margin-bottom:6px">GitHub Token</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="tokenInput" placeholder="ghp_... или github_pat_..." style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--cream);font-family:monospace;width:100%">
+          <button class="btn btn--primary btn--sm" id="tokenSaveBtn" style="flex-shrink:0">Сохранить</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Promo editor -->
     <div style="padding:0 20px 16px;">
       <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">

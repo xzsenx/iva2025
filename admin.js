@@ -139,17 +139,28 @@
   }
 
   function promptToken() {
-    const t = prompt(
-      "Введи GitHub Personal Access Token:\n\n" +
-      "Классический: ghp_...\nFine-grained: github_pat_...\n\n" +
-      "Создай на: github.com/settings/tokens"
-    );
-    if (t && (t.trim().startsWith("ghp_") || t.trim().startsWith("github_pat_"))) {
-      ghToken = t.trim();
+    /* Показываем панель токена */
+    const panel = $("#tokenPanel");
+    const input = $("#tokenInput");
+    if (panel) {
+      panel.style.display = "block";
+      if (input) { input.value = ghToken || ""; input.focus(); }
+    }
+  }
+
+  function saveToken() {
+    const input = $("#tokenInput");
+    const panel = $("#tokenPanel");
+    const t = input ? input.value.trim() : "";
+    if (t && (t.startsWith("ghp_") || t.startsWith("github_pat_"))) {
+      ghToken = t;
       localStorage.setItem(TOKEN_KEY, ghToken);
+      if (panel) panel.style.display = "none";
       toast("Токен сохранён");
     } else if (t) {
-      toast("Неверный формат токена (нужен ghp_... или github_pat_...)");
+      toast("Нужен ghp_... или github_pat_...");
+    } else {
+      if (panel) panel.style.display = "none";
     }
   }
 
@@ -520,10 +531,6 @@
     });
   }
 
-  function changeToken() {
-    promptToken();
-  }
-
   /* ── Image preview ── */
   function updateImgPreview() {
     const url = imgInput.value.trim();
@@ -665,7 +672,11 @@
   confirmCancel.addEventListener("click", hideConfirm);
 
   const tokenBtn = $("#tokenBtn");
-  if (tokenBtn) tokenBtn.addEventListener("click", changeToken);
+  if (tokenBtn) tokenBtn.addEventListener("click", promptToken);
+  const tokenSaveBtn = $("#tokenSaveBtn");
+  if (tokenSaveBtn) tokenSaveBtn.addEventListener("click", saveToken);
+  const tokenInput = $("#tokenInput");
+  if (tokenInput) tokenInput.addEventListener("keydown", (e) => { if (e.key === "Enter") saveToken(); });
   const addCatBtn = $("#addCatBtn");
   if (addCatBtn) addCatBtn.addEventListener("click", addCategory);
   const newCatInput = $("#newCatInput");

@@ -367,6 +367,12 @@
     }
     #importFile { display:none; }
 
+    /* ── Promo fields fix ── */
+    .field input,
+    .field textarea,
+    .field select { max-width:100%; }
+    .field-row { min-width:0; }
+
     /* ── Responsive ── */
     @media (min-width: 600px) {
       .modal {
@@ -423,24 +429,24 @@
 
     <!-- Promo editor -->
     <div style="padding:0 20px 16px;">
-      <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06)">
+      <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <span style="font-size:14px;font-weight:600">Промо-баннер</span>
           <button class="btn btn--outline btn--sm" id="promoSaveBtn">Сохранить</button>
         </div>
         <div class="field-row">
-          <label class="field" style="flex:0 0 70px">
+          <label class="field" style="flex:0 0 70px;min-width:0">
             <span class="field__label">Эмоджи</span>
-            <input type="text" id="promoEmoji" value="🌿" maxlength="4" style="text-align:center">
+            <input type="text" id="promoEmoji" value="🌿" maxlength="4" style="text-align:center;width:100%">
           </label>
-          <label class="field">
+          <label class="field" style="min-width:0">
             <span class="field__label">Заголовок</span>
-            <input type="text" id="promoTitle" value="Букет дня">
+            <input type="text" id="promoTitle" value="Букет дня" style="width:100%">
           </label>
         </div>
         <label class="field" style="margin-bottom:0">
           <span class="field__label">Описание</span>
-          <input type="text" id="promoText" value="Нежный минимал — сегодня со скидкой">
+          <input type="text" id="promoText" value="Нежный минимал — сегодня со скидкой" style="width:100%">
         </label>
       </div>
     </div>

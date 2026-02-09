@@ -116,6 +116,12 @@
   }
 
   /* ── GitHub Token ── */
+  function authHeader() {
+    if (!ghToken) return {};
+    const prefix = ghToken.startsWith("github_pat_") ? "Bearer" : "token";
+    return { "Authorization": `${prefix} ${ghToken}` };
+  }
+
   function promptToken() {
     const t = prompt(
       "Введи GitHub Personal Access Token:\n\n" +
@@ -137,7 +143,7 @@
     try {
       /* Читаем через GitHub API (чтобы получить SHA) */
       const res = await fetch(GH_API, {
-        headers: ghToken ? { "Authorization": `token ${ghToken}` } : {},
+        headers: authHeader(),
       });
       if (res.ok) {
         const data = await res.json();
@@ -186,7 +192,7 @@
       /* Получаем актуальный SHA перед записью (избегаем 409 Conflict) */
       try {
         const shaRes = await fetch(GH_API, {
-          headers: { "Authorization": `token ${ghToken}` },
+          headers: authHeader(),
         });
         if (shaRes.ok) {
           const shaData = await shaRes.json();
@@ -206,7 +212,7 @@
       const res = await fetch(GH_API, {
         method: "PUT",
         headers: {
-          "Authorization": `token ${ghToken}`,
+          ...authHeader(),
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),

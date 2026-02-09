@@ -68,11 +68,23 @@
     }
   }
 
-  /* ── Auth (24h persistent) ── */
+  /* ── Auth (24h persistent via localStorage + cookie fallback) ── */
   const AUTH_KEY = "iva_admin_auth";
   const AUTH_TTL = 24 * 60 * 60 * 1000; // 24 часа
 
+  function setAuthCookie() {
+    const expires = new Date(Date.now() + AUTH_TTL).toUTCString();
+    document.cookie = `${AUTH_KEY}=1; expires=${expires}; path=/; SameSite=Lax`;
+  }
+  function getAuthCookie() {
+    return document.cookie.split("; ").some(c => c.startsWith(AUTH_KEY + "="));
+  }
+  function clearAuthCookie() {
+    document.cookie = `${AUTH_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+  }
+
   function checkAuth() {
+    /* Проверяем localStorage */
     const saved = localStorage.getItem(AUTH_KEY);
     if (saved) {
       try {
@@ -81,11 +93,14 @@
       } catch {}
       localStorage.removeItem(AUTH_KEY);
     }
+    /* Фолбэк — cookie (если localStorage очистился, напр. в WebView) */
+    if (getAuthCookie()) { showPanel(); return; }
   }
 
   function doLogin() {
     if (loginPass.value === ADMIN_PASS) {
       localStorage.setItem(AUTH_KEY, JSON.stringify({ ts: Date.now() }));
+      setAuthCookie();
       loginError.style.display = "none";
       showPanel();
     } else {
@@ -97,6 +112,7 @@
 
   function doLogout() {
     localStorage.removeItem(AUTH_KEY);
+    clearAuthCookie();
     adminPanel.classList.remove("visible");
     loginScreen.classList.remove("hidden");
     loginPass.value = "";

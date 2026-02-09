@@ -28,6 +28,18 @@
     "img": "https://image2url.com/r2/default/images/1770412978721-0a5843d1-19fc-43fe-b559-0d6424fb2892.png"
   },
   {
+    "id": 10,
+    "name": "ÃÂÃÂlite Flora",
+    "price": 4900,
+    "popular": 8,
+    "category": "gifts",
+    "badge": "hit",
+    "desc": "",
+    "sizes": null,
+    "stock": 10,
+    "img": "https://image2url.com/r2/default/images/1770413312741-e8975073-397b-413e-b7e1-fea29907af43.png"
+  },
+  {
     "id": 3,
     "name": "Ivory Touch",
     "price": 4500,
@@ -99,17 +111,5 @@
     "sizes": null,
     "stock": 30,
     "img": "https://image2url.com/r2/default/images/1770413253968-57670f53-5264-436a-bf29-770b5dd40a4b.png"
-  },
-  {
-    "id": 10,
-    "name": "ÃÂlite Flora",
-    "price": 4900,
-    "popular": 8,
-    "category": "gifts",
-    "badge": "hit",
-    "desc": "",
-    "sizes": null,
-    "stock": 10,
-    "img": "https://image2url.com/r2/default/images/1770413312741-e8975073-397b-413e-b7e1-fea29907af43.png"
   }
 ]

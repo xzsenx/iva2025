@@ -1,12 +1,25 @@
 /* ======  IVA — каталог товаров  ====== */
 
-const CATEGORIES = [
-  { id: "all",       name: "Все"          },
+const _DEFAULT_CATEGORIES = [
   { id: "bouquets",  name: "Букеты"       },
   { id: "roses",     name: "Розы"         },
   { id: "compose",   name: "Композиции"   },
   { id: "gifts",     name: "Подарки"      },
 ];
+
+/* Категории: загружаем из localStorage или дефолтные */
+let CATEGORIES = (function() {
+  const saved = localStorage.getItem("iva_categories");
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length) {
+        return [{ id: "all", name: "Все" }, ...parsed];
+      }
+    } catch {}
+  }
+  return [{ id: "all", name: "Все" }, ..._DEFAULT_CATEGORIES];
+})();
 
 /* ── Конфиг: GitHub-репозиторий ── */
 const GITHUB_OWNER = "xzsenx";

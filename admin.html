@@ -155,13 +155,28 @@
       border-color: var(--pink);
       box-shadow: 0 0 0 2px rgba(201,164,160,.3);
     }
-    .product-row__drag {
-      color: var(--cream-dim);
-      font-size: 18px;
-      cursor: grab;
+    .product-row__order {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
       flex-shrink: 0;
-      user-select: none;
     }
+    .btn-arrow {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.1);
+      color: var(--cream-dim);
+      font-size: 10px;
+      width: 26px;
+      height: 22px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-arrow:active { background: var(--pink); color:#fff; }
+    .btn-arrow:disabled { opacity:.2; cursor:default; }
     .product-row__img {
       width: 56px; height: 56px;
       border-radius: 10px;
@@ -367,6 +382,24 @@
     }
     #importFile { display:none; }
 
+    /* ── Category list ── */
+    .cat-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .cat-row:last-child { border-bottom:none; }
+    .cat-row__id { font-size:11px; color:var(--cream-dim); min-width:70px; }
+    .cat-row__name { flex:1; font-size:14px; font-weight:500; }
+    .cat-row__del {
+      background:none; border:none; color:var(--danger);
+      font-size:16px; cursor:pointer; padding:4px 8px;
+      border-radius:6px; transition:var(--transition);
+    }
+    .cat-row__del:active { background:rgba(201,112,112,.15); }
+
     /* ── Promo fields fix ── */
     .field input,
     .field textarea,
@@ -451,6 +484,17 @@
       </div>
     </div>
 
+    <!-- Category editor -->
+    <div style="padding:0 20px 16px;">
+      <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:14px;font-weight:600">Категории</span>
+          <button class="btn btn--outline btn--sm" id="addCatBtn">+ Добавить</button>
+        </div>
+        <div id="catList"></div>
+      </div>
+    </div>
+
     <div class="product-list" id="productList"></div>
   </div>
 
@@ -490,12 +534,7 @@
         <div class="field-row">
           <label class="field">
             <span class="field__label">Категория</span>
-            <select name="category" id="fCategory">
-              <option value="bouquets">Букеты</option>
-              <option value="roses">Розы</option>
-              <option value="compose">Композиции</option>
-              <option value="gifts">Подарки</option>
-            </select>
+            <select name="category" id="fCategory"></select>
           </label>
           <label class="field">
             <span class="field__label">Бейдж</span>

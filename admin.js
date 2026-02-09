@@ -14,7 +14,6 @@
   let products = [];
   let editingId = null;
   let confirmCallback = null;
-  let dragSrcIdx = null;
   let ghToken = localStorage.getItem(TOKEN_KEY) || "";
   let fileSha = null; // SHA текущего файла на GitHub (нужен для обновления)
 
@@ -128,6 +127,7 @@
     }
 
     await loadProducts();
+    renderCatList();
     renderList();
   }
 
@@ -267,8 +267,11 @@
     productList.innerHTML = products
       .map(
         (p, idx) => `
-      <div class="product-row" draggable="true" data-idx="${idx}">
-        <span class="product-row__drag">⠿</span>
+      <div class="product-row" data-idx="${idx}">
+        <div class="product-row__order">
+          <button class="btn-arrow" onclick="adminApp.moveProduct(${idx},-1)" ${idx === 0 ? "disabled" : ""}>▲</button>
+          <button class="btn-arrow" onclick="adminApp.moveProduct(${idx},1)" ${idx === products.length - 1 ? "disabled" : ""}>▼</button>
+        </div>
         <img class="product-row__img" src="${p.img}" alt="${p.name}"
              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2256%22 height=%2256%22><rect fill=%22%234A5E5A%22 width=%2256%22 height=%2256%22/><text x=%2228%22 y=%2232%22 text-anchor=%22middle%22 fill=%22%23EDE6DA%22 font-size=%2220%22>🌸</text></svg>'">
         <div class="product-row__info">
@@ -287,13 +290,11 @@
       </div>`
       )
       .join("");
-
-    setupDragDrop();
   }
 
   function categoryName(id) {
-    const map = { bouquets:"Букеты", roses:"Розы", compose:"Композиции", gifts:"Подарки" };
-    return map[id] || id;
+    const cat = categories.find(c => c.id === id);
+    return cat ? cat.name : id;
   }
 
   function badgeTag(badge) {
@@ -309,38 +310,13 @@
     return `<span style="color:var(--accent)">${stock} шт.</span>`;
   }
 
-  /* ── Drag & Drop ── */
-  function setupDragDrop() {
-    const rows = productList.querySelectorAll(".product-row");
-    rows.forEach((row) => {
-      row.addEventListener("dragstart", (e) => {
-        dragSrcIdx = parseInt(row.dataset.idx);
-        row.classList.add("dragging");
-        e.dataTransfer.effectAllowed = "move";
-      });
-      row.addEventListener("dragend", () => {
-        row.classList.remove("dragging");
-        rows.forEach((r) => r.classList.remove("drag-over"));
-      });
-      row.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        row.classList.add("drag-over");
-      });
-      row.addEventListener("dragleave", () => {
-        row.classList.remove("drag-over");
-      });
-      row.addEventListener("drop", (e) => {
-        e.preventDefault();
-        const targetIdx = parseInt(row.dataset.idx);
-        if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
-          const [moved] = products.splice(dragSrcIdx, 1);
-          products.splice(targetIdx, 0, moved);
-          saveProducts();
-          renderList();
-        }
-      });
-    });
+  /* ── Reorder (up/down buttons) ── */
+  async function moveProduct(idx, dir) {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= products.length) return;
+    [products[idx], products[newIdx]] = [products[newIdx], products[idx]];
+    renderList();
+    await saveProducts();
   }
 
   /* ── Modal ── */
@@ -504,7 +480,8 @@
 
         if (!rows.length) { toast("Файл пустой"); return; }
 
-        const catMap = { "Букеты":"bouquets", "Розы":"roses", "Композиции":"compose", "Подарки":"gifts" };
+        const catMap = {};
+        categories.forEach(c => { catMap[c.name] = c.id; });
 
         products = rows.map((r, i) => {
           const sizesStr = (r["Размеры"] || "").toString().trim();
@@ -559,6 +536,82 @@
     }
   }
 
+  /* ── Categories ── */
+  const CAT_KEY = "iva_categories";
+  let categories = []; // без "all"
+
+  function loadCategories() {
+    const saved = localStorage.getItem(CAT_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length) { categories = parsed; return; }
+      } catch {}
+    }
+    categories = [..._DEFAULT_CATEGORIES];
+  }
+
+  function saveCategories() {
+    localStorage.setItem(CAT_KEY, JSON.stringify(categories));
+    /* Обновляем глобальный CATEGORIES для витрины */
+    CATEGORIES = [{ id: "all", name: "Все" }, ...categories];
+  }
+
+  function renderCatList() {
+    const catList = $("#catList");
+    if (!catList) return;
+    catList.innerHTML = categories.map((c, i) => `
+      <div class="cat-row">
+        <span class="cat-row__id">${c.id}</span>
+        <span class="cat-row__name">${c.name}</span>
+        <button class="cat-row__del" onclick="adminApp.deleteCat(${i})" title="Удалить">✕</button>
+      </div>
+    `).join("");
+    updateCategorySelect();
+  }
+
+  function updateCategorySelect() {
+    const sel = $("#fCategory");
+    if (!sel) return;
+    const val = sel.value;
+    sel.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+    if (val) sel.value = val;
+  }
+
+  function addCategory() {
+    const name = prompt("Название категории (на русском):");
+    if (!name || !name.trim()) return;
+    const tr = {"а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"yo","ж":"zh","з":"z","и":"i","й":"j","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"h","ц":"ts","ч":"ch","ш":"sh","щ":"sch","ъ":"","ы":"y","ь":"","э":"e","ю":"yu","я":"ya"};
+    const id = name.trim().toLowerCase()
+      .split("").map(ch => tr[ch] !== undefined ? tr[ch] : ch).join("")
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
+    if (!id) { toast("Не удалось создать ID"); return; }
+    if (categories.some(c => c.id === id)) { toast("Категория уже существует"); return; }
+    categories.push({ id, name: name.trim() });
+    saveCategories();
+    renderCatList();
+    toast(`Категория «${name.trim()}» добавлена`);
+  }
+
+  function deleteCat(idx) {
+    const cat = categories[idx];
+    if (!cat) return;
+    const used = products.filter(p => p.category === cat.id).length;
+    const msg = used
+      ? `Удалить «${cat.name}»? (${used} товаров в этой категории)`
+      : `Удалить «${cat.name}»?`;
+    showConfirm(msg, () => {
+      categories.splice(idx, 1);
+      saveCategories();
+      renderCatList();
+      toast("Категория удалена");
+    });
+  }
+
+  loadCategories();
+
   /* ── Promo Banner ── */
   const promoEmojiInput = $("#promoEmoji");
   const promoTitleInput = $("#promoTitle");
@@ -611,6 +664,8 @@
 
   const tokenBtn = $("#tokenBtn");
   if (tokenBtn) tokenBtn.addEventListener("click", changeToken);
+  const addCatBtn = $("#addCatBtn");
+  if (addCatBtn) addCatBtn.addEventListener("click", addCategory);
 
   /* ── Init ── */
   checkAuth();
@@ -619,5 +674,7 @@
   window.adminApp = {
     editProduct: openEditForm,
     confirmDelete,
+    moveProduct,
+    deleteCat,
   };
 })();

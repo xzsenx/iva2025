@@ -118,16 +118,16 @@
   /* ── GitHub Token ── */
   function promptToken() {
     const t = prompt(
-      "Введи GitHub Personal Access Token (ghp_...):\n\n" +
-      "Нужен для сохранения товаров на GitHub.\n" +
-      "Создай на: github.com/settings/tokens/new?scopes=repo"
+      "Введи GitHub Personal Access Token:\n\n" +
+      "Классический: ghp_...\nFine-grained: github_pat_...\n\n" +
+      "Создай на: github.com/settings/tokens"
     );
-    if (t && t.trim().startsWith("ghp_")) {
+    if (t && (t.trim().startsWith("ghp_") || t.trim().startsWith("github_pat_"))) {
       ghToken = t.trim();
       localStorage.setItem(TOKEN_KEY, ghToken);
       toast("Токен сохранён");
     } else if (t) {
-      toast("Неверный формат токена");
+      toast("Неверный формат токена (нужен ghp_... или github_pat_...)");
     }
   }
 
@@ -183,6 +183,17 @@
     setSyncStatus("Публикация...", "var(--gold)");
 
     try {
+      /* Получаем актуальный SHA перед записью (избегаем 409 Conflict) */
+      try {
+        const shaRes = await fetch(GH_API, {
+          headers: { "Authorization": `token ${ghToken}` },
+        });
+        if (shaRes.ok) {
+          const shaData = await shaRes.json();
+          fileSha = shaData.sha;
+        }
+      } catch {}
+
       const content = btoa(unescape(encodeURIComponent(JSON.stringify(products, null, 2))));
 
       const body = {

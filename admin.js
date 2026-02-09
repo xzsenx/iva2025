@@ -128,6 +128,7 @@
 
     await loadProducts();
     renderCatList();
+    renderBadgeList();
     renderList();
   }
 
@@ -308,10 +309,11 @@
     return cat ? cat.name : id;
   }
 
-  function badgeTag(badge) {
-    if (!badge) return "";
-    const labels = { hit:"Hit", season:"Сезон", new:"New" };
-    return `<span class="badge-sm badge-sm--${badge}">${labels[badge]}</span>`;
+  function badgeTag(badgeId) {
+    if (!badgeId) return "";
+    const b = badges.find(x => x.id === badgeId);
+    if (!b) return `<span class="badge-sm" style="background:var(--cream-dim);color:#fff">${badgeId}</span>`;
+    return `<span class="badge-sm" style="background:${b.color};color:#fff">${b.name}</span>`;
   }
 
   function stockTag(stock) {
@@ -621,6 +623,91 @@
 
   loadCategories();
 
+  /* ── Badges ── */
+  const BADGE_KEY = "iva_badges";
+  const _DEFAULT_BADGES = [
+    { id: "hit",    name: "Hit",   color: "#C9A4A0" },
+    { id: "season", name: "Сезон", color: "#A8C5A0" },
+    { id: "new",    name: "New",   color: "#C8B07A" },
+  ];
+  let badges = [];
+
+  function loadBadges() {
+    const saved = localStorage.getItem(BADGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length) { badges = parsed; return; }
+      } catch {}
+    }
+    badges = [..._DEFAULT_BADGES];
+  }
+
+  function saveBadges() {
+    localStorage.setItem(BADGE_KEY, JSON.stringify(badges));
+  }
+
+  function renderBadgeList() {
+    const list = $("#badgeList");
+    if (!list) return;
+    list.innerHTML = badges.map((b, i) => `
+      <div class="badge-row">
+        <span class="badge-row__dot" style="background:${b.color}"></span>
+        <span class="badge-row__id">${b.id}</span>
+        <span class="badge-row__name">${b.name}</span>
+        <button class="badge-row__del" onclick="adminApp.deleteBadge(${i})" title="Удалить">✕</button>
+      </div>
+    `).join("");
+    updateBadgeSelect();
+  }
+
+  function updateBadgeSelect() {
+    const sel = $("#fBadge");
+    if (!sel) return;
+    const val = sel.value;
+    sel.innerHTML = '<option value="">Нет</option>' +
+      badges.map(b => `<option value="${b.id}">${b.name}</option>`).join("");
+    if (val) sel.value = val;
+  }
+
+  function addBadge() {
+    const input = $("#newBadgeInput");
+    const colorInput = $("#newBadgeColor");
+    const name = input ? input.value.trim() : "";
+    if (!name) { toast("Введите название"); if (input) input.focus(); return; }
+    const tr = {"а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"yo","ж":"zh","з":"z","и":"i","й":"j","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"h","ц":"ts","ч":"ch","ш":"sh","щ":"sch","ъ":"","ы":"y","ь":"","э":"e","ю":"yu","я":"ya"};
+    const id = name.toLowerCase()
+      .split("").map(ch => tr[ch] !== undefined ? tr[ch] : ch).join("")
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
+    if (!id) { toast("Не удалось создать ID"); return; }
+    if (badges.some(b => b.id === id)) { toast("Бейдж уже существует"); return; }
+    const color = colorInput ? colorInput.value : "#C9A4A0";
+    badges.push({ id, name, color });
+    saveBadges();
+    renderBadgeList();
+    if (input) input.value = "";
+    toast(`Бейдж «${name}» добавлен`);
+  }
+
+  function deleteBadge(idx) {
+    const b = badges[idx];
+    if (!b) return;
+    const used = products.filter(p => p.badge === b.id).length;
+    const msg = used
+      ? `Удалить «${b.name}»? (${used} товаров с этим бейджем)`
+      : `Удалить «${b.name}»?`;
+    showConfirm(msg, () => {
+      badges.splice(idx, 1);
+      saveBadges();
+      renderBadgeList();
+      toast("Бейдж удалён");
+    });
+  }
+
+  loadBadges();
+
   /* ── Promo Banner ── */
   const promoEmojiInput = $("#promoEmoji");
   const promoTitleInput = $("#promoTitle");
@@ -681,6 +768,10 @@
   if (addCatBtn) addCatBtn.addEventListener("click", addCategory);
   const newCatInput = $("#newCatInput");
   if (newCatInput) newCatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addCategory(); });
+  const addBadgeBtn = $("#addBadgeBtn");
+  if (addBadgeBtn) addBadgeBtn.addEventListener("click", addBadge);
+  const newBadgeInput = $("#newBadgeInput");
+  if (newBadgeInput) newBadgeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addBadge(); });
 
   /* ── Init ── */
   checkAuth();
@@ -691,5 +782,6 @@
     confirmDelete,
     moveProduct,
     deleteCat,
+    deleteBadge,
   };
 })();

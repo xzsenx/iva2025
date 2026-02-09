@@ -63,10 +63,18 @@ const app = (() => {
     return n.toLocaleString("ru-RU") + " \u20BD";
   }
 
-  function badgeHTML(badge) {
-    if (!badge) return "";
-    const labels = { hit: "Hit", season: "Сезон", new: "New" };
-    return `<span class="badge badge--${badge}">${labels[badge]}</span>`;
+  function badgeHTML(badgeId) {
+    if (!badgeId) return "";
+    const saved = localStorage.getItem("iva_badges");
+    let badges = [
+      { id: "hit", name: "Hit", color: "#C9A4A0" },
+      { id: "season", name: "Сезон", color: "#A8C5A0" },
+      { id: "new", name: "New", color: "#C8B07A" },
+    ];
+    if (saved) { try { const p = JSON.parse(saved); if (Array.isArray(p) && p.length) badges = p; } catch {} }
+    const b = badges.find(x => x.id === badgeId);
+    if (!b) return `<span class="badge">${badgeId}</span>`;
+    return `<span class="badge" style="background:${b.color};color:#fff">${b.name}</span>`;
   }
 
   /* ── Navigation ── */

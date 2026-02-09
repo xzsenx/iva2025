@@ -401,6 +401,29 @@
     }
     .cat-row__del:active { background:rgba(201,112,112,.15); }
 
+    /* ── Badge list ── */
+    .badge-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .badge-row:last-child { border-bottom:none; }
+    .badge-row__dot {
+      width: 14px; height: 14px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .badge-row__id { font-size:11px; color:var(--cream-dim); min-width:50px; }
+    .badge-row__name { flex:1; font-size:14px; font-weight:500; }
+    .badge-row__del {
+      background:none; border:none; color:var(--danger);
+      font-size:16px; cursor:pointer; padding:4px 8px;
+      border-radius:6px; transition:var(--transition);
+    }
+    .badge-row__del:active { background:rgba(201,112,112,.15); }
+
     /* ── Promo fields fix ── */
     .field input,
     .field textarea,
@@ -510,6 +533,21 @@
       </div>
     </div>
 
+    <!-- Badge editor -->
+    <div style="padding:0 20px 16px;">
+      <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:14px;font-weight:600">Бейджи</span>
+        </div>
+        <div id="badgeList"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input type="text" id="newBadgeInput" placeholder="Новый бейдж" style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--cream);font-family:inherit;width:100%">
+          <input type="color" id="newBadgeColor" value="#C9A4A0" style="width:40px;height:38px;border:none;border-radius:var(--radius-sm);cursor:pointer;background:transparent">
+          <button class="btn btn--primary btn--sm" id="addBadgeBtn" style="flex-shrink:0">Добавить</button>
+        </div>
+      </div>
+    </div>
+
     <div class="product-list" id="productList"></div>
   </div>
 
@@ -553,12 +591,7 @@
           </label>
           <label class="field">
             <span class="field__label">Бейдж</span>
-            <select name="badge" id="fBadge">
-              <option value="">Нет</option>
-              <option value="hit">Hit</option>
-              <option value="season">Сезон</option>
-              <option value="new">New</option>
-            </select>
+            <select name="badge" id="fBadge"></select>
           </label>
         </div>
 
@@ -602,7 +635,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="data.js?v=2"></script>
-  <script src="admin.js?v=2"></script>
+  <script src="data.js?v=3"></script>
+  <script src="admin.js?v=3"></script>
 </body>
 </html>

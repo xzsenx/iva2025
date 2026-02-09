@@ -68,16 +68,24 @@
     }
   }
 
-  /* ── Auth ── */
+  /* ── Auth (24h persistent) ── */
+  const AUTH_KEY = "iva_admin_auth";
+  const AUTH_TTL = 24 * 60 * 60 * 1000; // 24 часа
+
   function checkAuth() {
-    if (sessionStorage.getItem("iva_admin") === "1") {
-      showPanel();
+    const saved = localStorage.getItem(AUTH_KEY);
+    if (saved) {
+      try {
+        const { ts } = JSON.parse(saved);
+        if (Date.now() - ts < AUTH_TTL) { showPanel(); return; }
+      } catch {}
+      localStorage.removeItem(AUTH_KEY);
     }
   }
 
   function doLogin() {
     if (loginPass.value === ADMIN_PASS) {
-      sessionStorage.setItem("iva_admin", "1");
+      localStorage.setItem(AUTH_KEY, JSON.stringify({ ts: Date.now() }));
       loginError.style.display = "none";
       showPanel();
     } else {
@@ -88,7 +96,7 @@
   }
 
   function doLogout() {
-    sessionStorage.removeItem("iva_admin");
+    localStorage.removeItem(AUTH_KEY);
     adminPanel.classList.remove("visible");
     loginScreen.classList.remove("hidden");
     loginPass.value = "";
@@ -134,7 +142,10 @@
       if (res.ok) {
         const data = await res.json();
         fileSha = data.sha;
-        const content = atob(data.content.replace(/\n/g, ""));
+        const raw = atob(data.content.replace(/\n/g, ""));
+        const bytes = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+        const content = new TextDecoder("utf-8").decode(bytes);
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed)) {
           products = parsed;

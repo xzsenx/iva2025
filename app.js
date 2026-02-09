@@ -71,10 +71,19 @@ const app = (() => {
 
   /* ── Navigation ── */
   let catalogScrollY = 0;
+  let screenHistory = ["catalog"];
+
+  function currentScreenName() {
+    for (const [name, el] of Object.entries(screens)) {
+      if (el.classList.contains("active")) return name;
+    }
+    return "catalog";
+  }
 
   function showScreen(name) {
+    const prev = currentScreenName();
     /* Запоминаем скролл каталога перед уходом */
-    if (screens.catalog.classList.contains("active") && name !== "catalog") {
+    if (prev === "catalog" && name !== "catalog") {
       catalogScrollY = window.scrollY;
     }
     Object.values(screens).forEach((s) => s.classList.remove("active"));
@@ -84,7 +93,58 @@ const app = (() => {
     } else {
       window.scrollTo(0, 0);
     }
+    /* Обновляем историю */
+    if (name !== prev) {
+      const idx = screenHistory.indexOf(name);
+      if (idx !== -1) {
+        screenHistory = screenHistory.slice(0, idx + 1);
+      } else {
+        screenHistory.push(name);
+      }
+    }
   }
+
+  function goBack() {
+    if (screenHistory.length <= 1) return;
+    screenHistory.pop();
+    const prev = screenHistory[screenHistory.length - 1];
+    Object.values(screens).forEach((s) => s.classList.remove("active"));
+    screens[prev].classList.add("active");
+    if (prev === "catalog") {
+      window.scrollTo(0, catalogScrollY);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }
+
+  /* ── Swipe Back (iOS-style) ── */
+  (function initSwipeBack() {
+    let startX = 0;
+    let startY = 0;
+    let swiping = false;
+
+    document.addEventListener("touchstart", (e) => {
+      const touch = e.touches[0];
+      /* Только от левого края (первые 30px) */
+      if (touch.clientX < 30 && screenHistory.length > 1) {
+        startX = touch.clientX;
+        startY = touch.clientY;
+        swiping = true;
+      }
+    }, { passive: true });
+
+    document.addEventListener("touchend", (e) => {
+      if (!swiping) return;
+      swiping = false;
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - startX;
+      const dy = Math.abs(touch.clientY - startY);
+      /* Свайп вправо > 80px и горизонтальнее чем вертикальный */
+      if (dx > 80 && dx > dy * 1.5) {
+        goBack();
+      }
+    }, { passive: true });
+  })();
 
   /* ── Categories ── */
   function renderCategories() {

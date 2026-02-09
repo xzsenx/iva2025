@@ -579,20 +579,22 @@
   }
 
   function addCategory() {
-    const name = prompt("Название категории (на русском):");
-    if (!name || !name.trim()) return;
+    const input = $("#newCatInput");
+    const name = input ? input.value.trim() : "";
+    if (!name) { toast("Введите название"); if (input) input.focus(); return; }
     const tr = {"а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"yo","ж":"zh","з":"z","и":"i","й":"j","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"h","ц":"ts","ч":"ch","ш":"sh","щ":"sch","ъ":"","ы":"y","ь":"","э":"e","ю":"yu","я":"ya"};
-    const id = name.trim().toLowerCase()
+    const id = name.toLowerCase()
       .split("").map(ch => tr[ch] !== undefined ? tr[ch] : ch).join("")
       .replace(/[^a-z0-9]/g, "_")
       .replace(/_+/g, "_")
       .replace(/^_|_$/g, "");
     if (!id) { toast("Не удалось создать ID"); return; }
     if (categories.some(c => c.id === id)) { toast("Категория уже существует"); return; }
-    categories.push({ id, name: name.trim() });
+    categories.push({ id, name });
     saveCategories();
     renderCatList();
-    toast(`Категория «${name.trim()}» добавлена`);
+    if (input) input.value = "";
+    toast(`Категория «${name}» добавлена`);
   }
 
   function deleteCat(idx) {
@@ -666,6 +668,8 @@
   if (tokenBtn) tokenBtn.addEventListener("click", changeToken);
   const addCatBtn = $("#addCatBtn");
   if (addCatBtn) addCatBtn.addEventListener("click", addCategory);
+  const newCatInput = $("#newCatInput");
+  if (newCatInput) newCatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addCategory(); });
 
   /* ── Init ── */
   checkAuth();

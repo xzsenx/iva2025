@@ -489,9 +489,12 @@
       <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <span style="font-size:14px;font-weight:600">Категории</span>
-          <button class="btn btn--outline btn--sm" id="addCatBtn">+ Добавить</button>
         </div>
         <div id="catList"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input type="text" id="newCatInput" placeholder="Новая категория" style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--cream);font-family:inherit;width:100%">
+          <button class="btn btn--primary btn--sm" id="addCatBtn" style="flex-shrink:0">Добавить</button>
+        </div>
       </div>
     </div>
 

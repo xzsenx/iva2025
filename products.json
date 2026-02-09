@@ -3,7 +3,7 @@
     "id": 2,
     "name": "Velvet Bloom",
     "price": 2490,
-    "popular": 2,
+    "popular": 1,
     "category": "roses",
     "badge": "season",
     "desc": "",
@@ -102,7 +102,7 @@
   },
   {
     "id": 10,
-    "name": "Ãlite Flora",
+    "name": "ÃÂlite Flora",
     "price": 4900,
     "popular": 8,
     "category": "gifts",

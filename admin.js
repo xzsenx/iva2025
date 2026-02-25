@@ -1004,6 +1004,47 @@
       html += '</div>';
     }
 
+    // ── Аналитика просмотров ──
+    var rawStats = null;
+    try { rawStats = JSON.parse(localStorage.getItem('iva_stats') || 'null'); } catch {}
+    if (rawStats && Object.keys(rawStats).length) {
+      var statRows = Object.entries(rawStats).map(function(entry) {
+        var id = parseInt(entry[0]);
+        var s = entry[1];
+        var p = products.find(function(x) { return x.id === id; });
+        return { name: p ? p.name : '#' + id, views: s.views || 0, adds: s.adds || 0 };
+      });
+      statRows.sort(function(a, b) { return b.views - a.views; });
+      var maxViews = statRows[0].views || 1;
+
+      html += '<div class="stats-section-title">Просмотры и конверсия</div>';
+      html += '<div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:14px">';
+      statRows.forEach(function(row) {
+        var pct = Math.round(row.views / maxViews * 100);
+        var conv = row.views ? Math.round(row.adds / row.views * 100) : 0;
+        html += '<div style="display:flex;flex-direction:column;gap:5px">' +
+          '<div style="display:flex;justify-content:space-between;align-items:baseline">' +
+            '<span style="font-size:13px;font-weight:600;color:var(--cream)">' + row.name + '</span>' +
+            '<span style="font-size:11px;color:var(--accent);font-weight:700">' + (row.views ? 'конв. ' + conv + '%' : '') + '</span>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            '<span style="font-size:10px;color:var(--cream-dim);min-width:56px">👁 просмотры</span>' +
+            '<div class="cat-stat-bar" style="flex:1"><div class="cat-stat-bar__fill" style="width:' + pct + '%;background:var(--pink-light)"></div></div>' +
+            '<span style="font-size:12px;font-weight:700;color:var(--pink-light);min-width:28px;text-align:right">' + row.views + '</span>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            '<span style="font-size:10px;color:var(--cream-dim);min-width:56px">🛒 в корзину</span>' +
+            '<div class="cat-stat-bar" style="flex:1"><div class="cat-stat-bar__fill" style="width:' + (row.views ? Math.round(row.adds/maxViews*100) : 0) + '%;background:var(--accent)"></div></div>' +
+            '<span style="font-size:12px;font-weight:700;color:var(--accent);min-width:28px;text-align:right">' + row.adds + '</span>' +
+          '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="stats-section-title">Просмотры и конверсия</div>';
+      html += '<div style="text-align:center;padding:20px;color:var(--cream-dim);font-size:13px">Данных пока нет — откройте витрину и посмотрите букеты</div>';
+    }
+
     el.innerHTML = html;
   }
 

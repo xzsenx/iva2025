@@ -279,11 +279,25 @@ const app = (() => {
       .join("");
   }
 
+  /* ── Analytics ── */
+  const STATS_KEY = "iva_stats";
+
+  function trackEvent(id, field) {
+    try {
+      const raw = localStorage.getItem(STATS_KEY);
+      const stats = raw ? JSON.parse(raw) : {};
+      if (!stats[id]) stats[id] = { views: 0, adds: 0 };
+      stats[id][field] = (stats[id][field] || 0) + 1;
+      localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+    } catch {}
+  }
+
   /* ── Product Page ── */
   function showProduct(id) {
     BOUQUETS = getProducts();
     const b = BOUQUETS.find((x) => x.id === id);
     if (!b) return;
+    trackEvent(id, "views");
     currentProduct = b;
     selectedSize = b.sizes ? b.sizes[0] : null;
 
@@ -417,6 +431,7 @@ const app = (() => {
       existing.qty++;
     } else {
       cart.push({ key, id, size, qty: 1 });
+      trackEvent(id, "adds");
     }
     saveCart();
     return true;

@@ -851,65 +851,160 @@
     if (tabId === "stats") renderStats();
   }
 
+  function statCard(label, value, sub, mod) {
+    return '<div class="stat-card' + (mod ? ' stat-card--' + mod : '') + '">' +
+      '<div class="stat-card__label">' + label + '</div>' +
+      '<div class="stat-card__value">' + value + '</div>' +
+      (sub ? '<div class="stat-card__sub">' + sub + '</div>' : '') +
+      '</div>';
+  }
+
+  function barRow(label, count, maxCount, color, extra) {
+    var pct = maxCount ? Math.round(count / maxCount * 100) : 0;
+    return '<div class="cat-stat-row">' +
+      (extra || '') +
+      '<span class="cat-stat-row__name">' + label + '</span>' +
+      '<div class="cat-stat-bar"><div class="cat-stat-bar__fill" style="width:' + pct + '%;' + (color ? 'background:' + color : '') + '"></div></div>' +
+      '<span class="cat-stat-row__count">' + count + ' шт.</span>' +
+      '</div>';
+  }
+
+  function segRow(label, count, total, color) {
+    var pct = total ? Math.round(count / total * 100) : 0;
+    return '<div class="seg-row">' +
+      '<span class="seg-row__label">' + label + '</span>' +
+      '<div class="seg-row__bar"><div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:3px;transition:.4s ease"></div></div>' +
+      '<span class="seg-row__meta">' + count + ' · ' + pct + '%</span>' +
+    '</div>';
+  }
+
   function renderStats() {
     const el = document.getElementById("statsPanel");
     if (!el) return;
 
     const total = products.length;
-    const inStock = products.filter(function(p) { return p.stock == null || p.stock > 0; }).length;
-    const lowStock = products.filter(function(p) { return p.stock != null && p.stock > 0 && p.stock <= 5; }).length;
-    const noStock = products.filter(function(p) { return p.stock != null && p.stock <= 0; }).length;
-    const avgPrice = total ? Math.round(products.reduce(function(s, p) { return s + p.price; }, 0) / total) : 0;
-    const maxPrice = total ? Math.max.apply(null, products.map(function(p) { return p.price; })) : 0;
-    const minPrice = total ? Math.min.apply(null, products.map(function(p) { return p.price; })) : 0;
+    if (total === 0) {
+      el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--cream-dim)"><div style="font-size:40px;margin-bottom:12px">📦</div><div>Товаров пока нет</div></div>';
+      return;
+    }
+
+    const inStock   = products.filter(function(p) { return p.stock == null || p.stock > 0; }).length;
+    const lowStock  = products.filter(function(p) { return p.stock != null && p.stock > 0 && p.stock <= 5; }).length;
+    const noStock   = products.filter(function(p) { return p.stock != null && p.stock <= 0; }).length;
+    const prices    = products.map(function(p) { return p.price; });
+    const avgPrice  = Math.round(prices.reduce(function(s,v) { return s+v; }, 0) / total);
+    const maxPrice  = Math.max.apply(null, prices);
+    const minPrice  = Math.min.apply(null, prices);
+
+    // Склад
+    const warehouseValue = products.reduce(function(s,p) { return s + p.price * (p.stock || 0); }, 0);
+    const stockItems = products.filter(function(p) { return p.stock != null; });
+    const avgStock = stockItems.length ? Math.round(stockItems.reduce(function(s,p) { return s+p.stock; }, 0) / stockItems.length) : null;
+
+    // Качество данных
+    const noPhoto = products.filter(function(p) { return !p.img; }).length;
+    const noDesc  = products.filter(function(p) { return !p.desc || !p.desc.trim(); }).length;
+
+    // Ценовые сегменты
+    const segLow  = products.filter(function(p) { return p.price < 2000; }).length;
+    const segMid  = products.filter(function(p) { return p.price >= 2000 && p.price <= 4000; }).length;
+    const segHigh = products.filter(function(p) { return p.price > 4000; }).length;
 
     // По категориям
     var byCat = {};
-    products.forEach(function(p) {
-      var name = categoryName(p.category);
-      byCat[name] = (byCat[name] || 0) + 1;
-    });
-    var catEntries = Object.entries(byCat).sort(function(a, b) { return b[1] - a[1]; });
-    var maxCatCount = catEntries.length ? catEntries[0][1] : 1;
+    products.forEach(function(p) { var n = categoryName(p.category); byCat[n] = (byCat[n]||0)+1; });
+    var catEntries = Object.entries(byCat).sort(function(a,b) { return b[1]-a[1]; });
+    var maxCat = catEntries.length ? catEntries[0][1] : 1;
 
-    el.innerHTML =
-      '<div class="stats-grid">' +
-        '<div class="stat-card">' +
-          '<div class="stat-card__label">Всего товаров</div>' +
-          '<div class="stat-card__value">' + total + '</div>' +
-        '</div>' +
-        '<div class="stat-card stat-card--accent">' +
-          '<div class="stat-card__label">В наличии</div>' +
-          '<div class="stat-card__value">' + inStock + '</div>' +
-        '</div>' +
-        '<div class="stat-card stat-card--warn">' +
-          '<div class="stat-card__label">Мало (≤5 шт.)</div>' +
-          '<div class="stat-card__value">' + lowStock + '</div>' +
-        '</div>' +
-        '<div class="stat-card stat-card--danger">' +
-          '<div class="stat-card__label">Нет в наличии</div>' +
-          '<div class="stat-card__value">' + noStock + '</div>' +
-        '</div>' +
-        '<div class="stat-card">' +
-          '<div class="stat-card__label">Средняя цена</div>' +
-          '<div class="stat-card__value">' + formatPrice(avgPrice) + '</div>' +
-        '</div>' +
-        '<div class="stat-card">' +
-          '<div class="stat-card__label">Диапазон цен</div>' +
-          '<div class="stat-card__value" style="font-size:16px">' + formatPrice(minPrice) + ' — ' + formatPrice(maxPrice) + '</div>' +
-        '</div>' +
-      '</div>' +
-      (catEntries.length ?
-        '<div class="stats-section-title">По категориям</div>' +
-        catEntries.map(function(entry) {
-          var pct = Math.round(entry[1] / maxCatCount * 100);
-          return '<div class="cat-stat-row">' +
-            '<span class="cat-stat-row__name">' + entry[0] + '</span>' +
-            '<div class="cat-stat-bar"><div class="cat-stat-bar__fill" style="width:' + pct + '%"></div></div>' +
-            '<span class="cat-stat-row__count">' + entry[1] + ' шт.</span>' +
+    // По бейджам
+    var byBadge = {};
+    products.forEach(function(p) {
+      if (p.badge) {
+        var b = badges.find(function(x) { return x.id === p.badge; });
+        var n = b ? b.name : p.badge;
+        byBadge[n] = { count: (byBadge[n] ? byBadge[n].count : 0) + 1, color: b ? b.color : 'var(--pink)' };
+      }
+    });
+    var badgeEntries = Object.entries(byBadge).sort(function(a,b) { return b[1].count - a[1].count; });
+    var maxBadge = badgeEntries.length ? badgeEntries[0][1].count : 1;
+
+    // Топ-5 по популярности
+    var topPop = products.slice().sort(function(a,b) { return (b.popular||0)-(a.popular||0); }).slice(0,5);
+
+    // Товары заканчиваются
+    var lowStockList = products.filter(function(p) { return p.stock != null && p.stock > 0 && p.stock <= 5; })
+      .sort(function(a,b) { return a.stock - b.stock; });
+
+    var html = '';
+
+    // ── Основные метрики ──
+    html += '<div class="stats-section-title" style="padding-top:16px">Каталог</div>';
+    html += '<div class="stats-grid">';
+    html += statCard('Всего товаров', total, '');
+    html += statCard('В наличии', inStock, '', 'accent');
+    html += statCard('Мало (≤5 шт.)', lowStock, '', lowStock > 0 ? 'warn' : '');
+    html += statCard('Нет в наличии', noStock, '', noStock > 0 ? 'danger' : '');
+    html += statCard('Средняя цена', formatPrice(avgPrice), '');
+    html += statCard('Диапазон цен', '<span style="font-size:15px">' + formatPrice(minPrice) + ' — ' + formatPrice(maxPrice) + '</span>', '');
+    html += '</div>';
+
+    // ── Склад ──
+    html += '<div class="stats-section-title">Склад</div>';
+    html += '<div class="stats-grid">';
+    html += statCard('Стоимость склада', formatPrice(warehouseValue), 'цена × остаток', 'accent');
+    html += statCard('Средний остаток', avgStock !== null ? avgStock + ' шт.' : '—', avgStock !== null ? 'по позициям с остатком' : 'остатки не указаны');
+    html += statCard('Без фото', noPhoto, 'товаров без изображения', noPhoto > 0 ? 'warn' : '');
+    html += statCard('Без описания', noDesc, 'товаров без текста', noDesc > 0 ? 'warn' : '');
+    html += '</div>';
+
+    // ── Ценовые сегменты ──
+    html += '<div class="stats-section-title">Ценовые сегменты</div>';
+    html += '<div style="padding:4px 20px 12px">';
+    html += segRow('до 2 000 ₽', segLow, total, '#A8C5A0');
+    html += segRow('2 000 — 4 000 ₽', segMid, total, '#C9A4A0');
+    html += segRow('от 4 000 ₽', segHigh, total, '#C8B07A');
+    html += '</div>';
+
+    // ── По категориям ──
+    if (catEntries.length) {
+      html += '<div class="stats-section-title">По категориям</div>';
+      catEntries.forEach(function(e) { html += barRow(e[0], e[1], maxCat, ''); });
+    }
+
+    // ── По бейджам ──
+    if (badgeEntries.length) {
+      html += '<div class="stats-section-title">По бейджам</div>';
+      badgeEntries.forEach(function(e) { html += barRow(e[0], e[1].count, maxBadge, e[1].color); });
+    }
+
+    // ── Топ по популярности ──
+    html += '<div class="stats-section-title">Топ по популярности</div>';
+    html += '<div style="padding:0 20px 8px">';
+    topPop.forEach(function(p, i) {
+      var pop = p.popular || 0;
+      html += '<div class="cat-stat-row">' +
+        '<span style="font-size:11px;color:var(--cream-dim);min-width:22px;font-weight:700">#' + (i+1) + '</span>' +
+        '<span class="cat-stat-row__name">' + p.name + '</span>' +
+        '<div class="cat-stat-bar" style="width:60px"><div class="cat-stat-bar__fill" style="width:' + (pop*10) + '%;background:var(--pink)"></div></div>' +
+        '<span style="font-size:12px;color:var(--pink-light);font-weight:700;min-width:30px;text-align:right">' + pop + '/10</span>' +
+        '</div>';
+    });
+    html += '</div>';
+
+    // ── Заканчиваются ──
+    if (lowStockList.length) {
+      html += '<div class="stats-section-title" style="color:var(--gold)">Заканчиваются</div>';
+      html += '<div style="padding:0 20px 20px">';
+      lowStockList.forEach(function(p) {
+        html += '<div class="cat-stat-row">' +
+          '<span class="cat-stat-row__name">' + p.name + '</span>' +
+          '<span style="font-weight:700;color:var(--gold);font-size:13px">осталось ' + p.stock + ' шт.</span>' +
           '</div>';
-        }).join("")
-      : "");
+      });
+      html += '</div>';
+    }
+
+    el.innerHTML = html;
   }
 
   document.querySelectorAll(".tab-btn").forEach(function(btn) {

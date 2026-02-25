@@ -806,6 +806,72 @@
   promoSaveBtn.addEventListener("click", savePromo);
   loadPromo();
 
+  /* ── Telegram Bot ── */
+  const BOT_KEY      = "iva_tg_token";
+  const MANAGER_KEY  = "iva_manager_id";
+  const DEFAULT_MANAGER_ID = "6996610442"; // @fake_ralph (тест); замени на 8413020149 (@ivaflowerstudio_31) для продакшена
+
+  function getManagerId() {
+    return localStorage.getItem(MANAGER_KEY) || DEFAULT_MANAGER_ID;
+  }
+
+  function loadBotSettings() {
+    const inp = $("#botTokenInput");
+    if (inp) inp.value = localStorage.getItem(BOT_KEY) || "";
+    const midInp = $("#managerIdInput");
+    if (midInp) midInp.value = getManagerId();
+  }
+
+  function saveBotToken() {
+    const inp = $("#botTokenInput");
+    const midInp = $("#managerIdInput");
+    const t = inp ? inp.value.trim() : "";
+    const mid = midInp ? midInp.value.trim() : "";
+    if (t) { localStorage.setItem(BOT_KEY, t); } else { localStorage.removeItem(BOT_KEY); }
+    if (mid) { localStorage.setItem(MANAGER_KEY, mid); } else { localStorage.setItem(MANAGER_KEY, DEFAULT_MANAGER_ID); }
+    toast(t ? "Настройки бота сохранены ✓" : "Токен бота очищен");
+    setBotStatus("");
+  }
+
+  function setBotStatus(msg, color) {
+    const el = $("#botTokenStatus");
+    if (el) { el.textContent = msg; el.style.color = color || "var(--cream-dim)"; }
+  }
+
+  async function testBot() {
+    const t = localStorage.getItem(BOT_KEY);
+    if (!t) { toast("Сначала сохрани токен"); return; }
+    const mid = getManagerId();
+    setBotStatus("Отправляю тест в chat_id " + mid + "…", "var(--gold)");
+    try {
+      const res = await fetch("https://api.telegram.org/bot" + t + "/sendMessage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: parseInt(mid),
+          text: "✅ ИВА — тест подключения. Бот настроен и готов принимать заказы!",
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setBotStatus("Отправлено ✓ (chat_id " + mid + ")", "var(--accent)");
+        toast("Тест отправлен в Telegram ✓");
+      } else {
+        setBotStatus("Ошибка: " + (data.description || res.status), "var(--danger)");
+        toast("Ошибка: " + (data.description || res.status));
+      }
+    } catch (err) {
+      setBotStatus("Ошибка сети", "var(--danger)");
+      toast("Ошибка сети");
+    }
+  }
+
+  loadBotSettings();
+  const botTokenSaveBtn = $("#botTokenSaveBtn");
+  if (botTokenSaveBtn) botTokenSaveBtn.addEventListener("click", saveBotToken);
+  const botTestBtn = $("#botTestBtn");
+  if (botTestBtn) botTestBtn.addEventListener("click", testBot);
+
   /* ── Event Listeners ── */
   loginBtn.addEventListener("click", doLogin);
   loginPass.addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });

@@ -736,7 +736,7 @@
       </div>
 
       <!-- Badge editor -->
-      <div style="padding:12px 20px 20px;">
+      <div style="padding:12px 20px 0;">
         <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
             <span style="font-size:14px;font-weight:600">Бейджи</span>
@@ -747,6 +747,29 @@
             <input type="color" id="newBadgeColor" value="#C9A4A0" style="width:40px;height:38px;border:none;border-radius:var(--radius-sm);cursor:pointer;background:transparent">
             <button class="btn btn--primary btn--sm" id="addBadgeBtn" style="flex-shrink:0">Добавить</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Telegram bot -->
+      <div style="padding:12px 20px 24px;">
+        <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:14px;font-weight:600">Telegram-бот</span>
+            <button class="btn btn--primary btn--sm" id="botTokenSaveBtn">Сохранить</button>
+          </div>
+          <div style="font-size:12px;color:var(--cream-dim);margin-bottom:12px;line-height:1.5">
+            Уведомления о заказах → <b>@ivaflowerstudio_31</b><br>
+            Создайте бота через @BotFather, скопируйте токен:
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <input type="text" id="botTokenInput" placeholder="1234567890:AAE…"
+              style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--cream);font-family:monospace;width:100%">
+            <button class="btn btn--outline btn--sm" id="botTestBtn" style="flex-shrink:0;white-space:nowrap">Тест</button>
+          </div>
+          <div style="font-size:12px;color:var(--cream-dim);margin-bottom:6px">Chat ID менеджера (кому приходят заказы):</div>
+          <input type="text" id="managerIdInput" placeholder="8413020149"
+            style="width:100%;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--cream);font-family:monospace">
+          <div id="botTokenStatus" style="font-size:12px;margin-top:8px;color:var(--cream-dim);min-height:16px"></div>
         </div>
       </div>
     </div>

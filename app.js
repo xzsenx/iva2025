@@ -579,7 +579,7 @@ const app = (() => {
   }
 
   /* ── Submit Order ── */
-  function submitOrder(e) {
+  async function submitOrder(e) {
     e.preventDefault();
     const fd = new FormData(els.checkoutForm);
 
@@ -603,20 +603,68 @@ const app = (() => {
       comment: fd.get("comment") || "",
     };
 
-    // Отправить через Telegram WebApp.sendData
-    if (tg) {
+    /* ── Отправка в Telegram менеджеру ── */
+    const botToken  = localStorage.getItem("iva_tg_token") || "";
+    const MANAGER_ID = parseInt(localStorage.getItem("iva_manager_id") || "6996610442");
+
+    if (botToken) {
       try {
-        tg.sendData(JSON.stringify(order));
+        /* Данные клиента из Telegram */
+        const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+        const clientLink = user
+          ? '\n🔗 <a href="tg://user?id=' + user.id + '">Написать клиенту</a>' +
+            (user.username ? " (@" + user.username + ")" : " (" + (user.first_name || "") + ")")
+          : "";
+
+        /* Состав заказа */
+        const itemsLines = order.items
+          .map(function(i) {
+            return "• " + i.name +
+              (i.size ? " [" + i.size + "]" : "") +
+              " × " + i.qty + " — " +
+              (i.price * i.qty).toLocaleString("ru-RU") + " ₽";
+          })
+          .join("\n");
+
+        /* Доставка */
+        const deliveryLine = order.delivery === "delivery"
+          ? "🚚 Доставка\n📍 " + order.address
+          : "🏪 Самовывоз";
+
+        /* Форматируем сообщение */
+        const text =
+          "🌸 <b>Новый заказ!</b>\n\n" +
+          "👤 " + order.name + "\n" +
+          "📱 " + order.phone +
+          clientLink + "\n\n" +
+          "📦 <b>Состав:</b>\n" + itemsLines + "\n\n" +
+          "💰 <b>Итого: " + order.total.toLocaleString("ru-RU") + " ₽</b>\n\n" +
+          deliveryLine + "\n" +
+          "📅 " + order.date + (order.time ? ", " + order.time : "") +
+          (order.comment ? "\n\n💬 " + order.comment : "");
+
+        await fetch("https://api.telegram.org/bot" + botToken + "/sendMessage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: MANAGER_ID,
+            text: text,
+            parse_mode: "HTML",
+          }),
+        });
       } catch (err) {
-        console.log("TG sendData error:", err);
+        console.log("Bot API error:", err);
       }
     } else {
-      // Для тестирования вне Telegram
-      console.log("ORDER:", JSON.stringify(order, null, 2));
-      alert("Заказ отправлен (тестовый режим).\nПроверьте консоль.");
+      /* Фолбэк без бота — sendData если открыто в TG */
+      if (tg) {
+        try { tg.sendData(JSON.stringify(order)); } catch {}
+      } else {
+        console.log("ORDER:", JSON.stringify(order, null, 2));
+      }
     }
 
-    // Очистить корзину
+    /* Очистить корзину и показать спасибо */
     cart = [];
     saveCart();
     els.checkoutForm.reset();

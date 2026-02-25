@@ -430,6 +430,154 @@
     .field select { max-width:100%; }
     .field-row { min-width:0; }
 
+    /* ── Image upload zone ── */
+    .img-zone {
+      position: relative;
+      border: 2px dashed rgba(255,255,255,.15);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+      margin-top: 4px;
+    }
+    .img-zone:hover, .img-zone.drag-over {
+      border-color: var(--pink);
+      background: rgba(201,164,160,.08);
+    }
+    .img-zone__placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 28px 20px;
+      color: var(--cream-dim);
+      font-size: 13px;
+      text-align: center;
+      pointer-events: none;
+    }
+    .img-zone__icon { font-size: 32px; line-height: 1; }
+    .img-zone__hint { font-size: 11px; opacity: .65; margin-top: 2px; }
+    .img-zone__preview {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      display: none;
+    }
+    .img-zone__clear {
+      position: absolute;
+      top: 8px; right: 8px;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,.15);
+      color: #fff;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      display: none;
+    }
+    .img-zone.has-img .img-zone__placeholder { display: none; }
+    .img-zone.has-img .img-zone__clear { display: block; }
+    .img-zone.has-img { border-style: solid; border-color: rgba(255,255,255,.1); }
+    .img-zone.has-img .img-zone__preview { display: block; }
+
+    /* ── Tabs ── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: none;
+      color: var(--cream-dim);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+    .tab-btn:hover { color: var(--cream); }
+    .tab-btn.active {
+      background: rgba(201,164,160,.14);
+      border-color: rgba(201,164,160,.28);
+      color: var(--cream);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Stats ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 16px 20px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .stat-card__label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cream-dim);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+    .stat-card__value {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--cream);
+      line-height: 1;
+    }
+    .stat-card__sub {
+      font-size: 11px;
+      color: var(--cream-dim);
+      margin-top: 4px;
+    }
+    .stat-card--warn .stat-card__value { color: var(--gold); }
+    .stat-card--danger .stat-card__value { color: var(--danger); }
+    .stat-card--accent .stat-card__value { color: var(--accent); }
+    .stats-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--cream-dim);
+      padding: 4px 20px 8px;
+    }
+    .cat-stat-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    .cat-stat-row:last-child { border-bottom: none; }
+    .cat-stat-row__name { flex: 1; font-size: 14px; font-weight: 500; }
+    .cat-stat-row__count { font-size: 13px; color: var(--cream-dim); }
+    .cat-stat-bar {
+      width: 80px;
+      height: 4px;
+      background: rgba(255,255,255,.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .cat-stat-bar__fill {
+      height: 100%;
+      background: var(--pink);
+      border-radius: 2px;
+      transition: width .4s ease;
+    }
+
     /* ── Responsive ── */
     @media (min-width: 600px) {
       .modal {
@@ -468,87 +616,107 @@
       </div>
     </header>
 
-    <div class="toolbar">
-      <div>
-        <span class="toolbar__count" id="productCount"></span>
-        <span id="syncStatus" style="font-size:12px;margin-left:10px"></span>
+    <!-- ====== Вкладки ====== -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="products">🌸 Букеты</button>
+      <button class="tab-btn" data-tab="settings">⚙️ Настройки</button>
+      <button class="tab-btn" data-tab="stats">📊 Статистика</button>
+    </nav>
+
+    <!-- ── Вкладка: Букеты ── -->
+    <div class="tab-panel active" id="tab-products">
+      <div class="toolbar">
+        <div>
+          <span class="toolbar__count" id="productCount"></span>
+          <span id="syncStatus" style="font-size:12px;margin-left:10px"></span>
+        </div>
+        <button class="btn btn--primary" id="addProductBtn">+ Добавить товар</button>
       </div>
-      <button class="btn btn--primary" id="addProductBtn">+ Добавить товар</button>
-    </div>
 
-    <div class="io-bar">
-      <button class="btn btn--outline btn--sm" id="exportBtn">Экспорт Excel</button>
-      <button class="btn btn--outline btn--sm" id="importBtn">Импорт Excel</button>
-      <input type="file" id="importFile" accept=".xlsx,.xls">
-      <button class="btn btn--danger btn--sm" id="resetBtn">Сбросить к исходным</button>
-      <button class="btn btn--outline btn--sm" id="tokenBtn">Токен</button>
-    </div>
+      <div class="io-bar">
+        <button class="btn btn--outline btn--sm" id="exportBtn">Экспорт Excel</button>
+        <button class="btn btn--outline btn--sm" id="importBtn">Импорт Excel</button>
+        <input type="file" id="importFile" accept=".xlsx,.xls">
+        <button class="btn btn--danger btn--sm" id="resetBtn">Сбросить к исходным</button>
+        <button class="btn btn--outline btn--sm" id="tokenBtn">Токен</button>
+      </div>
 
-    <!-- Token editor (hidden by default) -->
-    <div style="padding:0 20px 12px;display:none" id="tokenPanel">
-      <div style="background:var(--bg-card);border-radius:var(--radius);padding:14px 16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
-        <div style="font-size:12px;font-weight:600;color:var(--cream-dim);margin-bottom:6px">GitHub Token</div>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="tokenInput" placeholder="ghp_... или github_pat_..." style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--cream);font-family:monospace;width:100%">
-          <button class="btn btn--primary btn--sm" id="tokenSaveBtn" style="flex-shrink:0">Сохранить</button>
+      <!-- Token editor (hidden by default) -->
+      <div style="padding:0 20px 12px;display:none" id="tokenPanel">
+        <div style="background:var(--bg-card);border-radius:var(--radius);padding:14px 16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
+          <div style="font-size:12px;font-weight:600;color:var(--cream-dim);margin-bottom:6px">GitHub Token</div>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="tokenInput" placeholder="ghp_... или github_pat_..." style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--cream);font-family:monospace;width:100%">
+            <button class="btn btn--primary btn--sm" id="tokenSaveBtn" style="flex-shrink:0">Сохранить</button>
+          </div>
         </div>
       </div>
+
+      <div class="product-list" id="productList"></div>
     </div>
 
-    <!-- Promo editor -->
-    <div style="padding:0 20px 16px;">
-      <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <span style="font-size:14px;font-weight:600">Промо-баннер</span>
-          <button class="btn btn--outline btn--sm" id="promoSaveBtn">Сохранить</button>
-        </div>
-        <div class="field-row">
-          <label class="field" style="flex:0 0 70px;min-width:0">
-            <span class="field__label">Эмоджи</span>
-            <input type="text" id="promoEmoji" value="🌿" maxlength="4" style="text-align:center;width:100%">
+    <!-- ── Вкладка: Настройки ── -->
+    <div class="tab-panel" id="tab-settings">
+
+      <!-- Promo editor -->
+      <div style="padding:16px 20px 0;">
+        <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span style="font-size:14px;font-weight:600">Промо-баннер</span>
+            <button class="btn btn--outline btn--sm" id="promoSaveBtn">Сохранить</button>
+          </div>
+          <div class="field-row">
+            <label class="field" style="flex:0 0 70px;min-width:0">
+              <span class="field__label">Эмоджи</span>
+              <input type="text" id="promoEmoji" value="🌿" maxlength="4" style="text-align:center;width:100%">
+            </label>
+            <label class="field" style="min-width:0">
+              <span class="field__label">Заголовок</span>
+              <input type="text" id="promoTitle" value="Букет дня" style="width:100%">
+            </label>
+          </div>
+          <label class="field" style="margin-bottom:0">
+            <span class="field__label">Описание</span>
+            <input type="text" id="promoText" value="Нежный минимал — сегодня со скидкой" style="width:100%">
           </label>
-          <label class="field" style="min-width:0">
-            <span class="field__label">Заголовок</span>
-            <input type="text" id="promoTitle" value="Букет дня" style="width:100%">
-          </label>
-        </div>
-        <label class="field" style="margin-bottom:0">
-          <span class="field__label">Описание</span>
-          <input type="text" id="promoText" value="Нежный минимал — сегодня со скидкой" style="width:100%">
-        </label>
-      </div>
-    </div>
-
-    <!-- Category editor -->
-    <div style="padding:0 20px 16px;">
-      <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <span style="font-size:14px;font-weight:600">Категории</span>
-        </div>
-        <div id="catList"></div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input type="text" id="newCatInput" placeholder="Новая категория" style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--cream);font-family:inherit;width:100%">
-          <button class="btn btn--primary btn--sm" id="addCatBtn" style="flex-shrink:0">Добавить</button>
         </div>
       </div>
-    </div>
 
-    <!-- Badge editor -->
-    <div style="padding:0 20px 16px;">
-      <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <span style="font-size:14px;font-weight:600">Бейджи</span>
+      <!-- Category editor -->
+      <div style="padding:12px 20px 0;">
+        <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span style="font-size:14px;font-weight:600">Категории</span>
+          </div>
+          <div id="catList"></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <input type="text" id="newCatInput" placeholder="Новая категория" style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--cream);font-family:inherit;width:100%">
+            <button class="btn btn--primary btn--sm" id="addCatBtn" style="flex-shrink:0">Добавить</button>
+          </div>
         </div>
-        <div id="badgeList"></div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input type="text" id="newBadgeInput" placeholder="Новый бейдж" style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--cream);font-family:inherit;width:100%">
-          <input type="color" id="newBadgeColor" value="#C9A4A0" style="width:40px;height:38px;border:none;border-radius:var(--radius-sm);cursor:pointer;background:transparent">
-          <button class="btn btn--primary btn--sm" id="addBadgeBtn" style="flex-shrink:0">Добавить</button>
+      </div>
+
+      <!-- Badge editor -->
+      <div style="padding:12px 20px 20px;">
+        <div style="background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span style="font-size:14px;font-weight:600">Бейджи</span>
+          </div>
+          <div id="badgeList"></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <input type="text" id="newBadgeInput" placeholder="Новый бейдж" style="flex:1;background:var(--bg-light);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--cream);font-family:inherit;width:100%">
+            <input type="color" id="newBadgeColor" value="#C9A4A0" style="width:40px;height:38px;border:none;border-radius:var(--radius-sm);cursor:pointer;background:transparent">
+            <button class="btn btn--primary btn--sm" id="addBadgeBtn" style="flex-shrink:0">Добавить</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="product-list" id="productList"></div>
+    <!-- ── Вкладка: Статистика ── -->
+    <div class="tab-panel" id="tab-stats">
+      <div id="statsPanel"></div>
+    </div>
+
   </div>
 
   <!-- ====== MODAL: Add / Edit Product ====== -->
@@ -609,11 +777,20 @@
           </div>
         </div>
 
-        <label class="field">
-          <span class="field__label">URL фото</span>
-          <input type="url" name="img" id="fImg" placeholder="https://images.unsplash.com/...">
-          <img class="img-preview" id="imgPreview" alt="preview">
-        </label>
+        <div class="field">
+          <span class="field__label">Фото</span>
+          <div class="img-zone" id="imgZone">
+            <input type="file" id="imgFileInput" accept="image/*" style="display:none">
+            <div class="img-zone__placeholder">
+              <span class="img-zone__icon">🌸</span>
+              <span>Перетащи фото или нажми для выбора</span>
+              <span class="img-zone__hint">JPG / PNG · сжимается автоматически</span>
+            </div>
+            <img class="img-zone__preview" id="imgPreview" alt="preview">
+            <button type="button" class="img-zone__clear" id="imgClearBtn">✕ Убрать</button>
+          </div>
+          <input type="url" name="img" id="fImg" placeholder="или вставь ссылку на фото…" style="margin-top:8px">
+        </div>
 
         <button type="submit" class="btn btn--primary btn--lg" id="formSubmitBtn">Сохранить</button>
       </form>

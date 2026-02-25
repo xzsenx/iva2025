@@ -34,6 +34,9 @@
   const productForm   = $("#productForm");
   const imgInput      = $("#fImg");
   const imgPreview    = $("#imgPreview");
+  const imgZone       = $("#imgZone");
+  const imgFileInput  = $("#imgFileInput");
+  const imgClearBtn   = $("#imgClearBtn");
   const exportBtn     = $("#exportBtn");
   const importBtn     = $("#importBtn");
   const importFile    = $("#importFile");
@@ -341,7 +344,7 @@
     modalOverlay.classList.remove("open");
     document.body.style.overflow = "";
     productForm.reset();
-    imgPreview.classList.remove("visible");
+    clearImgPreview();
     editingId = null;
   }
 
@@ -349,7 +352,7 @@
     editingId = null;
     modalTitle.textContent = "Добавить товар";
     productForm.reset();
-    imgPreview.classList.remove("visible");
+    clearImgPreview();
     $("#fPopular").value = 5;
     $("#fStock").value = 10;
     openModal();
@@ -374,12 +377,7 @@
     $("#fSizeM").checked  = p.sizes && p.sizes.includes("M");
     $("#fSizeL").checked  = p.sizes && p.sizes.includes("L");
 
-    if (p.img) {
-      imgPreview.src = p.img;
-      imgPreview.classList.add("visible");
-    } else {
-      imgPreview.classList.remove("visible");
-    }
+    setImgPreview(p.img || "");
 
     openModal();
   }
@@ -533,17 +531,86 @@
     });
   }
 
-  /* ── Image preview ── */
-  function updateImgPreview() {
-    const url = imgInput.value.trim();
-    if (url) {
-      imgPreview.src = url;
-      imgPreview.classList.add("visible");
-      imgPreview.onerror = () => imgPreview.classList.remove("visible");
+  /* ── Image helpers ── */
+  function setImgPreview(src) {
+    if (src) {
+      imgPreview.src = src;
+      imgPreview.style.display = "block";
+      imgZone.classList.add("has-img");
+      imgPreview.onerror = () => clearImgPreview();
     } else {
-      imgPreview.classList.remove("visible");
+      clearImgPreview();
     }
   }
+
+  function clearImgPreview() {
+    imgPreview.src = "";
+    imgPreview.style.display = "none";
+    imgZone.classList.remove("has-img");
+    imgInput.value = "";
+  }
+
+  function updateImgPreview() {
+    setImgPreview(imgInput.value.trim());
+  }
+
+  function compressImage(file, maxW, quality) {
+    maxW = maxW || 1200;
+    quality = quality || 0.82;
+    return new Promise(function(resolve) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var w = img.width, h = img.height;
+          if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+          var canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleImageFile(file) {
+    if (!file || !file.type.startsWith("image/")) { toast("Это не картинка 🙄"); return; }
+    toast("Сжимаем…");
+    const b64 = await compressImage(file);
+    imgInput.value = b64;
+    setImgPreview(b64);
+    toast("Фото загружено ✓");
+  }
+
+  /* ── Image drag & drop + file select ── */
+  imgZone.addEventListener("click", function(e) {
+    if (e.target === imgClearBtn) return;
+    imgFileInput.click();
+  });
+  imgFileInput.addEventListener("change", function(e) {
+    var file = e.target.files[0];
+    if (file) handleImageFile(file);
+    imgFileInput.value = "";
+  });
+  imgClearBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    clearImgPreview();
+  });
+  imgZone.addEventListener("dragover", function(e) {
+    e.preventDefault();
+    imgZone.classList.add("drag-over");
+  });
+  imgZone.addEventListener("dragleave", function() {
+    imgZone.classList.remove("drag-over");
+  });
+  imgZone.addEventListener("drop", function(e) {
+    e.preventDefault();
+    imgZone.classList.remove("drag-over");
+    var file = e.dataTransfer.files[0];
+    if (file) handleImageFile(file);
+  });
 
   /* ── Categories ── */
   const CAT_KEY = "iva_categories";
@@ -747,7 +814,7 @@
   modalClose.addEventListener("click", closeModal);
   modalOverlay.addEventListener("mousedown", (e) => { if (e.target === modalOverlay) closeModal(); });
   productForm.addEventListener("submit", handleFormSubmit);
-  imgInput.addEventListener("input", updateImgPreview);
+  imgInput.addEventListener("input", updateImgPreview); // ввод URL вручную
   exportBtn.addEventListener("click", doExport);
   importBtn.addEventListener("click", doImport);
   importFile.addEventListener("change", handleImport);
@@ -772,6 +839,82 @@
   if (addBadgeBtn) addBadgeBtn.addEventListener("click", addBadge);
   const newBadgeInput = $("#newBadgeInput");
   if (newBadgeInput) newBadgeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addBadge(); });
+
+  /* ── Tabs ── */
+  function switchTab(tabId) {
+    document.querySelectorAll(".tab-btn").forEach(function(btn) {
+      btn.classList.toggle("active", btn.dataset.tab === tabId);
+    });
+    document.querySelectorAll(".tab-panel").forEach(function(panel) {
+      panel.classList.toggle("active", panel.id === "tab-" + tabId);
+    });
+    if (tabId === "stats") renderStats();
+  }
+
+  function renderStats() {
+    const el = document.getElementById("statsPanel");
+    if (!el) return;
+
+    const total = products.length;
+    const inStock = products.filter(function(p) { return p.stock == null || p.stock > 0; }).length;
+    const lowStock = products.filter(function(p) { return p.stock != null && p.stock > 0 && p.stock <= 5; }).length;
+    const noStock = products.filter(function(p) { return p.stock != null && p.stock <= 0; }).length;
+    const avgPrice = total ? Math.round(products.reduce(function(s, p) { return s + p.price; }, 0) / total) : 0;
+    const maxPrice = total ? Math.max.apply(null, products.map(function(p) { return p.price; })) : 0;
+    const minPrice = total ? Math.min.apply(null, products.map(function(p) { return p.price; })) : 0;
+
+    // По категориям
+    var byCat = {};
+    products.forEach(function(p) {
+      var name = categoryName(p.category);
+      byCat[name] = (byCat[name] || 0) + 1;
+    });
+    var catEntries = Object.entries(byCat).sort(function(a, b) { return b[1] - a[1]; });
+    var maxCatCount = catEntries.length ? catEntries[0][1] : 1;
+
+    el.innerHTML =
+      '<div class="stats-grid">' +
+        '<div class="stat-card">' +
+          '<div class="stat-card__label">Всего товаров</div>' +
+          '<div class="stat-card__value">' + total + '</div>' +
+        '</div>' +
+        '<div class="stat-card stat-card--accent">' +
+          '<div class="stat-card__label">В наличии</div>' +
+          '<div class="stat-card__value">' + inStock + '</div>' +
+        '</div>' +
+        '<div class="stat-card stat-card--warn">' +
+          '<div class="stat-card__label">Мало (≤5 шт.)</div>' +
+          '<div class="stat-card__value">' + lowStock + '</div>' +
+        '</div>' +
+        '<div class="stat-card stat-card--danger">' +
+          '<div class="stat-card__label">Нет в наличии</div>' +
+          '<div class="stat-card__value">' + noStock + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="stat-card__label">Средняя цена</div>' +
+          '<div class="stat-card__value">' + formatPrice(avgPrice) + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="stat-card__label">Диапазон цен</div>' +
+          '<div class="stat-card__value" style="font-size:16px">' + formatPrice(minPrice) + ' — ' + formatPrice(maxPrice) + '</div>' +
+        '</div>' +
+      '</div>' +
+      (catEntries.length ?
+        '<div class="stats-section-title">По категориям</div>' +
+        catEntries.map(function(entry) {
+          var pct = Math.round(entry[1] / maxCatCount * 100);
+          return '<div class="cat-stat-row">' +
+            '<span class="cat-stat-row__name">' + entry[0] + '</span>' +
+            '<div class="cat-stat-bar"><div class="cat-stat-bar__fill" style="width:' + pct + '%"></div></div>' +
+            '<span class="cat-stat-row__count">' + entry[1] + ' шт.</span>' +
+          '</div>';
+        }).join("")
+      : "");
+  }
+
+  document.querySelectorAll(".tab-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() { switchTab(btn.dataset.tab); });
+  });
 
   /* ── Init ── */
   checkAuth();

@@ -612,14 +612,31 @@ const app = (() => {
       submitBtn.disabled = true;
       submitBtn.textContent = "Создаём платёж…";
 
+      /* Fetch с таймаутом и retry (Render Free просыпается до 60 сек) */
+      async function fetchWithRetry(url, options, retries = 2) {
+        for (let i = 0; i <= retries; i++) {
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 60000);
+            const resp = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(timeout);
+            if (!resp.ok) throw new Error("backend_error " + resp.status);
+            return resp;
+          } catch (err) {
+            if (i === retries) throw err;
+            submitBtn.textContent = "Сервер просыпается… ⏳";
+            await new Promise(r => setTimeout(r, 3000));
+          }
+        }
+      }
+
       try {
-        const resp = await fetch(backendUrl + "/api/create-payment", {
+        const resp = await fetchWithRetry(backendUrl + "/api/create-payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ order }),
         });
 
-        if (!resp.ok) throw new Error("backend_error " + resp.status);
         const { confirmation_url } = await resp.json();
 
         /* Очистить корзину до редиректа */
@@ -727,6 +744,19 @@ const app = (() => {
     renderCategories();
     updateCartBadge();
     loadPromo();
+
+    /* Пинг бэкенда чтобы разбудить Render Free */
+    fetch("https://iva-backend-bxaj.onrender.com/health").catch(() => {});
+
+    /* Если вернулись с ЮКасса — показываем "Спасибо" */
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has("payment") || document.referrer.includes("yookassa.ru")) {
+      cart = [];
+      saveCart();
+      showScreen("thanks");
+      /* Убираем параметр из URL */
+      window.history.replaceState({}, "", window.location.pathname);
+    }
 
     /* Загружаем товары с GitHub Pages, потом перерисовываем */
     await fetchProducts();

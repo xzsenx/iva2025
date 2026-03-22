@@ -603,20 +603,58 @@ const app = (() => {
       comment: fd.get("comment") || "",
     };
 
-    /* ── Отправка в Telegram менеджеру ── */
-    const botToken  = localStorage.getItem("iva_tg_token") || "";
+    /* ── ЮКасса: создаём платёж через бэкенд ── */
+    const backendUrl = "https://iva-backend-bxaj.onrender.com";
+
+    if (backendUrl) {
+      const submitBtn = els.checkoutForm.querySelector('[type="submit"]');
+      const origText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Создаём платёж…";
+
+      try {
+        const resp = await fetch(backendUrl + "/api/create-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order }),
+        });
+
+        if (!resp.ok) throw new Error("backend_error " + resp.status);
+        const { confirmation_url } = await resp.json();
+
+        /* Очистить корзину до редиректа */
+        cart = [];
+        saveCart();
+        els.checkoutForm.reset();
+
+        /* Открыть оплату — в TG через openLink, иначе location */
+        if (tg && tg.openLink) {
+          tg.openLink(confirmation_url);
+        } else {
+          window.location.href = confirmation_url;
+        }
+        return false;
+      } catch (err) {
+        console.error("Ошибка создания платежа:", err);
+        toast("Не удалось создать платёж. Попробуй ещё раз.");
+        submitBtn.disabled = false;
+        submitBtn.textContent = origText;
+        return false;
+      }
+    }
+
+    /* ── Фолбэк: отправка в Telegram напрямую (без бэкенда) ── */
+    const botToken   = localStorage.getItem("iva_tg_token") || "";
     const MANAGER_ID = parseInt(localStorage.getItem("iva_manager_id") || "6996610442");
 
     if (botToken) {
       try {
-        /* Данные клиента из Telegram */
         const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
         const clientLink = user
           ? '\n🔗 <a href="tg://user?id=' + user.id + '">Написать клиенту</a>' +
             (user.username ? " (@" + user.username + ")" : " (" + (user.first_name || "") + ")")
           : "";
 
-        /* Состав заказа */
         const itemsLines = order.items
           .map(function(i) {
             return "• " + i.name +
@@ -626,12 +664,10 @@ const app = (() => {
           })
           .join("\n");
 
-        /* Доставка */
         const deliveryLine = order.delivery === "delivery"
           ? "🚚 Доставка\n📍 " + order.address
           : "🏪 Самовывоз";
 
-        /* Форматируем сообщение */
         const text =
           "🌸 <b>Новый заказ!</b>\n\n" +
           "👤 " + order.name + "\n" +
@@ -646,17 +682,12 @@ const app = (() => {
         await fetch("https://api.telegram.org/bot" + botToken + "/sendMessage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: MANAGER_ID,
-            text: text,
-            parse_mode: "HTML",
-          }),
+          body: JSON.stringify({ chat_id: MANAGER_ID, text, parse_mode: "HTML" }),
         });
       } catch (err) {
         console.log("Bot API error:", err);
       }
     } else {
-      /* Фолбэк без бота — sendData если открыто в TG */
       if (tg) {
         try { tg.sendData(JSON.stringify(order)); } catch {}
       } else {
@@ -664,7 +695,6 @@ const app = (() => {
       }
     }
 
-    /* Очистить корзину и показать спасибо */
     cart = [];
     saveCart();
     els.checkoutForm.reset();

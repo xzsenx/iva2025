@@ -1,0 +1,12 @@
+{
+  "name": "iva-flowers",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "cd backend && npm start",
+    "postinstall": "cd backend && npm install"
+  }
+}

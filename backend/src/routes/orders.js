@@ -1,0 +1,112 @@
+import { Router } from 'express';
+import { db } from '../db.js';
+import { createPayment, getPayment } from '../yookassa.js';
+
+const r = Router();
+
+/** POST /api/orders — создать заказ + платёж в ЮKassa, вернуть confirmation_url */
+r.post('/', async (req, res) => {
+  const { name, phone, address, delivery, date, time, comment, items, total, email } = req.body || {};
+  if (!name || !phone || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'name, phone, items required' });
+  }
+  const totalNum = Number(total) || items.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0);
+
+  /* 1. Сохраняем заказ локально (со статусом pending) */
+  const info = db.prepare(`
+    INSERT INTO orders
+      (customer_name, customer_phone, customer_address, delivery_type, delivery_date, delivery_time, comment, total_price, items_json, status, payment_status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')
+  `).run(name, phone, address || '', delivery || 'delivery', date || '', time || '',
+         comment || '', totalNum, JSON.stringify(items));
+  const orderId = info.lastInsertRowid;
+
+  /* 2. Создаём платёж в ЮKassa */
+  try {
+    /* Передаём ТОЛЬКО товарные позиции для чека — корректно для 54-ФЗ */
+    const receiptItems = items.flatMap((it) => {
+      if (it.custom && Array.isArray(it.custom.items)) {
+        return it.custom.items.map((sub) => ({
+          title: sub.title, qty: sub.qty, price: sub.price,
+        }));
+      }
+      return [{ title: it.name || it.title || `Товар #${it.id}`, qty: it.qty || 1, price: it.price || 0 }];
+    });
+
+    const payment = await createPayment({
+      amount: totalNum,
+      description: `Заказ #${orderId} — IVA`,
+      items: receiptItems,
+      phone,
+      email,
+      metadata: { order_id: String(orderId) },
+    });
+
+    db.prepare(`UPDATE orders SET yookassa_id = ?, payment_status = ? WHERE id = ?`)
+      .run(payment.id, payment.status, orderId);
+
+    res.json({
+      id: orderId,
+      yookassa_id: payment.id,
+      confirmation_url: payment.confirmation?.confirmation_url,
+      status: payment.status,
+    });
+  } catch (err) {
+    const msg = err.response?.data || err.message;
+    db.prepare(`UPDATE orders SET payment_status = 'error' WHERE id = ?`).run(orderId);
+    console.error('[yookassa] create error:', msg);
+    res.status(500).json({ error: 'payment failed', details: msg });
+  }
+});
+
+/** Webhook от ЮKassa — приходит после оплаты */
+r.post('/webhook', async (req, res) => {
+  const event = req.body;
+  if (!event || !event.object?.id) {
+    return res.status(400).json({ error: 'bad payload' });
+  }
+  const paymentId = event.object.id;
+  const status = event.object.status;
+  console.log('[yookassa webhook]', event.event, paymentId, status);
+
+  /* Идемпотентно: всегда подтягиваем актуальный статус */
+  let actual;
+  try { actual = await getPayment(paymentId); }
+  catch (e) { actual = event.object; }
+
+  const orderRow = db.prepare(`SELECT * FROM orders WHERE yookassa_id = ?`).get(paymentId);
+  if (!orderRow) {
+    return res.status(200).json({ ok: true, note: 'order not found' });
+  }
+  db.prepare(`UPDATE orders SET payment_status = ?, status = ? WHERE id = ?`)
+    .run(actual.status, actual.status === 'succeeded' ? 'paid' : orderRow.status, orderRow.id);
+
+  /* TODO: тут можно создавать заказ в Posiflora при status === 'succeeded' */
+
+  res.json({ ok: true });
+});
+
+/** Получить актуальный статус заказа (для polling после редиректа) */
+r.get('/:id/status', async (req, res) => {
+  const row = db.prepare(`SELECT id, status, payment_status, yookassa_id FROM orders WHERE id = ?`).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'not found' });
+  /* Подтягиваем актуальный статус из ЮKassa */
+  if (row.yookassa_id && row.payment_status !== 'succeeded') {
+    try {
+      const p = await getPayment(row.yookassa_id);
+      if (p.status !== row.payment_status) {
+        db.prepare(`UPDATE orders SET payment_status = ?, status = ? WHERE id = ?`)
+          .run(p.status, p.status === 'succeeded' ? 'paid' : row.status, row.id);
+        row.payment_status = p.status;
+      }
+    } catch {}
+  }
+  res.json(row);
+});
+
+r.get('/', (req, res) => {
+  const rows = db.prepare(`SELECT * FROM orders ORDER BY id DESC LIMIT 200`).all();
+  res.json(rows.map(o => ({ ...o, items: JSON.parse(o.items_json || '[]') })));
+});
+
+export default r;

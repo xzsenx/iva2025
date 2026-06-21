@@ -1,3 +1,10 @@
 .claude/
 .DS_Store
 Thumbs.db
+
+# Backend
+backend/node_modules
+backend/.env
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal

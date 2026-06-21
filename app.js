@@ -16,11 +16,12 @@ const app = (() => {
   const $$ = (s) => document.querySelectorAll(s);
 
   const screens = {
-    catalog:  $("#screen-catalog"),
-    product:  $("#screen-product"),
-    cart:     $("#screen-cart"),
-    checkout: $("#screen-checkout"),
-    thanks:   $("#screen-thanks"),
+    catalog:     $("#screen-catalog"),
+    product:     $("#screen-product"),
+    cart:        $("#screen-cart"),
+    checkout:    $("#screen-checkout"),
+    thanks:      $("#screen-thanks"),
+    constructor: $("#screen-constructor"),
   };
 
   const els = {
@@ -95,7 +96,13 @@ const app = (() => {
       catalogScrollY = window.scrollY;
     }
     Object.values(screens).forEach((s) => s.classList.remove("active"));
-    screens[name].classList.add("active");
+    /* Если выходим из конструктора — пропускаем fade-анимацию следующего экрана */
+    const target = screens[name];
+    if (prev === "constructor" && target) {
+      target.style.animation = "none";
+      requestAnimationFrame(() => { target.style.animation = ""; });
+    }
+    target.classList.add("active");
     if (name === "catalog") {
       window.scrollTo(0, catalogScrollY);
     } else {
@@ -164,7 +171,12 @@ const app = (() => {
 
     els.categories.querySelectorAll(".cat-pill").forEach((btn) => {
       btn.addEventListener("click", () => {
-        currentCategory = btn.dataset.cat;
+        const cat = btn.dataset.cat;
+        if (cat === "custom") {
+          showConstructor();
+          return;
+        }
+        currentCategory = cat;
         renderCategories();
         renderGrid();
       });
@@ -218,17 +230,17 @@ const app = (() => {
       return `${stockHTML}
         <div class="card__qty">
           <button class="card__qty-btn${qty === 1 ? " card__qty-btn--remove" : ""}"
-                  onclick="event.stopPropagation(); app.cardMinus(${b.id})">
+                  onclick="event.stopPropagation(); app.cardMinus('${b.id}')">
             ${qty === 1 ? "✕" : "−"}
           </button>
           <span class="card__qty-num">${qty}</span>
           <button class="card__qty-btn${maxReached ? " card__qty-btn--disabled" : ""}"
-                  onclick="event.stopPropagation(); app.cardPlus(${b.id})"
+                  onclick="event.stopPropagation(); app.cardPlus('${b.id}')"
                   ${maxReached ? "disabled" : ""}>+</button>
         </div>`;
     }
     return `${stockHTML}
-      <button class="card__add-btn" onclick="event.stopPropagation(); app.quickAdd(${b.id})">
+      <button class="card__add-btn" onclick="event.stopPropagation(); app.quickAdd('${b.id}')">
         В корзину
       </button>`;
   }
@@ -264,9 +276,11 @@ const app = (() => {
     els.grid.innerHTML = list
       .map(
         (b, i) => `
-      <div class="card" data-id="${b.id}" style="animation-delay:${i * 0.05}s" onclick="app.showProduct(${b.id})">
-        <div class="card__img-wrap">
-          <img class="card__img" src="${b.img}" alt="${b.name}" loading="lazy">
+      <div class="card" data-id="${b.id}" style="animation-delay:${i * 0.05}s" onclick="app.showProduct('${b.id}')">
+        <div class="card__img-wrap${b.img ? '' : ' card__img-wrap--noimg'}">
+          ${b.img
+            ? `<img class="card__img" src="${b.img}" alt="${b.name}" loading="lazy">`
+            : `Нет фото`}
           ${badgeHTML(b.badge)}
         </div>
         <div class="card__info">
@@ -370,6 +384,7 @@ const app = (() => {
 
   function cartTotal() {
     return cart.reduce((s, i) => {
+      if (i.custom) return s + i.custom.price * i.qty;
       const b = BOUQUETS.find((x) => x.id === i.id);
       return s + (b ? b.price * i.qty : 0);
     }, 0);
@@ -510,6 +525,22 @@ const app = (() => {
 
     els.cartBody.innerHTML = cart
       .map((item) => {
+        if (item.custom) {
+          const c = item.custom;
+          const composition = c.items.map(i => `${i.title} ×${i.qty}`).join(", ");
+          return `
+        <div class="cart-item" data-key="${item.key}">
+          <div class="cart-item__img" style="display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);font-size:28px">🌷</div>
+          <div class="cart-item__info">
+            <div class="cart-item__name">${c.name}</div>
+            <div class="cart-item__meta" style="font-size:12px;opacity:.7">${composition}</div>
+            <div class="cart-item__price">${formatPrice(c.price * item.qty)}</div>
+          </div>
+          <div class="cart-item__controls">
+            <button class="qty-btn qty-btn--remove" onclick="app.changeQty('${item.key}', -1)">✕</button>
+          </div>
+        </div>`;
+        }
         const b = BOUQUETS.find((x) => x.id === item.id);
         if (!b) return "";
         return `
@@ -583,16 +614,29 @@ const app = (() => {
     e.preventDefault();
     const fd = new FormData(els.checkoutForm);
 
-    const order = {
-      items: cart.map((i) => {
-        const b = BOUQUETS.find((x) => x.id === i.id);
+    /* Готовим items — для обычных букетов и для кастомного с составом */
+    const items = cart.map((i) => {
+      if (i.custom) {
         return {
-          name: b ? b.name : "?",
-          size: i.size,
+          id: i.id,
+          name: i.custom.name,
           qty: i.qty,
-          price: b ? b.price : 0,
+          price: i.custom.price,
+          custom: i.custom,   // содержит items[], note, wishes
         };
-      }),
+      }
+      const b = BOUQUETS.find((x) => x.id === i.id);
+      return {
+        id: i.id,
+        name: b ? b.name : "?",
+        size: i.size,
+        qty: i.qty,
+        price: b ? b.price : 0,
+      };
+    });
+
+    const order = {
+      items,
       total: cartTotal(),
       name: fd.get("name"),
       phone: fd.get("phone"),
@@ -603,120 +647,46 @@ const app = (() => {
       comment: fd.get("comment") || "",
     };
 
-    /* ── ЮКасса: создаём платёж через бэкенд ── */
-    const backendUrl = "https://iva-backend-bxaj.onrender.com";
+    const submitBtn = els.checkoutForm.querySelector('[type="submit"]');
+    const origText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Создаём платёж…";
 
-    if (backendUrl) {
-      const submitBtn = els.checkoutForm.querySelector('[type="submit"]');
-      const origText = submitBtn.textContent;
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Создаём платёж…";
-
-      /* Fetch с таймаутом и retry (Render Free просыпается до 60 сек) */
-      async function fetchWithRetry(url, options, retries = 2) {
-        for (let i = 0; i <= retries; i++) {
-          try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 60000);
-            const resp = await fetch(url, { ...options, signal: controller.signal });
-            clearTimeout(timeout);
-            if (!resp.ok) throw new Error("backend_error " + resp.status);
-            return resp;
-          } catch (err) {
-            if (i === retries) throw err;
-            submitBtn.textContent = "Сервер просыпается… ⏳";
-            await new Promise(r => setTimeout(r, 3000));
-          }
-        }
+    try {
+      const resp = await fetch(API_BASE + "/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(order),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${resp.status}`);
       }
+      const data = await resp.json();
 
-      try {
-        const resp = await fetchWithRetry(backendUrl + "/api/create-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ order }),
-        });
+      /* Очищаем корзину до редиректа */
+      cart = [];
+      saveCart();
+      els.checkoutForm.reset();
 
-        const { confirmation_url } = await resp.json();
-
-        /* Очистить корзину до редиректа */
-        cart = [];
-        saveCart();
-        els.checkoutForm.reset();
-
-        /* Открыть оплату — в TG через openLink, иначе location */
-        if (tg && tg.openLink) {
-          tg.openLink(confirmation_url);
-        } else {
-          window.location.href = confirmation_url;
-        }
-        return false;
-      } catch (err) {
-        console.error("Ошибка создания платежа:", err);
-        toast("Не удалось создать платёж. Попробуй ещё раз.");
-        submitBtn.disabled = false;
-        submitBtn.textContent = origText;
+      if (!data.confirmation_url) {
+        showScreen("thanks");
         return false;
       }
-    }
-
-    /* ── Фолбэк: отправка в Telegram напрямую (без бэкенда) ── */
-    const botToken   = localStorage.getItem("iva_tg_token") || "";
-    const MANAGER_ID = parseInt(localStorage.getItem("iva_manager_id") || "6996610442");
-
-    if (botToken) {
-      try {
-        const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-        const clientLink = user
-          ? '\n🔗 <a href="tg://user?id=' + user.id + '">Написать клиенту</a>' +
-            (user.username ? " (@" + user.username + ")" : " (" + (user.first_name || "") + ")")
-          : "";
-
-        const itemsLines = order.items
-          .map(function(i) {
-            return "• " + i.name +
-              (i.size ? " [" + i.size + "]" : "") +
-              " × " + i.qty + " — " +
-              (i.price * i.qty).toLocaleString("ru-RU") + " ₽";
-          })
-          .join("\n");
-
-        const deliveryLine = order.delivery === "delivery"
-          ? "🚚 Доставка\n📍 " + order.address
-          : "🏪 Самовывоз";
-
-        const text =
-          "🌸 <b>Новый заказ!</b>\n\n" +
-          "👤 " + order.name + "\n" +
-          "📱 " + order.phone +
-          clientLink + "\n\n" +
-          "📦 <b>Состав:</b>\n" + itemsLines + "\n\n" +
-          "💰 <b>Итого: " + order.total.toLocaleString("ru-RU") + " ₽</b>\n\n" +
-          deliveryLine + "\n" +
-          "📅 " + order.date + (order.time ? ", " + order.time : "") +
-          (order.comment ? "\n\n💬 " + order.comment : "");
-
-        await fetch("https://api.telegram.org/bot" + botToken + "/sendMessage", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: MANAGER_ID, text, parse_mode: "HTML" }),
-        });
-      } catch (err) {
-        console.log("Bot API error:", err);
-      }
-    } else {
-      if (tg) {
-        try { tg.sendData(JSON.stringify(order)); } catch {}
+      /* Редирект на оплату */
+      if (tg && tg.openLink) {
+        tg.openLink(data.confirmation_url);
       } else {
-        console.log("ORDER:", JSON.stringify(order, null, 2));
+        window.location.href = data.confirmation_url;
       }
+      return false;
+    } catch (err) {
+      console.error("Ошибка создания платежа:", err);
+      toast("Не удалось создать платёж: " + err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = origText;
+      return false;
     }
-
-    cart = [];
-    saveCart();
-    els.checkoutForm.reset();
-    showScreen("thanks");
-    return false;
   }
 
   /* ── Show Catalog ── */
@@ -745,8 +715,8 @@ const app = (() => {
     updateCartBadge();
     loadPromo();
 
-    /* Пинг бэкенда чтобы разбудить Render Free */
-    fetch("https://iva-backend-bxaj.onrender.com/health").catch(() => {});
+    /* Пинг бэкенда (warm-up для Render Free) */
+    fetch(API_BASE + "/health").catch(() => {});
 
     /* Если вернулись с ЮКасса — показываем "Спасибо" */
     const urlParams = new URLSearchParams(window.location.search);
@@ -770,6 +740,346 @@ const app = (() => {
 
   init();
 
+  /* ── КОНСТРУКТОР БУКЕТА (мастер из 3 шагов) ── */
+  let constructorStep = 1;
+  let constructorState = {
+    stems: {},      // { stemId: qty }
+    wrapId: null,   // selected wrap
+    ribbonId: null, // selected ribbon
+    note: "",
+    wishes: "",
+  };
+  /* фильтры/поиск/сортировка на шаге 1 */
+  let constructorStemFilter = "all";
+  let constructorStemSearch = "";
+  let constructorStemSort = "name";
+
+  function showConstructor() {
+    constructorStep = 1;
+    constructorState = { stems: {}, wrapId: null, ribbonId: null, note: "", wishes: "" };
+    showScreen("constructor");
+    renderConstructor();
+  }
+
+  function safe(id) { return String(id).replace(/'/g, "\\'"); }
+
+  function noimgPlaceholder() {
+    return `<div class="const-card__noimg">Нет фото</div>`;
+  }
+
+  function cardImageHTML(img, alt) {
+    if (!img) return noimgPlaceholder();
+    return `<img class="const-card__img" src="${img}" alt="${alt}" loading="lazy">`;
+  }
+
+  function renderConstructor() {
+    /* update step dots */
+    $$("#screen-constructor .constructor__step-dot").forEach(d => {
+      const n = +d.dataset.step;
+      d.classList.toggle("active", n === constructorStep);
+      d.classList.toggle("done", n < constructorStep);
+    });
+    const titles = ["Цветы", "Упаковка и лента", "Записка и пожелания"];
+    $("#constructorHeaderTitle").textContent = titles[constructorStep - 1];
+
+    const body = $("#constructorBody");
+    if (constructorStep === 1) body.innerHTML = renderStemsStep();
+    else if (constructorStep === 2) body.innerHTML = renderWrapStep();
+    else if (constructorStep === 3) body.innerHTML = renderNoteStep();
+
+    /* attach textarea listeners on step 3 */
+    if (constructorStep === 3) {
+      $("#noteInput")?.addEventListener("input", (e) => { constructorState.note = e.target.value; });
+      $("#wishesInput")?.addEventListener("input", (e) => { constructorState.wishes = e.target.value; });
+    }
+
+    /* search input on step 1 */
+    if (constructorStep === 1) {
+      const inp = $("#constStemSearch");
+      if (inp) {
+        inp.addEventListener("input", (e) => {
+          constructorStemSearch = e.target.value;
+          const cursor = e.target.selectionStart;
+          renderConstructor();
+          const reFocus = $("#constStemSearch");
+          if (reFocus) { reFocus.focus(); try { reFocus.setSelectionRange(cursor, cursor); } catch {} }
+        });
+      }
+    }
+
+    renderConstructorNav();
+  }
+
+  function constructorSetStemFilter(cat) {
+    constructorStemFilter = cat;
+    renderConstructor();
+  }
+  function constructorSetStemSort(s) {
+    constructorStemSort = s;
+    renderConstructor();
+  }
+
+  function renderStemsStep() {
+    const stems = (typeof getStems === "function" ? getStems() : []) || [];
+    if (stems.length === 0) {
+      return `<p class="constructor__step-sub" style="padding:40px;text-align:center">Стебли загружаются...</p>`;
+    }
+
+    /* Категории — собираем из данных + фиксированный "Все" */
+    const catSet = Array.from(new Set(stems.map(s => s.category || "Прочее")));
+    const order = ["Цветы", "Зелень", "Сухоцветы"];
+    const cats = ["all", ...catSet.sort((a, b) => {
+      const ia = order.indexOf(a), ib = order.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    })];
+
+    /* Фильтрация */
+    const q = constructorStemSearch.trim().toLowerCase();
+    let filtered = stems.filter(s => {
+      if (constructorStemFilter !== "all" && (s.category || "Прочее") !== constructorStemFilter) return false;
+      if (q && !s.title.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    /* Сортировка */
+    if (constructorStemSort === "price_asc") filtered.sort((a, b) => (a.price||0) - (b.price||0));
+    else if (constructorStemSort === "price_desc") filtered.sort((a, b) => (b.price||0) - (a.price||0));
+    else filtered.sort((a, b) => a.title.localeCompare(b.title, "ru"));
+
+    return `
+      <h3 class="constructor__step-title">Выберите цветы</h3>
+      <p class="constructor__step-sub">Нажмите «+», чтобы добавить цветок в букет</p>
+
+      <div class="const-controls">
+        <div class="const-search">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.5-3.5"/></svg>
+          <input id="constStemSearch" type="text" placeholder="Поиск по названию..." value="${constructorStemSearch.replace(/"/g, "&quot;")}">
+        </div>
+        <div class="const-filters">
+          ${cats.map(c => `
+            <button class="const-chip${constructorStemFilter === c ? " active" : ""}"
+                    onclick="app.constructorSetStemFilter('${safe(c)}')">${c === "all" ? "Все" : c}</button>
+          `).join("")}
+        </div>
+        <select class="const-sort" onchange="app.constructorSetStemSort(this.value)">
+          <option value="name"       ${constructorStemSort === "name" ? "selected" : ""}>По умолчанию</option>
+          <option value="price_asc"  ${constructorStemSort === "price_asc" ? "selected" : ""}>Цена ↑</option>
+          <option value="price_desc" ${constructorStemSort === "price_desc" ? "selected" : ""}>Цена ↓</option>
+        </select>
+      </div>
+
+      ${filtered.length === 0 ? `
+        <p style="padding:40px;text-align:center;opacity:.5">Ничего не найдено</p>
+      ` : `
+        <div class="const-grid">
+          ${filtered.map(s => {
+            const qty = constructorState.stems[s.id] || 0;
+            return `
+              <div class="const-card${qty ? " selected" : ""}">
+                ${cardImageHTML(s.img, s.title)}
+                <div class="const-card__info">
+                  <h4 class="const-card__title">${s.title}</h4>
+                  <div class="const-card__price">${formatPrice(s.price || 0)}<span class="const-card__price-meta"> / шт</span></div>
+                  <div class="const-card__qty-row">
+                    ${qty > 0 ? `
+                      <button class="const-card__qty-btn" onclick="app.constructorChange('${safe(s.id)}', -1)">−</button>
+                      <span class="const-card__qty-num">${qty}</span>
+                      <button class="const-card__qty-btn" onclick="app.constructorChange('${safe(s.id)}', 1)">+</button>
+                    ` : `
+                      <button class="const-card__qty-btn const-card__qty-btn--add" onclick="app.constructorChange('${safe(s.id)}', 1)">+ В букет</button>
+                    `}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `}
+    `;
+  }
+
+  function renderWrapStep() {
+    const wraps = (typeof getWraps === "function" ? getWraps() : []) || [];
+    const ribbons = (typeof getRibbons === "function" ? getRibbons() : []) || [];
+
+    return `
+      <h3 class="constructor__step-title">Упаковка</h3>
+      <p class="constructor__step-sub">Выберите оформление букета</p>
+      ${wraps.length === 0 ? `<p style="padding:0 16px;opacity:.5">Нет вариантов упаковки</p>` : `
+        <div class="const-grid">
+          ${wraps.map(w => `
+            <div class="const-card const-radio${constructorState.wrapId === w.id ? " selected" : ""}"
+                 onclick="app.constructorSelectWrap('${safe(w.id)}')">
+              <span class="const-radio__check">✓</span>
+              ${cardImageHTML(w.img, w.title)}
+              <div class="const-card__info">
+                <h4 class="const-card__title">${w.title}</h4>
+                <div class="const-card__price">${formatPrice(w.price || 0)}</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `}
+      <button class="const-skip" onclick="app.constructorSelectWrap(null)">Без упаковки</button>
+
+      <h3 class="constructor__step-title">Лента</h3>
+      <p class="constructor__step-sub">Выберите цвет ленты</p>
+      ${ribbons.length === 0 ? `<p style="padding:0 16px 16px;opacity:.5">Нет вариантов ленты</p>` : `
+        <div class="const-grid">
+          ${ribbons.map(r => `
+            <div class="const-card const-radio${constructorState.ribbonId === r.id ? " selected" : ""}"
+                 onclick="app.constructorSelectRibbon('${safe(r.id)}')">
+              <span class="const-radio__check">✓</span>
+              ${cardImageHTML(r.img, r.title)}
+              <div class="const-card__info">
+                <h4 class="const-card__title">${r.title}</h4>
+                <div class="const-card__price">${formatPrice(r.price || 0)}</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `}
+      <button class="const-skip" onclick="app.constructorSelectRibbon(null)">Без ленты</button>
+      <div style="height:120px"></div>
+    `;
+  }
+
+  function renderNoteStep() {
+    const summary = constructorSummary();
+    return `
+      <h3 class="constructor__step-title">Записка</h3>
+      <div class="const-field">
+        <label class="const-field__label">Что написать получателю (необязательно)</label>
+        <textarea id="noteInput" placeholder="С Днём Рождения! Желаю...">${constructorState.note}</textarea>
+      </div>
+
+      <h3 class="constructor__step-title">Пожелания по букету</h3>
+      <div class="const-field">
+        <label class="const-field__label">Пример: «выщипать колючки у роз», «без шипов», «упаковать в крафт»</label>
+        <textarea id="wishesInput" placeholder="Ваши пожелания флористу...">${constructorState.wishes}</textarea>
+      </div>
+
+      <div style="margin:24px 16px;padding:16px;background:rgba(255,255,255,.04);border-radius:12px">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:#E8DDD0;margin-bottom:10px">Ваш букет:</div>
+        ${summary.lines.map(l => `<div style="font-size:13px;color:rgba(255,255,255,.75);margin-bottom:3px">${l}</div>`).join("")}
+        <div style="margin-top:12px;font-size:18px;font-weight:600;color:#fff">Итого: ${formatPrice(summary.total)}</div>
+      </div>
+      <div style="height:120px"></div>
+    `;
+  }
+
+  function constructorSummary() {
+    const stems = (typeof getStems === "function" ? getStems() : []) || [];
+    const wraps = (typeof getWraps === "function" ? getWraps() : []) || [];
+    const ribbons = (typeof getRibbons === "function" ? getRibbons() : []) || [];
+    const lines = [];
+    let total = 0, count = 0;
+    for (const [id, qty] of Object.entries(constructorState.stems)) {
+      const s = stems.find(x => x.id === id);
+      if (!s) continue;
+      const sub = (s.price || 0) * qty;
+      total += sub; count += qty;
+      lines.push(`• ${s.title} × ${qty} = ${formatPrice(sub)}`);
+    }
+    if (constructorState.wrapId) {
+      const w = wraps.find(x => x.id === constructorState.wrapId);
+      if (w) { total += w.price || 0; lines.push(`• Упаковка: ${w.title} — ${formatPrice(w.price || 0)}`); }
+    }
+    if (constructorState.ribbonId) {
+      const r = ribbons.find(x => x.id === constructorState.ribbonId);
+      if (r) { total += r.price || 0; lines.push(`• Лента: ${r.title} — ${formatPrice(r.price || 0)}`); }
+    }
+    return { lines, total, count };
+  }
+
+  function renderConstructorNav() {
+    const s = constructorSummary();
+    const nav = $("#constructorNav");
+    const stepsTotal = 3;
+    const last = constructorStep === stepsTotal;
+    const canNext = constructorStep === 1 ? s.count > 0 : true;
+    nav.innerHTML = `
+      ${constructorStep > 1
+        ? `<button class="const-nav__back" onclick="app.constructorBack()">Назад</button>`
+        : ""}
+      <button class="const-nav__next" ${canNext ? "" : "disabled"}
+              onclick="${last ? "app.addConstructorBouquet()" : "app.constructorNext()"}">
+        <span>${last ? "Добавить в корзину" : "Далее"}</span>
+        ${s.count > 0 ? `<span class="const-nav__next-sum">${s.count} ${s.count === 1 ? "цветок" : s.count < 5 ? "цветка" : "цветков"} · ${formatPrice(s.total)}</span>` : ""}
+      </button>
+    `;
+  }
+
+  function constructorChange(stemId, delta) {
+    const cur = constructorState.stems[stemId] || 0;
+    const next = Math.max(0, cur + delta);
+    if (next === 0) delete constructorState.stems[stemId];
+    else constructorState.stems[stemId] = next;
+    renderConstructor();
+  }
+
+  function constructorSelectWrap(wrapId) {
+    constructorState.wrapId = (constructorState.wrapId === wrapId) ? null : wrapId;
+    renderConstructor();
+  }
+  function constructorSelectRibbon(ribbonId) {
+    constructorState.ribbonId = (constructorState.ribbonId === ribbonId) ? null : ribbonId;
+    renderConstructor();
+  }
+
+  function constructorNext() {
+    if (constructorStep < 3) {
+      constructorStep++;
+      renderConstructor();
+      window.scrollTo(0, 0);
+    }
+  }
+  function constructorBack() {
+    if (constructorStep > 1) {
+      constructorStep--;
+      renderConstructor();
+      window.scrollTo(0, 0);
+    } else {
+      showCatalog();
+    }
+  }
+
+  function addConstructorBouquet() {
+    const s = constructorSummary();
+    if (s.count === 0) return;
+    const stems = (typeof getStems === "function" ? getStems() : []) || [];
+    const wraps = (typeof getWraps === "function" ? getWraps() : []) || [];
+    const ribbons = (typeof getRibbons === "function" ? getRibbons() : []) || [];
+
+    const items = Object.entries(constructorState.stems).map(([id, qty]) => {
+      const x = stems.find(y => y.id === id);
+      return { id, title: x?.title || id, qty, price: x?.price || 0, type: "stem" };
+    });
+    if (constructorState.wrapId) {
+      const w = wraps.find(x => x.id === constructorState.wrapId);
+      if (w) items.push({ id: w.id, title: w.title, qty: 1, price: w.price || 0, type: "wrap" });
+    }
+    if (constructorState.ribbonId) {
+      const r = ribbons.find(x => x.id === constructorState.ribbonId);
+      if (r) items.push({ id: r.id, title: r.title, qty: 1, price: r.price || 0, type: "ribbon" });
+    }
+
+    const customId = `custom:${Date.now()}`;
+    cart.push({
+      key: customId, id: customId, qty: 1, size: null,
+      custom: {
+        name: `Свой букет (${s.count} ${s.count === 1 ? "цветок" : s.count < 5 ? "цветка" : "цветков"})`,
+        price: s.total,
+        items,
+        note: constructorState.note,
+        wishes: constructorState.wishes,
+      },
+    });
+    saveCart();
+    toast("Букет добавлен в корзину");
+    showCatalog();
+  }
+
   /* ── Public API ── */
   return {
     showProduct,
@@ -783,5 +1093,14 @@ const app = (() => {
     selectSize,
     changeQty,
     submitOrder,
+    showConstructor,
+    constructorChange,
+    constructorSelectWrap,
+    constructorSelectRibbon,
+    constructorNext,
+    constructorBack,
+    addConstructorBouquet,
+    constructorSetStemFilter,
+    constructorSetStemSort,
   };
 })();

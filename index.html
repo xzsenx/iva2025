@@ -150,6 +150,29 @@
     </form>
   </div>
 
+  <!-- ====== ЭКРАН: Конструктор букета (мастер 3 шага) ====== -->
+  <div id="screen-constructor" class="screen">
+    <header class="header header--inner">
+      <button class="back-btn" onclick="app.constructorBack()">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <h2 class="header__title" id="constructorHeaderTitle">Собрать букет</h2>
+      <div style="width:22px"></div>
+    </header>
+
+    <div class="constructor__steps">
+      <div class="constructor__step-dot active" data-step="1"></div>
+      <div class="constructor__step-dot" data-step="2"></div>
+      <div class="constructor__step-dot" data-step="3"></div>
+    </div>
+
+    <div id="constructorBody"></div>
+
+    <div class="const-nav" id="constructorNav"></div>
+  </div>
+
   <!-- ====== ЭКРАН 5: Спасибо ====== -->
   <div id="screen-thanks" class="screen">
     <div class="thanks">
@@ -176,7 +199,7 @@
     })();
   </script>
 
-  <script src="data.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="data.js?v=17"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>

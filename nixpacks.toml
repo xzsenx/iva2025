@@ -5,4 +5,4 @@ nixPkgs = ["nodejs_20", "python3", "gnumake", "gcc"]
 cmds = ["cd backend && npm ci"]
 
 [start]
-cmd = "cd backend && npm start"
+cmd = "node backend/src/index.js"

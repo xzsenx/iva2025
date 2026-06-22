@@ -51,10 +51,27 @@ const FRONTEND_DIR = process.env.FRONTEND_DIR || path.join(__dirname, '..', '..'
 app.use(express.static(FRONTEND_DIR, { extensions: ['html'] }));
 
 const PORT = Number(process.env.PORT) || 3001;
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[iva] backend on :${PORT}`);
   console.log(`[iva] serving frontend from ${FRONTEND_DIR}`);
 });
+
+/* Graceful shutdown — Railway шлёт SIGTERM при swap'е деплоев.
+   Без обработчика npm пишет "command failed" и пугает в логах. */
+function shutdown(signal) {
+  console.log(`[iva] received ${signal}, closing gracefully...`);
+  server.close(() => {
+    console.log('[iva] http closed, bye');
+    process.exit(0);
+  });
+  // Если за 10с не закрылось — форсим
+  setTimeout(() => {
+    console.log('[iva] force exit after 10s');
+    process.exit(0);
+  }, 10_000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
 
 // Sync на старте (если БД пустая) + крон каждый час
 const lastSync = (await import('./db.js')).db

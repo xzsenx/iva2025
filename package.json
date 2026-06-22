@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "cd backend && npm start",
+    "start": "node backend/src/index.js",
     "postinstall": "cd backend && npm install"
   }
 }

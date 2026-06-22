@@ -42,8 +42,11 @@ body {
   overscroll-behavior-y: contain;
 }
 
-/* В TG не нужны safe-area (TG сам шапку обрабатывает) — только нижний safe для iPhone */
-html.is-tg body { padding-top: 0; }
+/* В TG отступ сверху берём из contentSafeAreaInset (учитывает fullscreen / статус-бар) */
+html.is-tg body {
+  padding-top: var(--tg-safe-top, 0px);
+  padding-bottom: var(--tg-safe-bottom, var(--safe-bot));
+}
 
 /* ── Screens ── */
 .screen {

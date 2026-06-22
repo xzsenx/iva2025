@@ -70,6 +70,25 @@ const app = (() => {
     };
     applyViewport();
     tg.onEvent && tg.onEvent("viewportChanged", applyViewport);
+
+    /* Safe-area: в fullscreen TG прячет шапку → нужно отступать от статус-бара устройства.
+       contentSafeAreaInset (TG 8.0+) — внутренние отступы (под шапку TG / статус-бар).
+       safeAreaInset — отступы устройства (notch). Берём максимум для надёжности. */
+    const applySafeArea = () => {
+      const c = tg.contentSafeAreaInset || {};
+      const s = tg.safeAreaInset || {};
+      const top = Math.max(c.top || 0, s.top || 0);
+      const bot = Math.max(c.bottom || 0, s.bottom || 0);
+      // Минимум 12px сверху в fullscreen — чтобы заголовок не лип к статус-бару
+      const isFullscreen = !!tg.isFullscreen;
+      const topPx = (isFullscreen && top < 44 ? Math.max(top, 44) : top) + "px";
+      document.documentElement.style.setProperty("--tg-safe-top", topPx);
+      document.documentElement.style.setProperty("--tg-safe-bottom", (bot || 0) + "px");
+    };
+    applySafeArea();
+    tg.onEvent && tg.onEvent("safeAreaChanged", applySafeArea);
+    tg.onEvent && tg.onEvent("contentSafeAreaChanged", applySafeArea);
+    tg.onEvent && tg.onEvent("fullscreenChanged", applySafeArea);
   }
 
   /* ── Haptic helper ── */

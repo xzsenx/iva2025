@@ -321,9 +321,14 @@
     <input type="hidden" id="mSourceId">
 
     <div class="row">
-      <label>Фото (URL)</label>
+      <label>Фото</label>
       <img class="img-preview" id="mImgPreview" alt="" src="" style="display:none">
-      <input class="input" id="mPhotoUrl" placeholder="https://example.com/photo.jpg">
+      <div id="mDropzone" style="border:2px dashed rgba(255,255,255,.18);border-radius:10px;padding:18px;text-align:center;cursor:pointer;color:var(--cream-dim);font-size:13px;margin-bottom:8px">
+        Перетащи фото сюда или кликни, чтобы выбрать
+      </div>
+      <input type="file" id="mPhotoFile" accept="image/*" style="display:none">
+      <input class="input" id="mPhotoUrl" placeholder="...или вставь URL" style="font-size:12px">
+      <div id="mUploadStatus" style="font-size:12px;color:var(--cream-dim);min-height:16px;margin-top:4px"></div>
     </div>
     <div class="row">
       <label>Название в мини-аппе (переопределение)</label>
@@ -559,10 +564,48 @@ function openEditor(id) {
 function updateImgPreview() {
   const url = $('#mPhotoUrl').value.trim();
   const img = $('#mImgPreview');
-  if (url) { img.src = url; img.style.display = 'block'; }
-  else { img.style.display = 'none'; }
+  if (url) {
+    /* относительные ссылки (/uploads/...) рендерим через API base */
+    img.src = url.startsWith('/') ? (API + url) : url;
+    img.style.display = 'block';
+  } else { img.style.display = 'none'; }
 }
 $('#mPhotoUrl').addEventListener('input', updateImgPreview);
+
+/* === Загрузка файлов === */
+async function uploadFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('Только картинки'); return; }
+  if (file.size > 10 * 1024 * 1024) { toast('Макс. 10 МБ'); return; }
+  $('#mUploadStatus').textContent = 'Загрузка ' + Math.round(file.size/1024) + ' КБ...';
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res = await fetch(API + '/api/admin/upload', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + getAuth() },
+      body: fd,
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    $('#mPhotoUrl').value = data.url || data.path;
+    $('#mUploadStatus').textContent = 'Загружено ✓';
+    updateImgPreview();
+  } catch (e) {
+    $('#mUploadStatus').textContent = 'Ошибка: ' + e.message;
+  }
+}
+
+$('#mPhotoFile').addEventListener('change', e => uploadFile(e.target.files[0]));
+const dz = $('#mDropzone');
+dz.addEventListener('click', () => $('#mPhotoFile').click());
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--pink)'; });
+dz.addEventListener('dragleave', e => { dz.style.borderColor = 'rgba(255,255,255,.18)'; });
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.style.borderColor = 'rgba(255,255,255,.18)';
+  if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+});
 
 $('#mCancel').addEventListener('click', () => $('#modalOverlay').classList.remove('active'));
 $('#modalOverlay').addEventListener('click', e => { if (e.target.id === 'modalOverlay') $('#modalOverlay').classList.remove('active'); });

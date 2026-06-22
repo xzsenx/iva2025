@@ -26,6 +26,12 @@ app.use('/api/products', products);
 app.use('/api/orders', orders);
 app.use('/api/admin', admin);
 
+/* Загруженные фото (живут на persistent-волюме рядом с БД) */
+const UPLOAD_DIR = process.env.UPLOAD_DIR
+  || (process.env.DB_PATH ? path.join(path.dirname(process.env.DB_PATH), 'uploads')
+                          : path.join(__dirname, '..', 'uploads'));
+app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d' }));
+
 /* Раздаём статику фронтенда (index.html, app.js, data.js, style.css и т.д.) */
 const FRONTEND_DIR = process.env.FRONTEND_DIR || path.join(__dirname, '..', '..');
 app.use(express.static(FRONTEND_DIR, { extensions: ['html'] }));

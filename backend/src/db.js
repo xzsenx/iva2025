@@ -113,6 +113,22 @@ safeAlter(`ALTER TABLE posiflora_bouquets ADD COLUMN true_sale_amount REAL`);
 safeAlter(`ALTER TABLE posiflora_bouquets ADD COLUMN markup REAL`);
 safeAlter(`ALTER TABLE posiflora_bouquets ADD COLUMN discount REAL`);
 
+/* Нормализация photo_url: было http(s)://domain/uploads/X → стало /uploads/X */
+try {
+  const rows = db.prepare(`SELECT source, source_id, photo_url FROM catalog_overrides WHERE photo_url LIKE 'http%/uploads/%'`).all();
+  if (rows.length) {
+    const upd = db.prepare(`UPDATE catalog_overrides SET photo_url=? WHERE source=? AND source_id=?`);
+    const tx = db.transaction(() => {
+      for (const r of rows) {
+        const m = r.photo_url.match(/\/uploads\/.+$/);
+        if (m) upd.run(m[0], r.source, r.source_id);
+      }
+    });
+    tx();
+    console.log(`[iva] migrated ${rows.length} absolute photo URLs → relative paths`);
+  }
+} catch (e) { console.error('[iva] photo_url migration failed:', e.message); }
+
 export function upsertSpec(s) {
   const a = s.attributes;
   db.prepare(`INSERT INTO posiflora_specifications

@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import cron from 'node-cron';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { runSync } from './sync.js';
 import products from './routes/products.js';
@@ -12,6 +13,8 @@ import admin from './routes/admin.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+// За HTTPS-прокси Railway — без этого req.protocol = http и absolute-URL ломались
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
 
 const origins = (process.env.CORS_ORIGINS || '*').split(',').map(s => s.trim());
@@ -30,7 +33,18 @@ app.use('/api/admin', admin);
 const UPLOAD_DIR = process.env.UPLOAD_DIR
   || (process.env.DB_PATH ? path.join(path.dirname(process.env.DB_PATH), 'uploads')
                           : path.join(__dirname, '..', 'uploads'));
-app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d' }));
+try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch {}
+// Проверка что директория реально на persistent volume — если нет, орём в лог
+const isOnVolume = UPLOAD_DIR.startsWith('/data') || !!process.env.UPLOAD_DIR;
+if (!isOnVolume && process.env.NODE_ENV === 'production') {
+  console.error(`[iva] !!! UPLOAD_DIR=${UPLOAD_DIR} НЕ на persistent volume — фото пропадут при деплое.`);
+  console.error(`[iva] !!! Подключи Railway volume на /data и поставь DB_PATH=/data/iva.db (uploads сам туда сядет).`);
+}
+app.use('/uploads', express.static(UPLOAD_DIR, {
+  maxAge: '30d',
+  immutable: true,  // UUID-имена → файлы content-addressed, можно агрессивно кешить
+  fallthrough: false,
+}));
 
 /* Раздаём статику фронтенда (index.html, app.js, data.js, style.css и т.д.) */
 const FRONTEND_DIR = process.env.FRONTEND_DIR || path.join(__dirname, '..', '..');

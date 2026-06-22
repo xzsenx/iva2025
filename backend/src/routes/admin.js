@@ -101,10 +101,28 @@ r.get('/overrides', (req, res) => {
 // Загрузка фото
 r.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'no file' });
-  /* Возвращаем абсолютный URL чтобы корректно работало и при смене домена */
-  const base = `${req.protocol}://${req.get('host')}`;
-  const path = '/uploads/' + req.file.filename;
-  res.json({ url: base + path, path, filename: req.file.filename, size: req.file.size });
+  /* ВАЖНО: сохраняем ОТНОСИТЕЛЬНЫЙ путь.
+     Так URL не сломается при смене Railway-домена / переезде / mixed http-https.
+     Фронт грузится с того же origin, что и /uploads — браузер сам сложит абсолютный URL. */
+  const relPath = '/uploads/' + req.file.filename;
+  res.json({ url: relPath, path: relPath, filename: req.file.filename, size: req.file.size });
+});
+
+// Диагностика — что реально лежит на диске
+r.get('/uploads-debug', (req, res) => {
+  try {
+    const files = fs.readdirSync(UPLOAD_DIR);
+    const stat = fs.statSync(UPLOAD_DIR);
+    res.json({
+      dir: UPLOAD_DIR,
+      exists: true,
+      writable: !!(stat.mode & 0o200),
+      files_count: files.length,
+      sample: files.slice(0, 10),
+    });
+  } catch (e) {
+    res.status(500).json({ dir: UPLOAD_DIR, error: e.message });
+  }
 });
 
 // Ручной триггер синка

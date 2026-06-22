@@ -42,10 +42,13 @@ body {
   overscroll-behavior-y: contain;
 }
 
-/* В TG отступ сверху: contentSafeAreaInset из API + запас 100px */
+/* В TG отступ сверху уходит внутрь .header, чтобы шапка залипала к верху, а не уезжала */
 html.is-tg body {
-  padding-top: max(var(--tg-safe-top, 0px), 100px);
+  padding-top: 0;
   padding-bottom: var(--tg-safe-bottom, var(--safe-bot));
+}
+html.is-tg .header {
+  padding-top: calc(max(var(--tg-safe-top, 0px), 100px) + 8px);
 }
 
 /* ── Screens ── */

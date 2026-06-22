@@ -5,6 +5,8 @@ import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import sharp from 'sharp';
+import heicConvert from 'heic-convert';
 
 const r = Router();
 
@@ -15,21 +17,37 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR
                           : path.join(__admin_dirname, '..', '..', 'uploads'));
 try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch {}
 
-const storage = multer.diskStorage({
-  destination: UPLOAD_DIR,
-  filename: (req, file, cb) => {
-    const ext = (path.extname(file.originalname) || '').toLowerCase().replace(/[^.\w]/g, '').slice(0, 6) || '.jpg';
-    cb(null, crypto.randomUUID() + ext);
-  },
-});
+// Держим файл в памяти — будем конвертить HEIC и ресайзить большие
 const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB сырьё (iPhone HEIC бывают жирные)
   fileFilter: (req, file, cb) => {
-    if (/^image\//.test(file.mimetype)) cb(null, true);
-    else cb(new Error('only images allowed'));
+    const ok = /^image\//.test(file.mimetype) || /\.(heic|heif)$/i.test(file.originalname);
+    cb(ok ? null : new Error('only images allowed'), ok);
   },
 });
+
+async function processImage(buf, originalName) {
+  const ext = (path.extname(originalName) || '').toLowerCase();
+  const isHeic = ext === '.heic' || ext === '.heif';
+  let input = buf;
+  // HEIC → JPEG (Chrome/Firefox/TG не умеют heic)
+  if (isHeic) {
+    try {
+      const jpeg = await heicConvert({ buffer: buf, format: 'JPEG', quality: 0.9 });
+      input = Buffer.from(jpeg);
+    } catch (e) {
+      throw new Error('HEIC conversion failed: ' + e.message);
+    }
+  }
+  // Ресайз/сжатие через sharp — макс 1600px по большей стороне, JPEG q85
+  const out = await sharp(input)
+    .rotate()  // учесть EXIF orientation
+    .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 85, mozjpeg: true })
+    .toBuffer();
+  return out;
+}
 
 // Basic auth middleware
 r.use((req, res, next) => {
@@ -105,14 +123,24 @@ r.get('/overrides', (req, res) => {
   res.json(rows);
 });
 
-// Загрузка фото
-r.post('/upload', upload.single('file'), (req, res) => {
+// Загрузка фото — конвертим HEIC, ресайзим, сохраняем как .jpg
+r.post('/upload', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'no file' });
-  /* ВАЖНО: сохраняем ОТНОСИТЕЛЬНЫЙ путь.
-     Так URL не сломается при смене Railway-домена / переезде / mixed http-https.
-     Фронт грузится с того же origin, что и /uploads — браузер сам сложит абсолютный URL. */
-  const relPath = '/uploads/' + req.file.filename;
-  res.json({ url: relPath, path: relPath, filename: req.file.filename, size: req.file.size });
+  try {
+    const processed = await processImage(req.file.buffer, req.file.originalname);
+    const filename = crypto.randomUUID() + '.jpg';
+    fs.writeFileSync(path.join(UPLOAD_DIR, filename), processed);
+    const relPath = '/uploads/' + filename;
+    res.json({
+      url: relPath, path: relPath, filename,
+      size: processed.length,
+      original_size: req.file.size,
+      original_type: req.file.mimetype,
+    });
+  } catch (e) {
+    console.error('[iva] upload failed:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Удалить файл с диска по имени (вызывается из админки при удалении фото)

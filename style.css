@@ -42,9 +42,9 @@ body {
   overscroll-behavior-y: contain;
 }
 
-/* В TG отступ сверху берём из contentSafeAreaInset (учитывает fullscreen / статус-бар) */
+/* В TG отступ сверху: contentSafeAreaInset из API (если есть) или жёсткий запас 56px */
 html.is-tg body {
-  padding-top: var(--tg-safe-top, 0px);
+  padding-top: max(var(--tg-safe-top, 0px), 56px);
   padding-bottom: var(--tg-safe-bottom, var(--safe-bot));
 }
 

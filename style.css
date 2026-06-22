@@ -34,15 +34,21 @@ body {
   color: var(--cream);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  min-height: 100vh;
+  /* TG: фикс высоты по viewportStableHeight (если задан JS-ом), иначе 100vh */
+  min-height: var(--tg-viewport-stable-height, 100vh);
   padding-top: var(--safe-top);
   padding-bottom: var(--safe-bot);
+  /* Запрет bounce-скролла в TG (когда тянешь вниз и закрываешь mini-app) */
+  overscroll-behavior-y: contain;
 }
+
+/* В TG не нужны safe-area (TG сам шапку обрабатывает) — только нижний safe для iPhone */
+html.is-tg body { padding-top: 0; }
 
 /* ── Screens ── */
 .screen {
   display: none;
-  min-height: 100vh;
+  min-height: var(--tg-viewport-stable-height, 100vh);
   animation: fadeIn .3s ease;
 }
 .screen.active { display: block; }
@@ -144,6 +150,8 @@ body {
   transition: var(--transition);
 }
 .back-btn:active { transform:scale(.85); }
+/* В TG используем нативную стрелку — JS-крестик не нужен */
+html.is-tg .back-btn { display: none; }
 
 /* ── Promo Banner ── */
 .promo {
@@ -675,7 +683,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: var(--tg-viewport-stable-height, 100vh);
   padding: 40px;
   text-align: center;
   animation: scaleIn .4s ease;

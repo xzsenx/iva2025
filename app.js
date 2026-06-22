@@ -39,14 +39,57 @@ const app = (() => {
 
   /* ── Telegram WebApp ── */
   const tg = window.Telegram && window.Telegram.WebApp;
+  const IS_TG = !!(tg && tg.initData !== undefined);
+  if (IS_TG) document.documentElement.classList.add("is-tg");
+
   if (tg) {
-    tg.ready();
-    tg.expand();
     try {
+      tg.ready();
+      tg.expand();
+      /* Запросить полноэкранный режим (TG 7.7+) — без падения если метода нет */
+      if (typeof tg.requestFullscreen === "function") {
+        try { tg.requestFullscreen(); } catch {}
+      }
+      /* Подтверждение закрытия если есть несохранённое состояние */
+      if (typeof tg.enableClosingConfirmation === "function") {
+        tg.enableClosingConfirmation();
+      }
+      /* Отключить свайп-вниз для закрытия — мешает свайпам каталога */
+      if (typeof tg.disableVerticalSwipes === "function") {
+        tg.disableVerticalSwipes();
+      }
       tg.setHeaderColor("#3D4F4C");
       tg.setBackgroundColor("#3D4F4C");
     } catch {}
+
+    /* Динамический viewport — обновляем CSS-переменную при изменении высоты TG */
+    const applyViewport = () => {
+      const h = tg.viewportStableHeight || tg.viewportHeight || window.innerHeight;
+      document.documentElement.style.setProperty("--tg-viewport-stable-height", h + "px");
+      document.documentElement.style.setProperty("--tg-viewport-height", (tg.viewportHeight || h) + "px");
+    };
+    applyViewport();
+    tg.onEvent && tg.onEvent("viewportChanged", applyViewport);
   }
+
+  /* ── Haptic helper ── */
+  function haptic(kind) {
+    if (!tg || !tg.HapticFeedback) return;
+    try {
+      switch (kind) {
+        case "light":   tg.HapticFeedback.impactOccurred("light"); break;
+        case "medium":  tg.HapticFeedback.impactOccurred("medium"); break;
+        case "heavy":   tg.HapticFeedback.impactOccurred("heavy"); break;
+        case "soft":    tg.HapticFeedback.impactOccurred("soft"); break;
+        case "rigid":   tg.HapticFeedback.impactOccurred("rigid"); break;
+        case "success": tg.HapticFeedback.notificationOccurred("success"); break;
+        case "warning": tg.HapticFeedback.notificationOccurred("warning"); break;
+        case "error":   tg.HapticFeedback.notificationOccurred("error"); break;
+        case "select":  tg.HapticFeedback.selectionChanged(); break;
+      }
+    } catch {}
+  }
+  window.haptic = haptic;
 
   /* ── Toast ── */
   let toastEl = document.createElement("div");
@@ -89,6 +132,15 @@ const app = (() => {
     return "catalog";
   }
 
+  /* TG BackButton — показываем если не на каталоге */
+  function syncBackButton() {
+    if (!tg || !tg.BackButton) return;
+    try {
+      if (screenHistory.length > 1) tg.BackButton.show();
+      else tg.BackButton.hide();
+    } catch {}
+  }
+
   function showScreen(name) {
     const prev = currentScreenName();
     /* Запоминаем скролл каталога перед уходом */
@@ -117,10 +169,12 @@ const app = (() => {
         screenHistory.push(name);
       }
     }
+    syncBackButton();
   }
 
   function goBack() {
     if (screenHistory.length <= 1) return;
+    haptic("light");
     screenHistory.pop();
     const prev = screenHistory[screenHistory.length - 1];
     Object.values(screens).forEach((s) => s.classList.remove("active"));
@@ -130,6 +184,12 @@ const app = (() => {
     } else {
       window.scrollTo(0, 0);
     }
+    syncBackButton();
+  }
+
+  /* Подписка на нативный BackButton TG */
+  if (tg && tg.BackButton) {
+    try { tg.BackButton.onClick(() => goBack()); } catch {}
   }
 
   /* ── Swipe Back (iOS-style) ── */
@@ -395,6 +455,7 @@ const app = (() => {
     if (!b) return;
     const size = b.sizes ? b.sizes[0] : null;
     addItemToCart(id, size);
+    haptic("success");
     toast("Добавлено в корзину");
     updateCardBottom(id);
   }
@@ -404,6 +465,7 @@ const app = (() => {
     if (!b) return;
     const size = b.sizes ? b.sizes[0] : null;
     addItemToCart(id, size);
+    haptic("light");
     updateCardBottom(id);
   }
 
@@ -418,6 +480,7 @@ const app = (() => {
     if (item.qty <= 0) {
       cart = cart.filter((i) => i.key !== key);
     }
+    haptic("light");
     saveCart();
     updateCardBottom(id);
   }
@@ -425,6 +488,7 @@ const app = (() => {
   function addToCart() {
     if (!currentProduct) return;
     if (addItemToCart(currentProduct.id, selectedSize) === false) return;
+    haptic("success");
     toast("Добавлено в корзину");
     updateCardBottom(currentProduct.id);
     showCatalog();

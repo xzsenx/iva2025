@@ -27,6 +27,9 @@ db.exec(`
     title TEXT,
     amount REAL,
     sale_amount REAL,
+    true_sale_amount REAL,
+    markup REAL,
+    discount REAL,
     status TEXT,
     public INTEGER,
     on_window_at TEXT,
@@ -106,6 +109,9 @@ function safeAlter(sql) {
 }
 safeAlter(`ALTER TABLE orders ADD COLUMN yookassa_id TEXT`);
 safeAlter(`ALTER TABLE orders ADD COLUMN payment_status TEXT`);
+safeAlter(`ALTER TABLE posiflora_bouquets ADD COLUMN true_sale_amount REAL`);
+safeAlter(`ALTER TABLE posiflora_bouquets ADD COLUMN markup REAL`);
+safeAlter(`ALTER TABLE posiflora_bouquets ADD COLUMN discount REAL`);
 
 export function upsertSpec(s) {
   const a = s.attributes;
@@ -122,16 +128,25 @@ export function upsertSpec(s) {
 
 export function upsertBouquet(b) {
   const a = b.attributes;
+  // trueSaleAmount = финальная розничная цена (saleAmount + markup - discount).
+  // Если поле отсутствует у нового букета — считаем сами как фолбэк.
+  const markup = num(a.markup);
+  const discount = num(a.discount);
+  const computedRetail = num(a.saleAmount) + markup - discount;
+  const trueSale = (a.trueSaleAmount != null) ? num(a.trueSaleAmount) : computedRetail;
   db.prepare(`INSERT INTO posiflora_bouquets
-    (id, title, amount, sale_amount, status, public, on_window_at, raw, synced_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    (id, title, amount, sale_amount, true_sale_amount, markup, discount, status, public, on_window_at, raw, synced_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(id) DO UPDATE SET
       title=excluded.title, amount=excluded.amount, sale_amount=excluded.sale_amount,
+      true_sale_amount=excluded.true_sale_amount, markup=excluded.markup, discount=excluded.discount,
       status=excluded.status, public=excluded.public, on_window_at=excluded.on_window_at,
       raw=excluded.raw, synced_at=datetime('now')`)
-    .run(b.id, a.title, a.amount, a.saleAmount, a.status, a.public ? 1 : 0,
-         a.onWindowAt, JSON.stringify(b));
+    .run(b.id, a.title, a.amount, a.saleAmount, trueSale, markup, discount,
+         a.status, a.public ? 1 : 0, a.onWindowAt, JSON.stringify(b));
 }
+
+function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : 0; }
 
 export function upsertInventory(it, catTitle, available) {
   const a = it.attributes;

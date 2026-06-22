@@ -47,23 +47,30 @@ r.get('/templates', (req, res) => {
 // Витрина — физически собранные
 r.get('/showcase', (req, res) => {
   const bouquets = db.prepare(`
-    SELECT id, title, sale_amount, on_window_at
+    SELECT id, title, sale_amount, true_sale_amount, markup, discount, on_window_at
     FROM posiflora_bouquets
     WHERE status='demonstrated'
     ORDER BY on_window_at DESC
   `).all();
   const ov = getOverrides('bouquet');
-  const out = bouquets.map(b => applyOverride({
-    id: `bouquet:${b.id}`,
-    type: 'bouquet',
-    title: b.title,
-    price: b.sale_amount,
-    stock: 1,
-    category: 'showcase',
-    badge: 'unique',
-    popular: 8,
-    img: null,
-  }, ov.get(b.id))).filter(p => !p.hidden);
+  const out = bouquets.map(b => {
+    // Розничная = trueSaleAmount (то что показано в Posiflora UI).
+    // Фолбэк для записей до миграции — sale_amount + markup - discount.
+    const retail = (b.true_sale_amount != null && b.true_sale_amount > 0)
+      ? b.true_sale_amount
+      : (b.sale_amount || 0) + (b.markup || 0) - (b.discount || 0);
+    return applyOverride({
+      id: `bouquet:${b.id}`,
+      type: 'bouquet',
+      title: b.title,
+      price: retail,
+      stock: 1,
+      category: 'showcase',
+      badge: 'unique',
+      popular: 8,
+      img: null,
+    }, ov.get(b.id));
+  }).filter(p => !p.hidden);
   res.json(out);
 });
 

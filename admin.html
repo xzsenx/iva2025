@@ -418,6 +418,64 @@
   }
   .toast.show { opacity: 1; }
   .loading { padding: 40px; text-align: center; color: var(--cream-dim); }
+
+  /* === Прогресс-оверлей === */
+  .progress-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.65);
+    display: none; align-items: center; justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+  }
+  .progress-overlay.active { display: flex; }
+  .progress-box {
+    background: #1f2a28;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 16px;
+    padding: 24px 28px;
+    min-width: 320px;
+    max-width: 90vw;
+    box-shadow: 0 12px 48px rgba(0,0,0,.4);
+  }
+  .progress-label {
+    color: var(--cream);
+    font-size: 15px;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .progress-counter {
+    color: var(--cream-dim);
+    font-size: 13px;
+    margin-bottom: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .progress-bar {
+    height: 8px;
+    background: rgba(255,255,255,.08);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-bar__fill {
+    height: 100%;
+    background: linear-gradient(90deg, #c2a5a0, #e0b5ad);
+    width: 0%;
+    transition: width .15s linear;
+    border-radius: 999px;
+  }
+  /* Indeterminate-режим (когда нет процента — серверная операция) */
+  .progress-bar.indeterminate .progress-bar__fill {
+    width: 40% !important;
+    animation: indet 1.2s linear infinite;
+  }
+  @keyframes indet {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+  .progress-meta {
+    display: flex; justify-content: space-between;
+    color: var(--cream-dim); font-size: 12px;
+    margin-top: 8px; font-variant-numeric: tabular-nums;
+  }
 </style>
 </head>
 <body>
@@ -535,6 +593,18 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="progress-overlay" id="progressOverlay">
+  <div class="progress-box">
+    <div class="progress-label" id="progressLabel">Обработка...</div>
+    <div class="progress-counter" id="progressCounter">0 / 0</div>
+    <div class="progress-bar"><div class="progress-bar__fill" id="progressFill"></div></div>
+    <div class="progress-meta">
+      <span id="progressPct">0%</span>
+      <span id="progressEta"></span>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -562,6 +632,67 @@ async function api(method, path, body) {
 
 function $(s) { return document.querySelector(s); }
 function $$(s) { return document.querySelectorAll(s); }
+
+/* === Прогресс с параллелизмом === */
+function progressShow(label, total) {
+  $('#progressLabel').textContent = label;
+  $('#progressCounter').textContent = `0 / ${total}`;
+  $('#progressFill').style.width = '0%';
+  $('#progressPct').textContent = '0%';
+  $('#progressEta').textContent = '';
+  $('#progressOverlay').classList.add('active');
+}
+function progressUpdate(done, total, startedAt) {
+  const pct = total ? Math.round(done / total * 100) : 0;
+  $('#progressCounter').textContent = `${done} / ${total}`;
+  $('#progressFill').style.width = pct + '%';
+  $('#progressPct').textContent = pct + '%';
+  if (done > 0 && done < total) {
+    const elapsed = (Date.now() - startedAt) / 1000;
+    const rate = done / elapsed;
+    const eta = Math.max(0, Math.round((total - done) / rate));
+    $('#progressEta').textContent = eta > 0 ? `осталось ~${eta}с` : '';
+  } else {
+    $('#progressEta').textContent = '';
+  }
+}
+function progressHide() {
+  $('#progressOverlay').classList.remove('active');
+  $('.progress-bar').classList.remove('indeterminate');
+}
+
+/* Indeterminate-оверлей для серверных операций без точного прогресса */
+function progressShowBusy(label, sub = '') {
+  $('#progressLabel').textContent = label;
+  $('#progressCounter').textContent = sub;
+  $('#progressPct').textContent = '';
+  $('#progressEta').textContent = '';
+  $('.progress-bar').classList.add('indeterminate');
+  $('#progressFill').style.width = '40%';
+  $('#progressOverlay').classList.add('active');
+}
+
+/* Параллельный запуск с concurrency лимитом + прогресс-бар */
+async function runWithProgress(label, items, fn, concurrency = 8) {
+  if (!items.length) return { done: 0, errors: 0 };
+  progressShow(label, items.length);
+  const startedAt = Date.now();
+  let done = 0, errors = 0;
+  let idx = 0;
+  async function worker() {
+    while (idx < items.length) {
+      const i = idx++;
+      try { await fn(items[i], i); }
+      catch (e) { errors++; }
+      done++;
+      progressUpdate(done, items.length, startedAt);
+    }
+  }
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, worker);
+  await Promise.all(workers);
+  progressHide();
+  return { done, errors };
+}
 
 function toast(msg) {
   const el = $('#toast');
@@ -641,24 +772,21 @@ async function bulkSetHidden(hidden) {
   const source = sourceForTab(currentTab);
   const ids = [...selected];
   const dataMap = new Map(lastData.map(d => [d.id, d]));
-  let done = 0;
-  for (const id of ids) {
+  const label = hidden ? `Скрываю ${ids.length} карточек` : `Показываю ${ids.length} карточек`;
+  const { done, errors } = await runWithProgress(label, ids, async (id) => {
     const d = dataMap.get(id);
     const ov = d?._override || {};
-    try {
-      await api('POST', '/api/admin/override', {
-        source,
-        source_id: id,
-        title: ov.title || null,
-        description: ov.description || null,
-        photo_url: ov.photo_url || null,
-        badge: ov.badge || null,
-        hidden: hidden ? 1 : 0,
-      });
-      done++;
-    } catch (e) { /* skip */ }
-  }
-  toast(`Обновлено: ${done}/${ids.length}`);
+    await api('POST', '/api/admin/override', {
+      source,
+      source_id: id,
+      title: ov.title || null,
+      description: ov.description || null,
+      photo_url: ov.photo_url || null,
+      badge: ov.badge || null,
+      hidden: hidden ? 1 : 0,
+    });
+  }, 10);
+  toast(errors ? `Обновлено: ${done - errors}/${ids.length}, ошибок: ${errors}` : `Готово: ${done}`);
   clearSelection();
   loadTab(currentTab);
 }
@@ -695,14 +823,16 @@ $('#bulkClear').addEventListener('click', clearSelection);
 $('#syncBtn').addEventListener('click', async () => {
   $('#syncBtn').disabled = true;
   $('#syncBtn').textContent = 'Синк...';
+  progressShowBusy('Синхронизация с Posiflora', 'Тянем шаблоны, букеты, склад...');
   try {
     const r = await api('POST', '/api/admin/sync');
-    toast('Синк ОК: ' + JSON.stringify(r.counts));
+    toast(`Синк ОК · шаблоны:${r.counts?.specs||0} букеты:${r.counts?.bouquets||0} склад:${r.counts?.items||0}`);
     updateSyncStatus();
     loadTab(currentTab);
   } catch (e) {
     toast('Ошибка синка');
   } finally {
+    progressHide();
     $('#syncBtn').disabled = false;
     $('#syncBtn').textContent = 'Синк сейчас';
   }
@@ -877,28 +1007,58 @@ async function clearPhoto() {
 $('#mPhotoRemove').addEventListener('click', clearPhoto);
 $('#mPhotoClear').addEventListener('click', clearPhoto);
 
-/* === Загрузка файлов === */
-async function uploadFile(file) {
-  if (!file) return;
-  if (!file.type.startsWith('image/')) { toast('Только картинки'); return; }
-  if (file.size > 10 * 1024 * 1024) { toast('Макс. 10 МБ'); return; }
-  $('#mUploadStatus').textContent = 'Загрузка ' + Math.round(file.size/1024) + ' КБ...';
-  const fd = new FormData();
-  fd.append('file', file);
-  try {
-    const res = await fetch(API + '/api/admin/upload', {
-      method: 'POST',
-      headers: { Authorization: 'Basic ' + getAuth() },
-      body: fd,
+/* === Загрузка файлов с прогрессом === */
+function uploadFile(file) {
+  return new Promise((resolve) => {
+    if (!file) return resolve();
+    const isHeic = /\.(heic|heif)$/i.test(file.name) || /heic|heif/i.test(file.type);
+    if (!file.type.startsWith('image/') && !isHeic) { toast('Только картинки'); return resolve(); }
+    if (file.size > 20 * 1024 * 1024) { toast('Макс. 20 МБ'); return resolve(); }
+
+    const xhr = new XMLHttpRequest();
+    const fd = new FormData();
+    fd.append('file', file);
+
+    progressShow(`Загрузка ${file.name}`, file.size);
+    const startedAt = Date.now();
+
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) progressUpdate(e.loaded, e.total, startedAt);
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    $('#mPhotoUrl').value = data.url || data.path;
-    $('#mUploadStatus').textContent = 'Загружено ✓';
-    updateImgPreview();
-  } catch (e) {
-    $('#mUploadStatus').textContent = 'Ошибка: ' + e.message;
-  }
+    xhr.upload.addEventListener('load', () => {
+      // байты ушли — теперь сервер конвертит/жмёт
+      progressShowBusy(
+        isHeic ? 'Конвертация HEIC → JPEG...' : 'Сжатие фото на сервере...',
+        Math.round(file.size / 1024) + ' КБ'
+      );
+    });
+    xhr.addEventListener('load', () => {
+      progressHide();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          $('#mPhotoUrl').value = data.url || data.path;
+          const savedKb = Math.round((data.size || 0) / 1024);
+          const origKb = Math.round((data.original_size || file.size) / 1024);
+          $('#mUploadStatus').textContent = `Загружено ✓ ${origKb}→${savedKb} КБ`;
+          updateImgPreview();
+        } catch (e) {
+          $('#mUploadStatus').textContent = 'Ошибка парсинга ответа';
+        }
+      } else {
+        $('#mUploadStatus').textContent = `Ошибка HTTP ${xhr.status}`;
+      }
+      resolve();
+    });
+    xhr.addEventListener('error', () => {
+      progressHide();
+      $('#mUploadStatus').textContent = 'Ошибка сети';
+      resolve();
+    });
+    xhr.open('POST', API + '/api/admin/upload');
+    xhr.setRequestHeader('Authorization', 'Basic ' + getAuth());
+    xhr.send(fd);
+  });
 }
 
 $('#mPhotoFile').addEventListener('change', e => uploadFile(e.target.files[0]));

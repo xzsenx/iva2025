@@ -115,6 +115,23 @@ r.post('/upload', upload.single('file'), (req, res) => {
   res.json({ url: relPath, path: relPath, filename: req.file.filename, size: req.file.size });
 });
 
+// Удалить файл с диска по имени (вызывается из админки при удалении фото)
+r.delete('/upload/:filename', (req, res) => {
+  const name = req.params.filename;
+  // защита от path traversal — только base name
+  if (!name || name.includes('/') || name.includes('..')) {
+    return res.status(400).json({ error: 'bad filename' });
+  }
+  const filePath = path.join(UPLOAD_DIR, name);
+  try {
+    fs.unlinkSync(filePath);
+    res.json({ ok: true, deleted: name });
+  } catch (e) {
+    if (e.code === 'ENOENT') return res.json({ ok: true, missing: name });
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Диагностика — что реально лежит на диске
 r.get('/uploads-debug', (req, res) => {
   try {

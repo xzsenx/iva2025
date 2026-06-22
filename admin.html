@@ -484,13 +484,18 @@
 
     <div class="row">
       <label>Фото</label>
-      <img class="img-preview" id="mImgPreview" alt="" src="" style="display:none">
+      <div style="position:relative;display:inline-block">
+        <img class="img-preview" id="mImgPreview" alt="" src="" style="display:none">
+        <button type="button" id="mPhotoRemove" title="Удалить фото"
+                style="display:none;position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:#fff;font-size:18px;line-height:1;cursor:pointer;padding:0">×</button>
+      </div>
       <div id="mDropzone" style="border:2px dashed rgba(255,255,255,.18);border-radius:10px;padding:18px;text-align:center;cursor:pointer;color:var(--cream-dim);font-size:13px;margin-bottom:8px">
         Перетащи фото сюда или кликни, чтобы выбрать
       </div>
       <input type="file" id="mPhotoFile" accept="image/*" style="display:none">
       <input class="input" id="mPhotoUrl" placeholder="...или вставь URL" style="font-size:12px">
       <div id="mUploadStatus" style="font-size:12px;color:var(--cream-dim);min-height:16px;margin-top:4px"></div>
+      <button type="button" id="mPhotoClear" class="btn" style="margin-top:6px;background:#5a2929;display:none">🗑 Удалить фото</button>
     </div>
     <div class="row">
       <label>Название в мини-аппе (переопределение)</label>
@@ -830,13 +835,47 @@ function openEditor(id) {
 function updateImgPreview() {
   const url = $('#mPhotoUrl').value.trim();
   const img = $('#mImgPreview');
+  const removeBtn = $('#mPhotoRemove');
+  const clearBtn = $('#mPhotoClear');
   if (url) {
     /* относительные ссылки (/uploads/...) рендерим через API base */
     img.src = url.startsWith('/') ? (API + url) : url;
     img.style.display = 'block';
-  } else { img.style.display = 'none'; }
+    removeBtn.style.display = 'block';
+    clearBtn.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+    removeBtn.style.display = 'none';
+    clearBtn.style.display = 'none';
+  }
 }
 $('#mPhotoUrl').addEventListener('input', updateImgPreview);
+
+/* Удаление фото — чистит URL/превью + удаляет файл с диска (если это наш upload).
+   Сам override применяется при «Сохранить» (photo_url=null). */
+async function clearPhoto() {
+  const url = $('#mPhotoUrl').value.trim();
+  $('#mPhotoUrl').value = '';
+  $('#mPhotoFile').value = '';
+  updateImgPreview();
+  // Если это наш загруженный файл — снести его с диска
+  const m = url.match(/\/uploads\/([^/?#]+)/);
+  if (m) {
+    try {
+      await fetch(API + '/api/admin/upload/' + encodeURIComponent(m[1]), {
+        method: 'DELETE',
+        headers: { Authorization: 'Basic ' + getAuth() },
+      });
+      $('#mUploadStatus').textContent = 'Фото удалено (сохрани чтобы применить к карточке)';
+    } catch (e) {
+      $('#mUploadStatus').textContent = 'Файл не удалён: ' + e.message;
+    }
+  } else {
+    $('#mUploadStatus').textContent = 'Фото отвязано (сохрани)';
+  }
+}
+$('#mPhotoRemove').addEventListener('click', clearPhoto);
+$('#mPhotoClear').addEventListener('click', clearPhoto);
 
 /* === Загрузка файлов === */
 async function uploadFile(file) {

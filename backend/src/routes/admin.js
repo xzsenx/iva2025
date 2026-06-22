@@ -60,8 +60,15 @@ r.get('/bouquets', (req, res) => {
   const status = req.query.status;
   const where = status ? 'WHERE status = ?' : '';
   const params = status ? [status] : [];
-  const rows = db.prepare(`SELECT id, title, amount, sale_amount, status, on_window_at FROM posiflora_bouquets ${where} ORDER BY on_window_at DESC LIMIT 500`).all(...params);
-  res.json(rows);
+  const rows = db.prepare(`SELECT id, title, amount, sale_amount, true_sale_amount, markup, discount, status, on_window_at FROM posiflora_bouquets ${where} ORDER BY on_window_at DESC LIMIT 500`).all(...params);
+  // Добавляем поле price = розничная цена (как в Posiflora UI)
+  const out = rows.map(r => ({
+    ...r,
+    price: (r.true_sale_amount && r.true_sale_amount > 0)
+      ? r.true_sale_amount
+      : (r.sale_amount || 0) + (r.markup || 0) - (r.discount || 0),
+  }));
+  res.json(out);
 });
 
 r.get('/inventory', (req, res) => {

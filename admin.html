@@ -747,7 +747,7 @@ async function loadTab(tab) {
 }
 
 function getPrice(d) {
-  if (currentTab === 'showcase') return d.sale_amount || 0;
+  if (currentTab === 'showcase') return d.price || d.true_sale_amount || d.sale_amount || 0;
   if (currentTab === 'templates') return d.min_price || d.max_price || 0;
   return d.price_max || 0;
 }
@@ -788,7 +788,7 @@ function renderCard(d) {
   const photo = ov && ov.photo_url;
   const title = (ov && ov.title) || d.title || '—';
   let sub = '';
-  if (currentTab === 'showcase') sub = (d.sale_amount || 0) + ' ₽ · ' + (d.on_window_at||'').slice(0,10);
+  if (currentTab === 'showcase') sub = (d.price || d.true_sale_amount || d.sale_amount || 0) + ' ₽ · ' + (d.on_window_at||'').slice(0,10);
   else if (currentTab === 'templates') sub = (d.min_price||0) + '–' + (d.max_price||0) + ' ₽ · ' + (d.status||'');
   else sub = (d.category_title || '') + ' · до ' + (d.price_max||0) + ' ₽';
   const badge = ov && ov.badge ? '<span class="card__badge">' + ov.badge + '</span>' : '';

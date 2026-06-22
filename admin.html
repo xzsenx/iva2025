@@ -496,7 +496,7 @@
     <div class="topbar__title">ИВА <small>Админ</small></div>
     <div class="topbar__actions">
       <span class="sync-status" id="syncStatus"></span>
-      <button class="btn btn--secondary" id="syncBtn">Синк сейчас</button>
+      <button class="btn btn--secondary" id="syncBtn">Синхронизация с Posiflora</button>
       <button class="btn btn--secondary" id="logoutBtn">Выйти</button>
     </div>
   </div>
@@ -822,19 +822,19 @@ $('#bulkClear').addEventListener('click', clearSelection);
 
 $('#syncBtn').addEventListener('click', async () => {
   $('#syncBtn').disabled = true;
-  $('#syncBtn').textContent = 'Синк...';
+  $('#syncBtn').textContent = 'Синхронизация...';
   progressShowBusy('Синхронизация с Posiflora', 'Тянем шаблоны, букеты, склад...');
   try {
     const r = await api('POST', '/api/admin/sync');
-    toast(`Синк ОК · шаблоны:${r.counts?.specs||0} букеты:${r.counts?.bouquets||0} склад:${r.counts?.items||0}`);
+    toast(`Синхронизировано · шаблоны:${r.counts?.specs||0} букеты:${r.counts?.bouquets||0} склад:${r.counts?.items||0}`);
     updateSyncStatus();
     loadTab(currentTab);
   } catch (e) {
-    toast('Ошибка синка');
+    toast('Ошибка синхронизации');
   } finally {
     progressHide();
     $('#syncBtn').disabled = false;
-    $('#syncBtn').textContent = 'Синк сейчас';
+    $('#syncBtn').textContent = 'Синхронизация с Posiflora';
   }
 });
 
@@ -844,7 +844,7 @@ async function updateSyncStatus() {
     const last = hist[0];
     if (last) {
       const ago = Math.round((Date.now() - new Date(last.finished_at).getTime()) / 60000);
-      $('#syncStatus').textContent = 'Синк ' + ago + ' мин назад · ' + (last.counts.specs||0) + ' шабл, ' + (last.counts.bouquets||0) + ' букетов, ' + (last.counts.items||0) + ' позиций';
+      $('#syncStatus').textContent = 'Синхронизация ' + ago + ' мин назад · ' + (last.counts.specs||0) + ' шабл, ' + (last.counts.bouquets||0) + ' букетов, ' + (last.counts.items||0) + ' позиций';
     }
   } catch {}
 }

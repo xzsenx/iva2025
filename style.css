@@ -590,6 +590,10 @@ html.is-tg .back-btn { display: none; }
   background: var(--bg);
   border-top: 1px solid rgba(255,255,255,.08);
 }
+/* В TG поднимаем кнопку выше — учитываем нижний safe-area + запас от TG-нав-баром */
+html.is-tg .cart-footer {
+  padding-bottom: calc(28px + var(--tg-safe-bottom, var(--safe-bot)));
+}
 .cart-total {
   display: flex;
   justify-content: space-between;
@@ -602,6 +606,10 @@ html.is-tg .back-btn { display: none; }
 /* ── Checkout Form ── */
 .checkout-form {
   padding: 10px 20px 120px;
+}
+/* В TG поднимаем submit-кнопку повыше от низа */
+html.is-tg .checkout-form {
+  padding-bottom: calc(60px + var(--tg-safe-bottom, var(--safe-bot)));
 }
 .field {
   display: flex;

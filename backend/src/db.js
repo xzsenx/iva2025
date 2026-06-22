@@ -59,6 +59,8 @@ db.exec(`
     qty REAL,
     PRIMARY KEY (spec_id, variant_id, item_id)
   );
+  CREATE INDEX IF NOT EXISTS idx_recipes_spec ON posiflora_recipes(spec_id);
+  CREATE INDEX IF NOT EXISTS idx_recipes_item ON posiflora_recipes(item_id);
 
   -- Наш «обвес» поверх Posiflora-сущностей
   CREATE TABLE IF NOT EXISTS catalog_overrides (
@@ -180,6 +182,25 @@ export function upsertInventory(it, catTitle, available) {
     .run(it.id, a.title, catId, catTitle, a.itemType, measureId,
          a.priceMin, a.priceMax, available ?? null, a.public ? 1 : 0,
          JSON.stringify(it));
+}
+
+/* Сохранить рецепт (один компонент шаблона) */
+export function upsertRecipe(specId, variantId, itemId, qty) {
+  db.prepare(`INSERT INTO posiflora_recipes (spec_id, variant_id, item_id, qty)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(spec_id, variant_id, item_id) DO UPDATE SET qty=excluded.qty`)
+    .run(specId, variantId, itemId, qty);
+}
+
+/* Полная переустановка рецептов (на случай если состав в Posiflora поменялся) */
+export function replaceAllRecipes(rows) {
+  const del = db.prepare('DELETE FROM posiflora_recipes');
+  const ins = db.prepare(`INSERT OR REPLACE INTO posiflora_recipes (spec_id, variant_id, item_id, qty) VALUES (?, ?, ?, ?)`);
+  const tx = db.transaction(() => {
+    del.run();
+    for (const r of rows) ins.run(r.spec_id, r.variant_id, r.item_id, r.qty);
+  });
+  tx();
 }
 
 export function saveSyncRun(runInfo) {

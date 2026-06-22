@@ -68,10 +68,38 @@ r.use((req, res, next) => {
   next();
 });
 
-// Все позиции из Posiflora — для админки
+// Все позиции из Posiflora — для админки. Добавляем флаг availability + список не хватающих компонентов.
 r.get('/specs', (req, res) => {
   const rows = db.prepare(`SELECT * FROM posiflora_specifications`).all();
-  res.json(rows);
+  const invMap = new Map(db.prepare(`SELECT id, title FROM posiflora_inventory`).all().map(r => [r.id, r.title]));
+  const recipes = db.prepare(`SELECT spec_id, variant_id, item_id FROM posiflora_recipes`).all();
+  const specVariants = new Map();
+  for (const rec of recipes) {
+    if (!specVariants.has(rec.spec_id)) specVariants.set(rec.spec_id, new Map());
+    const v = specVariants.get(rec.spec_id);
+    if (!v.has(rec.variant_id)) v.set(rec.variant_id, []);
+    v.get(rec.variant_id).push(rec.item_id);
+  }
+  const out = rows.map(s => {
+    const variants = specVariants.get(s.id);
+    if (!variants || !variants.size) {
+      return { ...s, available: true, missing: null, has_recipe: false };
+    }
+    let available = false;
+    let bestMissing = null;
+    for (const items of variants.values()) {
+      const missing = items.filter(id => !invMap.has(id));
+      if (missing.length === 0) { available = true; bestMissing = []; break; }
+      if (!bestMissing || missing.length < bestMissing.length) bestMissing = missing;
+    }
+    return {
+      ...s,
+      available,
+      has_recipe: true,
+      missing: available ? null : bestMissing.map(id => ({ id })),
+    };
+  });
+  res.json(out);
 });
 
 r.get('/bouquets', (req, res) => {

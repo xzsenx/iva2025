@@ -23,24 +23,52 @@ function getOverrides(source) {
   return new Map(rows.map(o => [o.source_id, o]));
 }
 
-// Готовые шаблоны (Specifications)
+// Готовые шаблоны (Specifications) — показываем только если все компоненты в наличии
 r.get('/templates', (req, res) => {
   const specs = db.prepare(`
     SELECT id, title, description, min_price, max_price
     FROM posiflora_specifications WHERE status='on'
   `).all();
+
+  // Карта наличия: id позиции → true (в БД лежат только available=true)
+  const invAvailable = new Set(db.prepare(`SELECT id FROM posiflora_inventory`).all().map(r => r.id));
+
+  // Рецепты по spec, сгруппировано по variant
+  const recipes = db.prepare(`SELECT spec_id, variant_id, item_id FROM posiflora_recipes`).all();
+  const specVariants = new Map(); // spec_id → Map<variant_id, item_id[]>
+  for (const r of recipes) {
+    if (!specVariants.has(r.spec_id)) specVariants.set(r.spec_id, new Map());
+    const v = specVariants.get(r.spec_id);
+    if (!v.has(r.variant_id)) v.set(r.variant_id, []);
+    v.get(r.variant_id).push(r.item_id);
+  }
+
+  // Можно ли собрать spec? Если рецепта вообще нет — fallback: показываем
+  // (например рецепт ещё не подтянулся при первом запуске).
+  // Если есть — нужно чтобы хотя бы один variant был полностью комплектуем.
+  function isAvailable(specId) {
+    const variants = specVariants.get(specId);
+    if (!variants || variants.size === 0) return true; // нет рецепта → fallback показываем
+    for (const items of variants.values()) {
+      if (items.every(itemId => invAvailable.has(itemId))) return true;
+    }
+    return false;
+  }
+
   const ov = getOverrides('spec');
-  const out = specs.map(s => applyOverride({
-    id: `spec:${s.id}`,
-    type: 'template',
-    title: s.title,
-    description: s.description,
-    price: s.min_price || s.max_price || 0,
-    category: 'bouquets',
-    badge: null,
-    popular: 5,
-    img: null,
-  }, ov.get(s.id))).filter(p => !p.hidden);
+  const out = specs
+    .filter(s => isAvailable(s.id))
+    .map(s => applyOverride({
+      id: `spec:${s.id}`,
+      type: 'template',
+      title: s.title,
+      description: s.description,
+      price: s.min_price || s.max_price || 0,
+      category: 'bouquets',
+      badge: null,
+      popular: 5,
+      img: null,
+    }, ov.get(s.id))).filter(p => !p.hidden);
   res.json(out);
 });
 

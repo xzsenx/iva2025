@@ -42,9 +42,9 @@ body {
   overscroll-behavior-y: contain;
 }
 
-/* В TG отступ сверху: contentSafeAreaInset из API (если есть) или жёсткий запас 56px */
+/* В TG отступ сверху: contentSafeAreaInset из API + запас 100px */
 html.is-tg body {
-  padding-top: max(var(--tg-safe-top, 0px), 56px);
+  padding-top: max(var(--tg-safe-top, 0px), 100px);
   padding-bottom: var(--tg-safe-bottom, var(--safe-bot));
 }
 

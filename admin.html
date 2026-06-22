@@ -216,7 +216,10 @@
     padding: 5px 12px;
     letter-spacing: 1px;
   }
-  .card.is-hidden { opacity: .55; }
+  .card { position: relative; }
+  .card.is-hidden .card__img,
+  .card.is-hidden .card__noimg,
+  .card.is-hidden .card__body > *:not(.card__actions) { opacity: .5; }
   .card.is-hidden::after {
     content: "Скрыто";
     position: absolute;
@@ -230,8 +233,67 @@
     border-radius: 8px;
     letter-spacing: 1px;
     text-transform: uppercase;
+    z-index: 2;
   }
-  .card { position: relative; }
+  .card.is-selected {
+    border-color: var(--pink);
+    box-shadow: 0 0 0 2px var(--pink);
+  }
+  .card__select {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgba(0,0,0,.5);
+    border: 2px solid #fff;
+    cursor: pointer;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 16px;
+    font-weight: 700;
+    transition: background .15s;
+  }
+  .card.is-selected .card__select {
+    background: var(--pink);
+    border-color: var(--pink);
+    color: #fff;
+  }
+  .bulk-bar {
+    position: sticky;
+    top: 60px;
+    z-index: 50;
+    background: var(--pink);
+    color: #fff;
+    padding: 10px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.2);
+  }
+  .bulk-bar__count { font-weight: 700; }
+  .bulk-bar button {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.3);
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .bulk-bar button:hover { background: rgba(255,255,255,.28); }
+  .bulk-bar__clear {
+    margin-left: auto;
+    background: transparent !important;
+    border-color: rgba(255,255,255,.5) !important;
+  }
 
   /* Toggle-switch checkbox (для "скрыть из каталога") */
   .toggle-field {
@@ -402,7 +464,14 @@
       <option value="hidden">Только скрытые</option>
       <option value="no_photo">Без фото</option>
     </select>
+    <button class="btn btn--secondary" id="selectAllBtn" style="padding:10px 14px">Выбрать всё</button>
     <span style="color:var(--cream-dim);font-size:13px;margin-left:auto" id="counter"></span>
+  </div>
+  <div class="bulk-bar" id="bulkBar" style="display:none">
+    <span class="bulk-bar__count" id="bulkCount">0</span> выбрано
+    <button id="bulkHide">Скрыть выбранные</button>
+    <button id="bulkShow">Показать выбранные</button>
+    <button id="bulkClear" class="bulk-bar__clear">Снять выделение</button>
   </div>
   <div id="content"></div>
 </div>
@@ -531,6 +600,63 @@ $('#logoutBtn').addEventListener('click', () => { clearAuth(); showLogin(); });
 
 let currentTab = 'showcase';
 let lastData = [];
+let selected = new Set();
+
+function sourceForTab(tab) {
+  return ({ showcase: 'bouquet', templates: 'spec', stems: 'item', addons: 'item' })[tab];
+}
+
+function updateBulkBar() {
+  const bar = $('#bulkBar');
+  if (selected.size === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  $('#bulkCount').textContent = selected.size;
+}
+
+function toggleSelect(id) {
+  if (selected.has(id)) selected.delete(id);
+  else selected.add(id);
+  updateBulkBar();
+  /* обновляем класс карточки без полного re-render */
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (card) card.classList.toggle('is-selected', selected.has(id));
+}
+
+function clearSelection() {
+  selected.clear();
+  updateBulkBar();
+  $$('.card.is-selected').forEach(c => c.classList.remove('is-selected'));
+}
+
+async function bulkSetHidden(hidden) {
+  if (selected.size === 0) return;
+  const source = sourceForTab(currentTab);
+  const ids = [...selected];
+  const dataMap = new Map(lastData.map(d => [d.id, d]));
+  let done = 0;
+  for (const id of ids) {
+    const d = dataMap.get(id);
+    const ov = d?._override || {};
+    try {
+      await api('POST', '/api/admin/override', {
+        source,
+        source_id: id,
+        title: ov.title || null,
+        description: ov.description || null,
+        photo_url: ov.photo_url || null,
+        badge: ov.badge || null,
+        hidden: hidden ? 1 : 0,
+      });
+      done++;
+    } catch (e) { /* skip */ }
+  }
+  toast(`Обновлено: ${done}/${ids.length}`);
+  clearSelection();
+  loadTab(currentTab);
+}
 
 $$('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -545,6 +671,21 @@ $$('.tab').forEach(btn => {
 $('#search').addEventListener('input', () => render());
 $('#sort').addEventListener('change', () => render());
 $('#visibility').addEventListener('change', () => render());
+
+$('#selectAllBtn').addEventListener('click', () => {
+  const visibleIds = [...document.querySelectorAll('.card')].map(c => c.dataset.id);
+  const allSelected = visibleIds.every(id => selected.has(id));
+  if (allSelected) clearSelection();
+  else {
+    visibleIds.forEach(id => selected.add(id));
+    $$('.card').forEach(c => c.classList.add('is-selected'));
+    updateBulkBar();
+  }
+});
+
+$('#bulkHide').addEventListener('click', () => bulkSetHidden(true));
+$('#bulkShow').addEventListener('click', () => bulkSetHidden(false));
+$('#bulkClear').addEventListener('click', clearSelection);
 
 $('#syncBtn').addEventListener('click', async () => {
   $('#syncBtn').disabled = true;
@@ -635,7 +776,11 @@ function render() {
   }
 
   $('#content').innerHTML = '<div class="grid">' + filtered.map(renderCard).join('') + '</div>';
-  $$('.js-edit').forEach(b => b.addEventListener('click', () => openEditor(b.dataset.id)));
+  $$('.js-edit').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openEditor(b.dataset.id); }));
+  $$('.card__select').forEach(sel => sel.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleSelect(sel.dataset.id);
+  }));
 }
 
 function renderCard(d) {
@@ -648,8 +793,10 @@ function renderCard(d) {
   else sub = (d.category_title || '') + ' · до ' + (d.price_max||0) + ' ₽';
   const badge = ov && ov.badge ? '<span class="card__badge">' + ov.badge + '</span>' : '';
   const isHidden = ov && ov.hidden;
+  const isSelected = selected.has(d.id);
 
-  return '<div class="card' + (isHidden ? ' is-hidden' : '') + '">'
+  return '<div class="card' + (isHidden ? ' is-hidden' : '') + (isSelected ? ' is-selected' : '') + '" data-id="' + d.id + '">'
+    + '<div class="card__select" data-id="' + d.id + '">✓</div>'
     + (photo ? '<img class="card__img" src="' + photo + '" alt="">' : '<div class="card__noimg">Нет фото</div>')
     + '<div class="card__body">'
     + '<div class="card__title">' + escapeHtml(title) + '</div>'

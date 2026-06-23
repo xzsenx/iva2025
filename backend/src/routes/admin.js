@@ -268,17 +268,26 @@ r.get('/custom-templates', (req, res) => {
   const tmpls = db.prepare(`SELECT * FROM custom_templates WHERE COALESCE(archived,0)=? ORDER BY sort_order, created_at DESC`).all(archived);
   const itemsByTmpl = new Map();
   const allRows = db.prepare(`SELECT ct.template_id, ct.item_id, ct.qty,
-                                     pi.title as item_title, pi.category_title, pi.price_max
+                                     pi.title as item_title, pi.category_title, pi.price_max, pi.available as stock
                               FROM custom_template_items ct
                               LEFT JOIN posiflora_inventory pi ON pi.id = ct.item_id`).all();
   for (const r of allRows) {
     if (!itemsByTmpl.has(r.template_id)) itemsByTmpl.set(r.template_id, []);
     itemsByTmpl.get(r.template_id).push(r);
   }
-  const invAvailable = new Set(db.prepare('SELECT id FROM posiflora_inventory').all().map(r => r.id));
+  const invIds = new Set(db.prepare('SELECT id FROM posiflora_inventory').all().map(r => r.id));
   const out = tmpls.map(t => {
     const items = itemsByTmpl.get(t.id) || [];
-    const missing = items.filter(i => !invAvailable.has(i.item_id));
+    const missing = items.filter(i => !invIds.has(i.item_id));
+    // Макс. кол-во букетов = min(stock / qty) по всем компонентам.
+    // Если у хотя бы одного компонента qty не известно (stock NULL) — возвращаем null.
+    let maxBouquets = null;
+    if (items.length > 0 && missing.length === 0) {
+      const haveAllStocks = items.every(i => i.stock != null && +i.stock > 0);
+      if (haveAllStocks) {
+        maxBouquets = Math.min(...items.map(i => Math.floor((+i.stock) / (+i.qty || 1))));
+      }
+    }
     return {
       ...t,
       items: items.map(i => ({
@@ -287,10 +296,12 @@ r.get('/custom-templates', (req, res) => {
         title: i.item_title || '(удалено из Posiflora)',
         category: i.category_title,
         price_max: i.price_max,
-        available: invAvailable.has(i.item_id),
+        stock: i.stock,
+        available: invIds.has(i.item_id),
       })),
       available: items.length > 0 && missing.length === 0,
       missing_count: missing.length,
+      max_bouquets: maxBouquets,
     };
   });
   res.json(out);

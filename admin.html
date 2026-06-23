@@ -1373,9 +1373,16 @@ async function renderCustomTemplates() {
       const itemsStr = (t.items || []).map(i =>
         `<span style="opacity:${i.available?1:.4};text-decoration:${i.available?'none':'line-through'}">${escapeHtml(i.title)} ×${+i.qty}</span>`
       ).join(', ');
-      const statusBadge = t.available
-        ? '<span style="background:#3a6b40;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">✓ В НАЛИЧИИ</span>'
-        : `<span style="background:#7a3a3a;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">⊘ НЕ ХВАТАЕТ ${t.missing_count}</span>`;
+      let statusBadge;
+      if (!t.available) {
+        statusBadge = `<span style="background:#7a3a3a;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">⊘ НЕ ХВАТАЕТ ${t.missing_count}</span>`;
+      } else if (t.max_bouquets != null && t.max_bouquets > 0) {
+        statusBadge = `<span style="background:#3a6b40;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">✓ МОЖНО СОБРАТЬ ${t.max_bouquets} ШТ</span>`;
+      } else if (t.max_bouquets === 0) {
+        statusBadge = `<span style="background:#7a3a3a;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">⊘ НЕ ХВАТАЕТ ШТУК</span>`;
+      } else {
+        statusBadge = `<span style="background:#3a6b40;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">✓ В НАЛИЧИИ</span>`;
+      }
       const actions = isArchive
         ? `<button class="btn js-crestore" data-id="${t.id}" style="flex:1;background:#3a6b40">↺ Восстановить</button>
            <button class="btn js-cwipe" data-id="${t.id}" style="background:#5a2929">🗑 Удалить</button>`

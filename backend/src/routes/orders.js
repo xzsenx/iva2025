@@ -1,6 +1,20 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { createPayment, getPayment } from '../yookassa.js';
+import { createPosifloraOrderForLocal } from '../services/posifloraOrder.js';
+
+/* Идемпотентно отправить заказ в Posiflora. Безопасно вызывать несколько раз. */
+async function pushToPosifloraSafely(orderId) {
+  try {
+    const r = await createPosifloraOrderForLocal(orderId);
+    if (r.alreadyExists) console.log('[iva] order', orderId, 'already in Posiflora:', r.posiflora_order_id);
+    else console.log('[iva] order', orderId, '→ Posiflora:', r.posiflora_order_id);
+  } catch (e) {
+    console.error('[iva] failed to push order', orderId, 'to Posiflora:', e.message);
+    db.prepare(`UPDATE orders SET status = COALESCE(status,'paid')
+                WHERE id=? AND posiflora_order_id IS NULL`).run(orderId);
+  }
+}
 
 const r = Router();
 
@@ -81,7 +95,10 @@ r.post('/webhook', async (req, res) => {
   db.prepare(`UPDATE orders SET payment_status = ?, status = ? WHERE id = ?`)
     .run(actual.status, actual.status === 'succeeded' ? 'paid' : orderRow.status, orderRow.id);
 
-  /* TODO: тут можно создавать заказ в Posiflora при status === 'succeeded' */
+  /* Оплата прошла → отправляем заказ в Posiflora (списать остатки + отметить продажу) */
+  if (actual.status === 'succeeded') {
+    pushToPosifloraSafely(orderRow.id);
+  }
 
   res.json({ ok: true });
 });
@@ -98,10 +115,23 @@ r.get('/:id/status', async (req, res) => {
         db.prepare(`UPDATE orders SET payment_status = ?, status = ? WHERE id = ?`)
           .run(p.status, p.status === 'succeeded' ? 'paid' : row.status, row.id);
         row.payment_status = p.status;
+        if (p.status === 'succeeded') {
+          pushToPosifloraSafely(row.id);
+        }
       }
     } catch {}
   }
   res.json(row);
+});
+
+/* Ручная отправка заказа в Posiflora (если webhook не сработал / для тестов) */
+r.post('/:id/push-to-posiflora', async (req, res) => {
+  try {
+    const result = await createPosifloraOrderForLocal(+req.params.id);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 r.get('/', (req, res) => {

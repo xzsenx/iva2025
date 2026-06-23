@@ -1151,10 +1151,12 @@ function renderCard(d) {
   if (currentTab === 'showcase') sub = (d.price || d.true_sale_amount || d.sale_amount || 0) + ' ₽ · ' + (d.on_window_at||'').slice(0,10);
   else if (currentTab === 'templates') sub = (d.min_price||0) + '–' + (d.max_price||0) + ' ₽ · ' + (d.status||'');
   else {
-    const stockHTML = (d.available != null && d.available > 0)
-      ? `<span style="color:#9ec999;font-weight:700">${d.available} шт</span>`
-      : `<span style="color:#9ec999">в наличии</span>`;
-    subHTML = `${escapeHtml(d.category_title || '')} · ${stockHTML} · до ${d.price_max||0} ₽`;
+    // Posiflora не отдаёт qty в API → показываем число если есть, иначе только категорию + цену
+    if (d.available != null && d.available > 0) {
+      subHTML = `${escapeHtml(d.category_title || '')} · <span style="color:#9ec999;font-weight:700">${d.available} шт</span> · до ${d.price_max||0} ₽`;
+    } else {
+      sub = `${d.category_title || ''} · до ${d.price_max||0} ₽`;
+    }
   }
   const badge = ov && ov.badge ? '<span class="card__badge">' + ov.badge + '</span>' : '';
   const isHidden = ov && ov.hidden;
@@ -1615,12 +1617,12 @@ function renderInventoryPicker(query, category) {
   $('#cSearchResults').innerHTML = filtered.length
     ? filtered.map(i => {
         const added = inDraftIds.has(i.id);
-        const stock = i.available != null
-          ? `<span style="color:#9ec999;font-weight:600">${i.available} шт</span>`
-          : `<span style="color:#9ec999">в наличии</span>`;
+        const stock = (i.available != null && i.available > 0)
+          ? `<span style="color:#9ec999;font-weight:600">${i.available} шт · </span>`
+          : '';
         return `<button class="cust-result ${added?'added':''}" data-id="${i.id}" data-title="${escapeHtml(i.title)}" data-cat="${escapeHtml(i.category_title||'')}">
           <div class="cust-result__title">${escapeHtml(i.title)}</div>
-          <div class="cust-result__sub">${stock} · ${+i.price_max||0} ₽</div>
+          <div class="cust-result__sub">${stock}${+i.price_max||0} ₽</div>
           <div class="cust-result__action">${added?'✓':'+'}</div>
         </button>`;
       }).join('')

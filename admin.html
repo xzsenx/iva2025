@@ -378,6 +378,27 @@
   }
   /* Колонка-результатов — в одну колонку (узкая) */
   .cust-results--col { grid-template-columns: 1fr; max-height: 520px; }
+
+  /* Скролл внутри секции состава и компонентов */
+  .cust-3col .cust-section {
+    max-height: calc(100vh - 220px);
+    display: flex; flex-direction: column;
+  }
+  .cust-3col .cust-items,
+  .cust-3col .cust-results {
+    overflow-y: auto;
+    flex: 1; min-height: 0;
+    padding-right: 4px;
+  }
+  /* Симпатичный скроллбар */
+  .cust-3col .cust-items::-webkit-scrollbar,
+  .cust-3col .cust-results::-webkit-scrollbar { width: 6px; }
+  .cust-3col .cust-items::-webkit-scrollbar-thumb,
+  .cust-3col .cust-results::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.15); border-radius: 3px;
+  }
+  /* Фото колонка — фиксированная высота не нужна, но не растягиваем */
+  .cust-3col .cust-section--photo { max-height: none; }
   .cust-editor__top {
     display: flex; gap: 10px; align-items: center;
     padding: 12px 0; margin-bottom: 16px;

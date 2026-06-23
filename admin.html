@@ -410,36 +410,6 @@
     .cust-list-wrap { padding: 12px 16px; }
   }
 
-  /* Коробка-кнопка «Архив» — отдельная карточка */
-  .cust-archivebox {
-    display: flex; align-items: center; gap: 16px;
-    width: 100%; max-width: 480px;
-    padding: 14px 18px; margin-bottom: 20px;
-    background: linear-gradient(135deg, rgba(201,164,160,.10), rgba(255,255,255,.04));
-    border: 1px solid rgba(201,164,160,.25);
-    border-radius: 14px;
-    cursor: pointer; color: var(--cream);
-    text-align: left; font-family: inherit;
-    transition: all .15s;
-  }
-  .cust-archivebox:hover {
-    border-color: var(--pink);
-    background: linear-gradient(135deg, rgba(201,164,160,.18), rgba(255,255,255,.08));
-    transform: translateY(-1px);
-  }
-  .cust-archivebox__icon { font-size: 32px; }
-  .cust-archivebox__text { flex: 1; }
-  .cust-archivebox__title {
-    font-size: 16px; font-weight: 700; margin-bottom: 2px;
-  }
-  .cust-archivebox__hint {
-    font-size: 12px; color: var(--cream-dim);
-  }
-  .cust-archivebox__arrow {
-    font-size: 20px; color: var(--pink-light);
-    transition: transform .15s;
-  }
-  .cust-archivebox:hover .cust-archivebox__arrow { transform: translateX(4px); }
 
   /* Быстрые кнопки наценки */
   .cust-pricebtn {
@@ -1380,17 +1350,9 @@ async function renderCustomTemplates() {
       ${isArchive
         ? `<button class="btn btn--secondary" id="customBackToActive">← Назад к активным</button>`
         : `<button class="btn btn--primary" id="customNew" style="font-size:15px;padding:12px 20px">+ Создать шаблон</button>`}
-    </div>
-    ${isArchive ? '' : `
-      <button class="cust-archivebox" id="customOpenArchive">
-        <div class="cust-archivebox__icon">📦</div>
-        <div class="cust-archivebox__text">
-          <div class="cust-archivebox__title">Архив шаблонов</div>
-          <div class="cust-archivebox__hint">Заархивированные — здесь. Можно восстановить.</div>
-        </div>
-        <div class="cust-archivebox__arrow">→</div>
-      </button>
-    `}`;
+      <div style="flex:1"></div>
+      ${isArchive ? '' : `<button class="btn btn--secondary" id="customOpenArchive">📦 Архив</button>`}
+    </div>`;
 
   if (!list.length) {
     html += `<div class="loading" style="padding:60px 20px">
@@ -1414,9 +1376,9 @@ async function renderCustomTemplates() {
         : `<span style="background:#7a3a3a;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">⊘ НЕ ХВАТАЕТ ${t.missing_count}</span>`;
       const actions = isArchive
         ? `<button class="btn js-crestore" data-id="${t.id}" style="flex:1;background:#3a6b40">↺ Восстановить</button>
-           <button class="btn js-cwipe" data-id="${t.id}" style="background:#5a2929;width:42px;padding:0" title="Удалить навсегда">🗑</button>`
+           <button class="btn js-cwipe" data-id="${t.id}" style="background:#5a2929">🗑 Удалить</button>`
         : `<button class="btn js-cedit" data-id="${t.id}" style="flex:1">Редактировать</button>
-           <button class="btn js-carchive" data-id="${t.id}" style="background:#5a4a29;width:42px;padding:0" title="В архив">📦</button>`;
+           <button class="btn js-carchive" data-id="${t.id}" style="background:#5a4a29">Архив</button>`;
       html += `<div class="card${t.hidden?' is-hidden':''}" data-id="${t.id}" style="cursor:pointer">
         ${photo
           ? `<img class="card__img" src="${photo.startsWith('/')?API+photo:photo}" alt="">`

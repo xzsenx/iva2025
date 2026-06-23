@@ -352,6 +352,155 @@
   }
   .switch input:checked + .switch__slider { background: var(--danger); }
   .switch input:checked + .switch__slider::before { transform: translateX(22px); }
+
+  /* === Custom-template editor (полная страница) === */
+  .cust-editor { max-width: 1100px; margin: 0 auto; }
+  .cust-editor__top {
+    display: flex; gap: 10px; align-items: center;
+    padding: 12px 0; margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    position: sticky; top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  .cust-editor__grid {
+    display: grid; gap: 20px;
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 900px) {
+    .cust-editor__grid { grid-template-columns: 1fr; }
+  }
+  .cust-editor__col { display: flex; flex-direction: column; gap: 16px; }
+  .cust-section {
+    background: rgba(255,255,255,.04);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .cust-section__title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--cream-dim); margin-bottom: 10px;
+  }
+  .cust-editor__bottom {
+    display: flex; gap: 10px;
+    margin-top: 24px; padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    position: sticky; bottom: 0;
+    background: var(--bg); padding-bottom: 16px;
+  }
+
+  /* Фото */
+  .cust-photo {
+    position: relative;
+    width: 100%; aspect-ratio: 4/3;
+    background: rgba(0,0,0,.2); border-radius: 12px; overflow: hidden;
+    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cust-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .cust-photo__placeholder {
+    color: var(--cream-dim); font-size: 14px;
+  }
+  .cust-photo__remove {
+    position: absolute; top: 8px; right: 8px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(0,0,0,.7); color: #fff;
+    border: none; cursor: pointer; font-size: 20px; line-height: 1; padding: 0;
+  }
+  .cust-dropzone {
+    border: 2px dashed rgba(255,255,255,.18);
+    border-radius: 10px; padding: 14px; text-align: center;
+    cursor: pointer; transition: all .2s;
+  }
+  .cust-dropzone:hover, .cust-dropzone.drag {
+    border-color: var(--pink); background: rgba(201,164,160,.08);
+  }
+
+  /* Состав */
+  .cust-items { display: flex; flex-direction: column; gap: 6px; }
+  .ci-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px; background: rgba(255,255,255,.04);
+    border-radius: 10px;
+  }
+  .ci-row__title { flex: 1; min-width: 0; }
+  .ci-row__qty {
+    display: flex; align-items: center; gap: 0;
+    background: rgba(0,0,0,.25); border-radius: 8px; overflow: hidden;
+  }
+  .ci-minus, .ci-plus {
+    width: 32px; height: 32px; border: none; background: transparent;
+    color: var(--cream); font-size: 18px; cursor: pointer;
+  }
+  .ci-minus:hover, .ci-plus:hover { background: rgba(255,255,255,.1); }
+  .ci-qty {
+    width: 44px; height: 32px; padding: 0; border: none;
+    background: transparent; color: var(--cream);
+    text-align: center; font-size: 14px; font-weight: 600;
+  }
+  .ci-del {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(255,80,80,.15); color: #ff8585;
+    border: none; cursor: pointer; font-size: 18px; line-height: 1;
+  }
+  .ci-del:hover { background: rgba(255,80,80,.3); }
+
+  /* Чипы категорий */
+  .cust-chips {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin: 10px 0;
+  }
+  .cust-chip {
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(255,255,255,.06); color: var(--cream);
+    border: 1px solid transparent; cursor: pointer;
+    font-size: 12px; font-weight: 500;
+    transition: all .15s;
+  }
+  .cust-chip:hover { background: rgba(255,255,255,.12); }
+  .cust-chip.active {
+    background: var(--pink); color: #2a1f1d; border-color: var(--pink);
+  }
+
+  /* Результаты поиска */
+  .cust-results {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    max-height: 380px; overflow-y: auto;
+    padding-right: 6px;
+  }
+  @media (max-width: 600px) {
+    .cust-results { grid-template-columns: 1fr; }
+  }
+  .cust-result {
+    display: grid;
+    grid-template-columns: 1fr 24px;
+    grid-template-areas: "title action" "sub action";
+    align-items: center; gap: 2px 8px;
+    padding: 10px; border-radius: 8px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid transparent; cursor: pointer;
+    text-align: left; transition: all .15s;
+    color: var(--cream); font-family: inherit;
+  }
+  .cust-result:hover {
+    background: rgba(201,164,160,.12);
+    border-color: rgba(201,164,160,.4);
+  }
+  .cust-result.added {
+    background: rgba(58,107,64,.2);
+    border-color: rgba(58,107,64,.6);
+  }
+  .cust-result__title { grid-area: title; font-size: 13px; font-weight: 600; line-height: 1.2; }
+  .cust-result__sub { grid-area: sub; font-size: 11px; color: var(--cream-dim); }
+  .cust-result__action {
+    grid-area: action;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: rgba(255,255,255,.1); color: var(--cream);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+  }
+  .cust-result.added .cust-result__action {
+    background: #3a6b40; color: #fff;
+  }
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -593,12 +742,6 @@
 </div>
 
 <div class="toast" id="toast"></div>
-
-<div class="modal-overlay" id="customEditor">
-  <div class="modal" style="max-width:560px">
-    <div id="customEditorBody"></div>
-  </div>
-</div>
 
 <div class="progress-overlay" id="progressOverlay">
   <div class="progress-box">
@@ -1107,45 +1250,56 @@ $('#mSave').addEventListener('click', async () => {
 });
 
 /* ============================================================
-   НАШИ ШАБЛОНЫ — CRUD UI
+   НАШИ ШАБЛОНЫ — полноэкранный CRUD
    ============================================================ */
-let customDraft = null;  // { id?, title, description, photo_url, price, hidden, items:[{item_id,qty,title,category}] }
+let customDraft = null;
+let customView = 'list'; // 'list' | 'editor'
+let customInventoryCache = null;
 
 async function renderCustomTemplates() {
+  customView = 'list';
+  $('#tabs').style.display = '';
   let list = [];
   try { list = await api('GET', '/api/admin/custom-templates'); }
   catch (e) { $('#content').innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>'; return; }
 
-  const sub = $('#counter'); sub.textContent = list.length + ' шаблонов';
+  $('#counter').textContent = list.length + ' шаблонов';
 
   let html = `<div style="margin-bottom:16px">
-    <button class="btn btn--primary" id="customNew">+ Новый шаблон</button>
+    <button class="btn btn--primary" id="customNew" style="font-size:15px;padding:12px 20px">+ Создать шаблон</button>
   </div>`;
+
   if (!list.length) {
-    html += '<div class="loading">Шаблонов нет. Создай первый — он автоматически появится в каталоге если все компоненты в наличии в Posiflora.</div>';
+    html += `<div class="loading" style="padding:60px 20px">
+      <div style="font-size:48px;margin-bottom:12px">🌸</div>
+      <div style="margin-bottom:8px;font-size:16px">Шаблонов пока нет</div>
+      <div style="font-size:13px;opacity:.7;max-width:400px;margin:0 auto">Создай первый — он автоматически появится в каталоге, когда все компоненты будут в наличии в Posiflora. Распродались — пропадёт.</div>
+    </div>`;
   } else {
     html += '<div class="grid">';
     for (const t of list) {
       const photo = t.photo_url;
-      const isHidden = !!t.hidden;
       const itemsStr = (t.items || []).map(i =>
         `<span style="opacity:${i.available?1:.4};text-decoration:${i.available?'none':'line-through'}">${escapeHtml(i.title)} ×${+i.qty}</span>`
       ).join(', ');
       const statusBadge = t.available
-        ? '<span style="background:#3a6b40;color:#fff;padding:2px 8px;border-radius:6px;font-size:11px">✓ В наличии</span>'
-        : `<span style="background:#7a3a3a;color:#fff;padding:2px 8px;border-radius:6px;font-size:11px">⊘ Не хватает ${t.missing_count}</span>`;
-      const hidBadge = isHidden ? '<span style="background:#555;color:#fff;padding:2px 8px;border-radius:6px;font-size:11px;margin-left:4px">скрыт</span>' : '';
-      html += `<div class="card" data-id="${t.id}" style="opacity:${isHidden?.6:1}">
+        ? '<span style="background:#3a6b40;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">✓ В НАЛИЧИИ</span>'
+        : `<span style="background:#7a3a3a;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">⊘ НЕ ХВАТАЕТ ${t.missing_count}</span>`;
+      html += `<div class="card${t.hidden?' is-hidden':''}" data-id="${t.id}" style="cursor:pointer" data-edit-id="${t.id}">
         ${photo
           ? `<img class="card__img" src="${photo.startsWith('/')?API+photo:photo}" alt="">`
           : '<div class="card__noimg">Нет фото</div>'}
+        ${t.hidden ? '<div class="card__hidden-badge">СКРЫТО</div>' : ''}
         <div class="card__body">
           <div class="card__title">${escapeHtml(t.title)}</div>
-          <div class="card__sub">${(+t.price).toLocaleString('ru-RU')} ₽ · ${statusBadge}${hidBadge}</div>
-          <div class="card__sub" style="font-size:11px;margin-top:4px">${itemsStr || 'без состава'}</div>
-          <div class="card__actions" style="display:flex;gap:6px">
-            <button class="btn js-cedit" data-id="${t.id}">Редактировать</button>
-            <button class="btn js-cdel" data-id="${t.id}" style="background:#5a2929">🗑</button>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+            <span style="font-weight:700;color:var(--pink-light)">${(+t.price).toLocaleString('ru-RU')} ₽</span>
+            ${statusBadge}
+          </div>
+          <div class="card__sub" style="font-size:11px;margin-top:6px">${itemsStr || 'без состава'}</div>
+          <div class="card__actions" style="display:flex;gap:6px;margin-top:10px">
+            <button class="btn js-cedit" data-id="${t.id}" style="flex:1">Редактировать</button>
+            <button class="btn js-cdel" data-id="${t.id}" style="background:#5a2929;width:42px;padding:0">🗑</button>
           </div>
         </div>
       </div>`;
@@ -1154,15 +1308,17 @@ async function renderCustomTemplates() {
   }
   $('#content').innerHTML = html;
   $('#customNew').addEventListener('click', () => openCustomEditor(null));
-  $$('.js-cedit').forEach(b => b.addEventListener('click', () => openCustomEditor(+b.dataset.id, list)));
-  $$('.js-cdel').forEach(b => b.addEventListener('click', async () => {
+  $$('.js-cedit').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openCustomEditor(+b.dataset.id, list); }));
+  $$('.js-cdel').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
     if (!confirm('Удалить шаблон?')) return;
     await api('DELETE', '/api/admin/custom-templates/' + b.dataset.id);
     renderCustomTemplates();
   }));
 }
 
-function openCustomEditor(id, list) {
+async function openCustomEditor(id, list) {
+  customView = 'editor';
   if (id) {
     const t = (list || []).find(x => x.id === id);
     customDraft = {
@@ -1174,157 +1330,284 @@ function openCustomEditor(id, list) {
   } else {
     customDraft = { id: null, title: '', description: '', photo_url: '', price: 0, badge: '', hidden: false, items: [] };
   }
+  // Скрыть табы — полная страница
+  $('#tabs').style.display = 'none';
+  $('#toolbar').style.display = 'none';
+  $('#counter').textContent = customDraft.id ? 'Редактирование шаблона' : 'Новый шаблон';
+  // Прелоад inventory для пикера
+  if (!customInventoryCache) {
+    try { customInventoryCache = await api('GET', '/api/admin/inventory'); }
+    catch { customInventoryCache = []; }
+  }
   renderCustomEditor();
-  $('#customEditor').classList.add('active');
 }
 
 function renderCustomEditor() {
   const d = customDraft;
+  const photoSrc = d.photo_url ? (d.photo_url.startsWith('/') ? API + d.photo_url : d.photo_url) : '';
+
+  // Состав букета
   const itemsHtml = d.items.length
     ? d.items.map((it, idx) => `
-        <div style="display:flex;gap:8px;align-items:center;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:6px">
-          <span style="flex:1">${escapeHtml(it.title || it.item_id)} <span style="color:var(--cream-dim);font-size:11px">(${escapeHtml(it.category||'?')})</span></span>
-          <input type="number" min="1" max="999" value="${it.qty}" data-idx="${idx}" class="ci-qty" style="width:60px;padding:4px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--cream);border-radius:6px;text-align:center">
-          <button class="ci-del" data-idx="${idx}" style="background:#5a2929;border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer">×</button>
+        <div class="ci-row" data-idx="${idx}">
+          <div class="ci-row__title">
+            <div style="font-weight:600">${escapeHtml(it.title || it.item_id)}</div>
+            <div style="font-size:11px;color:var(--cream-dim);margin-top:2px">${escapeHtml(it.category||'')}</div>
+          </div>
+          <div class="ci-row__qty">
+            <button class="ci-minus" data-idx="${idx}">−</button>
+            <input type="number" min="1" max="999" value="${it.qty}" data-idx="${idx}" class="ci-qty">
+            <button class="ci-plus" data-idx="${idx}">+</button>
+          </div>
+          <button class="ci-del" data-idx="${idx}">×</button>
         </div>`).join('')
-    : '<div style="color:var(--cream-dim);font-size:13px">Состав пуст. Добавь цветы через поиск ниже.</div>';
+    : '<div style="padding:30px 20px;text-align:center;color:var(--cream-dim);font-size:13px;background:rgba(255,255,255,.03);border-radius:10px">Состав пуст. Выбери компоненты ниже ↓</div>';
 
-  const previewHtml = d.photo_url
-    ? `<img src="${d.photo_url.startsWith('/')?API+d.photo_url:d.photo_url}" style="width:100%;max-height:240px;object-fit:cover;border-radius:10px;margin-bottom:8px">`
-    : '';
+  $('#content').innerHTML = `
+    <div class="cust-editor">
+      <div class="cust-editor__top">
+        <button class="btn btn--secondary" id="cBack">← Назад к списку</button>
+        <div style="flex:1"></div>
+        <button class="btn" id="cSaveTop" style="background:#3a6b40;color:#fff">Сохранить</button>
+      </div>
 
-  $('#customEditorBody').innerHTML = `
-    <h2 style="margin:0 0 16px;font-family:var(--font-serif);font-size:22px">${d.id ? 'Редактировать шаблон' : 'Новый шаблон'}</h2>
+      <div class="cust-editor__grid">
+        <!-- Левая колонка: фото + базовые поля -->
+        <div class="cust-editor__col">
+          <div class="cust-section">
+            <div class="cust-section__title">Фото</div>
+            <div class="cust-photo">
+              ${photoSrc
+                ? `<img src="${photoSrc}" id="cPreview">
+                   <button class="cust-photo__remove" id="cRemovePhoto" title="Удалить фото">×</button>`
+                : `<div class="cust-photo__placeholder">Нет фото</div>`}
+            </div>
+            <div id="cDropzone" class="cust-dropzone">
+              <div style="font-size:24px;margin-bottom:4px">📷</div>
+              <div><b>Кликни</b> или перетащи фото сюда</div>
+              <div style="font-size:11px;color:var(--cream-dim);margin-top:4px">JPG/PNG/HEIC, до 20 МБ</div>
+            </div>
+            <input type="file" id="cFile" accept="image/*" style="display:none">
+            <div id="cUpStatus" style="font-size:12px;color:var(--cream-dim);margin-top:6px;min-height:16px"></div>
+          </div>
 
-    <div class="row">
-      <label>Название</label>
-      <input class="input" id="cTitle" value="${escapeHtml(d.title)}" placeholder="Букет 3 пиона + 4 розы">
-    </div>
+          <div class="cust-section">
+            <div class="cust-section__title">Название</div>
+            <input class="input" id="cTitle" value="${escapeHtml(d.title)}" placeholder="Букет 3 пиона + 4 розы">
+          </div>
 
-    <div class="row">
-      <label>Описание (под названием)</label>
-      <textarea class="input" id="cDesc" rows="2">${escapeHtml(d.description)}</textarea>
-    </div>
+          <div class="cust-section">
+            <div class="cust-section__title">Описание</div>
+            <textarea class="input" id="cDesc" rows="2" placeholder="Краткое описание под названием в каталоге">${escapeHtml(d.description)}</textarea>
+          </div>
 
-    <div class="row">
-      <label>Цена ₽</label>
-      <input class="input" type="number" min="0" id="cPrice" value="${+d.price}">
-    </div>
+          <div class="cust-section">
+            <div class="cust-section__title">Цена</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input class="input" type="number" min="0" id="cPrice" value="${+d.price}" style="font-size:20px;font-weight:700;text-align:right">
+              <span style="font-size:20px;font-weight:600">₽</span>
+            </div>
+            <div id="cCostHint" style="font-size:12px;color:var(--cream-dim);margin-top:6px"></div>
+          </div>
 
-    <div class="row">
-      <label>Фото</label>
-      ${previewHtml}
-      <div id="cDropzone" style="border:2px dashed rgba(255,255,255,.18);border-radius:10px;padding:14px;text-align:center;cursor:pointer;color:var(--cream-dim);font-size:13px;margin-bottom:8px">Перетащи фото или кликни</div>
-      <input type="file" id="cFile" accept="image/*" style="display:none">
-      <input class="input" id="cPhotoUrl" value="${escapeHtml(d.photo_url)}" placeholder="...или /uploads/xxx.jpg" style="font-size:12px">
-      <div id="cUpStatus" style="font-size:12px;color:var(--cream-dim);margin-top:4px"></div>
-    </div>
+          <label class="toggle-field" for="cHidden">
+            <div class="toggle-field__label">
+              <div class="toggle-field__title">Скрыть из каталога</div>
+              <div class="toggle-field__hint">Шаблон останется в админке, но не появится в мини-аппе</div>
+            </div>
+            <span class="switch">
+              <input type="checkbox" id="cHidden" ${d.hidden?'checked':''}>
+              <span class="switch__slider"></span>
+            </span>
+          </label>
+        </div>
 
-    <div class="row">
-      <label>Состав букета (что и сколько)</label>
-      <div id="cItems">${itemsHtml}</div>
-    </div>
+        <!-- Правая колонка: состав букета -->
+        <div class="cust-editor__col">
+          <div class="cust-section">
+            <div class="cust-section__title">Состав букета (${d.items.length})</div>
+            <div class="cust-items">${itemsHtml}</div>
+          </div>
 
-    <div class="row">
-      <label>Добавить компонент</label>
-      <input class="input" id="cSearch" placeholder="Начни вводить название (роза, пион...)">
-      <div id="cSearchResults" style="margin-top:6px"></div>
-    </div>
+          <div class="cust-section">
+            <div class="cust-section__title">Добавить компонент</div>
+            <input class="input" id="cSearch" placeholder="🔍 Найти цветок, зелень, упаковку..." autocomplete="off">
+            <div id="cCatChips" class="cust-chips"></div>
+            <div id="cSearchResults" class="cust-results"></div>
+          </div>
+        </div>
+      </div>
 
-    <div class="row" style="flex-direction:row;align-items:center;gap:10px">
-      <input type="checkbox" id="cHidden" ${d.hidden?'checked':''} style="width:18px;height:18px">
-      <label for="cHidden" style="margin:0">Скрыть из каталога</label>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-top:16px">
-      <button class="btn btn--primary" id="cSave" style="flex:1">Сохранить</button>
-      <button class="btn" id="cCancel">Отмена</button>
+      <div class="cust-editor__bottom">
+        <button class="btn" id="cCancel">Отмена</button>
+        <button class="btn btn--primary" id="cSave" style="flex:1">${d.id ? 'Сохранить изменения' : 'Создать шаблон'}</button>
+      </div>
     </div>
   `;
   bindCustomEditor();
+  updateCostHint();
+  renderInventoryPicker('', '');
+}
+
+function updateCostHint() {
+  const sum = customDraft.items.reduce((s, it) => {
+    const inv = (customInventoryCache || []).find(i => i.id === it.item_id);
+    return s + (inv ? (inv.price_max || 0) * (+it.qty || 1) : 0);
+  }, 0);
+  const price = +customDraft.price || 0;
+  const markup = price - sum;
+  const el = $('#cCostHint');
+  if (!el) return;
+  el.innerHTML = sum
+    ? `Себестоимость: <b>${sum.toLocaleString('ru-RU')} ₽</b> · Наценка: <b style="color:${markup>=0?'#9ec999':'#ff8080'}">${markup>=0?'+':''}${markup.toLocaleString('ru-RU')} ₽</b>`
+    : '';
+}
+
+function renderInventoryPicker(query, category) {
+  const inv = customInventoryCache || [];
+  // Категории — топ-12 по кол-ву
+  const catCounts = {};
+  for (const i of inv) catCounts[i.category_title] = (catCounts[i.category_title] || 0) + 1;
+  const cats = Object.entries(catCounts).sort((a,b) => b[1]-a[1]).map(c => c[0]);
+  $('#cCatChips').innerHTML =
+    `<button class="cust-chip ${!category?'active':''}" data-cat="">Все</button>` +
+    cats.map(c => `<button class="cust-chip ${category===c?'active':''}" data-cat="${escapeHtml(c)}">${escapeHtml(c)} <span style="opacity:.5">${catCounts[c]}</span></button>`).join('');
+
+  let filtered = inv;
+  if (category) filtered = filtered.filter(i => i.category_title === category);
+  if (query) {
+    const q = query.toLowerCase();
+    filtered = filtered.filter(i => (i.title || '').toLowerCase().includes(q));
+  }
+  filtered = filtered.slice(0, 60);
+
+  const inDraftIds = new Set(customDraft.items.map(i => i.item_id));
+  $('#cSearchResults').innerHTML = filtered.length
+    ? filtered.map(i => {
+        const added = inDraftIds.has(i.id);
+        return `<button class="cust-result ${added?'added':''}" data-id="${i.id}" data-title="${escapeHtml(i.title)}" data-cat="${escapeHtml(i.category_title||'')}">
+          <div class="cust-result__title">${escapeHtml(i.title)}</div>
+          <div class="cust-result__sub">${escapeHtml(i.category_title||'')} · ${+i.price_max||0} ₽</div>
+          <div class="cust-result__action">${added?'✓':'+'}</div>
+        </button>`;
+      }).join('')
+    : '<div style="color:var(--cream-dim);font-size:13px;padding:20px;text-align:center">Ничего не найдено</div>';
+
+  $$('.cust-chip').forEach(el => el.addEventListener('click', () => {
+    renderInventoryPicker($('#cSearch').value.trim(), el.dataset.cat);
+  }));
+  $$('.cust-result').forEach(el => el.addEventListener('click', () => {
+    const id = el.dataset.id;
+    if (customDraft.items.find(x => x.item_id === id)) {
+      // Уже добавлено — удалить
+      customDraft.items = customDraft.items.filter(x => x.item_id !== id);
+    } else {
+      customDraft.items.push({ item_id: id, qty: 1, title: el.dataset.title, category: el.dataset.cat });
+    }
+    renderCustomEditor();
+  }));
 }
 
 function bindCustomEditor() {
-  $('#cCancel').addEventListener('click', () => $('#customEditor').classList.remove('active'));
+  const goBack = () => renderCustomTemplates();
+  $('#cBack').addEventListener('click', goBack);
+  $('#cCancel').addEventListener('click', goBack);
 
-  // Qty change
+  // Qty controls
   $$('.ci-qty').forEach(inp => inp.addEventListener('input', e => {
     const i = +e.target.dataset.idx;
     customDraft.items[i].qty = +e.target.value || 1;
+    updateCostHint();
   }));
-  // Delete item
-  $$('.ci-del').forEach(btn => btn.addEventListener('click', e => {
-    const i = +e.target.dataset.idx;
-    customDraft.items.splice(i, 1);
-    renderCustomEditor();
+  $$('.ci-plus').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.idx; customDraft.items[i].qty++; renderCustomEditor();
+  }));
+  $$('.ci-minus').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.idx;
+    if (customDraft.items[i].qty > 1) { customDraft.items[i].qty--; renderCustomEditor(); }
+  }));
+  $$('.ci-del').forEach(b => b.addEventListener('click', () => {
+    customDraft.items.splice(+b.dataset.idx, 1); renderCustomEditor();
   }));
 
-  // Search inventory
+  // Live cost
+  $('#cPrice').addEventListener('input', e => {
+    customDraft.price = +e.target.value || 0; updateCostHint();
+  });
+  $('#cTitle').addEventListener('input', e => { customDraft.title = e.target.value; });
+  $('#cDesc').addEventListener('input', e => { customDraft.description = e.target.value; });
+  $('#cHidden').addEventListener('change', e => { customDraft.hidden = e.target.checked; });
+
+  // Search
   let searchTimer;
   $('#cSearch').addEventListener('input', e => {
     clearTimeout(searchTimer);
     const q = e.target.value.trim();
-    if (q.length < 2) { $('#cSearchResults').innerHTML = ''; return; }
-    searchTimer = setTimeout(async () => {
-      const items = await api('GET', '/api/admin/inventory-search?q=' + encodeURIComponent(q));
-      $('#cSearchResults').innerHTML = items.length
-        ? items.slice(0, 20).map(i => `<div class="ci-add" data-id="${i.id}" data-title="${escapeHtml(i.title)}" data-cat="${escapeHtml(i.category_title||'')}" style="padding:6px 10px;background:rgba(255,255,255,.04);border-radius:6px;margin-bottom:3px;cursor:pointer;font-size:13px"><b>${escapeHtml(i.title)}</b> <span style="color:var(--cream-dim);font-size:11px">${escapeHtml(i.category_title||'')} · до ${+i.price_max} ₽</span></div>`).join('')
-        : '<div style="color:var(--cream-dim);font-size:12px">Ничего не найдено</div>';
-      $$('.ci-add').forEach(el => el.addEventListener('click', () => {
-        const id = el.dataset.id;
-        if (customDraft.items.find(x => x.item_id === id)) { toast('Уже добавлено'); return; }
-        customDraft.items.push({ item_id: id, qty: 1, title: el.dataset.title, category: el.dataset.cat });
-        $('#cSearch').value = '';
-        renderCustomEditor();
-      }));
-    }, 200);
+    searchTimer = setTimeout(() => {
+      const activeCat = $('.cust-chip.active')?.dataset.cat || '';
+      renderInventoryPicker(q, activeCat);
+    }, 100);
   });
 
-  // Photo upload
-  $('#cPhotoUrl').addEventListener('input', e => { customDraft.photo_url = e.target.value; });
+  // Photo
   $('#cDropzone').addEventListener('click', () => $('#cFile').click());
   $('#cFile').addEventListener('change', e => uploadCustomPhoto(e.target.files[0]));
-  $('#cDropzone').addEventListener('dragover', e => { e.preventDefault(); });
+  $('#cDropzone').addEventListener('dragover', e => { e.preventDefault(); $('#cDropzone').classList.add('drag'); });
+  $('#cDropzone').addEventListener('dragleave', () => $('#cDropzone').classList.remove('drag'));
   $('#cDropzone').addEventListener('drop', e => {
-    e.preventDefault();
+    e.preventDefault(); $('#cDropzone').classList.remove('drag');
     if (e.dataTransfer.files[0]) uploadCustomPhoto(e.dataTransfer.files[0]);
+  });
+  const removeBtn = $('#cRemovePhoto');
+  if (removeBtn) removeBtn.addEventListener('click', async () => {
+    const url = customDraft.photo_url;
+    customDraft.photo_url = '';
+    renderCustomEditor();
+    // снести файл с диска
+    const m = url.match(/\/uploads\/([^/?#]+)/);
+    if (m) {
+      try {
+        await fetch(API + '/api/admin/upload/' + encodeURIComponent(m[1]), {
+          method: 'DELETE', headers: { Authorization: 'Basic ' + getAuth() },
+        });
+      } catch {}
+    }
   });
 
   // Save
-  $('#cSave').addEventListener('click', async () => {
-    customDraft.title = $('#cTitle').value.trim();
-    customDraft.description = $('#cDesc').value.trim();
-    customDraft.price = +$('#cPrice').value || 0;
-    customDraft.hidden = $('#cHidden').checked;
-    customDraft.photo_url = $('#cPhotoUrl').value.trim();
-    if (!customDraft.title) { toast('Укажи название'); return; }
+  const doSave = async () => {
+    if (!customDraft.title.trim()) { toast('Укажи название'); return; }
     if (!customDraft.items.length) { toast('Добавь хотя бы один компонент'); return; }
-    $('#cSave').disabled = true;
+    $('#cSave').disabled = true; $('#cSaveTop').disabled = true;
     try {
       await api('POST', '/api/admin/custom-templates', {
         id: customDraft.id,
-        title: customDraft.title,
-        description: customDraft.description,
+        title: customDraft.title.trim(),
+        description: customDraft.description.trim(),
         photo_url: customDraft.photo_url || null,
         price: customDraft.price,
         hidden: customDraft.hidden ? 1 : 0,
         items: customDraft.items.map(i => ({ item_id: i.item_id, qty: i.qty })),
       });
       toast('Сохранено ✓');
-      $('#customEditor').classList.remove('active');
-      renderCustomTemplates();
+      goBack();
     } catch (e) {
       toast('Ошибка: ' + e.message);
     } finally {
-      $('#cSave').disabled = false;
+      if ($('#cSave')) { $('#cSave').disabled = false; $('#cSaveTop').disabled = false; }
     }
-  });
+  };
+  $('#cSave').addEventListener('click', doSave);
+  $('#cSaveTop').addEventListener('click', doSave);
 }
 
 async function uploadCustomPhoto(file) {
   if (!file) return;
+  const isImg = file.type.startsWith('image/') || /\.(heic|heif)$/i.test(file.name);
+  if (!isImg) { toast('Только картинки'); return; }
   if (file.size > 20 * 1024 * 1024) { toast('Макс 20 МБ'); return; }
-  $('#cUpStatus').textContent = 'Загрузка...';
+
+  $('#cUpStatus').textContent = '📤 Загрузка ' + Math.round(file.size/1024) + ' КБ...';
   const fd = new FormData(); fd.append('file', file);
   try {
     const res = await fetch(API + '/api/admin/upload', {
@@ -1333,11 +1616,10 @@ async function uploadCustomPhoto(file) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     customDraft.photo_url = data.url || data.path;
-    $('#cPhotoUrl').value = customDraft.photo_url;
-    $('#cUpStatus').textContent = 'Загружено ✓';
+    $('#cUpStatus').textContent = '✓ Загружено';
     renderCustomEditor();
   } catch (e) {
-    $('#cUpStatus').textContent = 'Ошибка: ' + e.message;
+    $('#cUpStatus').textContent = '⚠️ ' + e.message;
   }
 }
 

@@ -188,6 +188,43 @@ r.delete('/upload/:filename', (req, res) => {
   }
 });
 
+// Диагностика — пробуем разные endpoints Posiflora чтобы найти балансы
+r.get('/posiflora-debug-balances', async (req, res) => {
+  const { posiflora } = await import('../posiflora.js');
+  const tries = [
+    '/v1/inventory-item-balances',
+    '/v1/inventory-balances',
+    '/v1/balances',
+    '/v1/stocks',
+    '/v1/inventory-stocks',
+    '/v1/store-balances',
+    '/v1/storage-balances',
+    '/v1/inventory-items-balances',
+  ];
+  const results = {};
+  for (const path of tries) {
+    try {
+      // прямой call через posiflora.js — нужен внутренний доступ
+      const axios = (await import('axios')).default;
+      const tok = await (async () => {
+        const r = await axios.post(process.env.POSIFLORA_BASE_URL + '/v1/sessions', {
+          data: { type: 'sessions', attributes: { username: process.env.POSIFLORA_USERNAME, password: process.env.POSIFLORA_PASSWORD } },
+        }, { headers: { 'Content-Type': 'application/vnd.api+json', Accept: 'application/vnd.api+json' }, timeout: 60000 });
+        return r.data.data.attributes.accessToken;
+      })();
+      const r = await axios.get(process.env.POSIFLORA_BASE_URL + path, {
+        params: { 'page[size]': 2 },
+        headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.api+json' },
+        timeout: 30000,
+      });
+      results[path] = { ok: true, count: r.data.data?.length || 0, sample: r.data.data?.[0] || null };
+    } catch (e) {
+      results[path] = { ok: false, status: e.response?.status, msg: e.message.slice(0, 100) };
+    }
+  }
+  res.json(results);
+});
+
 // Диагностика — что реально лежит на диске
 r.get('/uploads-debug', (req, res) => {
   try {

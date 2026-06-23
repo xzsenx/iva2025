@@ -196,12 +196,9 @@ r.get('/posiflora-debug-balances', async (req, res) => {
   const ITEM = '00264bd4-f74f-4f48-a546-fe78652eb5e0';
   const STORE = '486526f7-bdcd-4f25-8d87-77ed005d00c6';
   const tries = [
-    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}`,
-    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?from=2020-01-01&to=2030-01-01`,
-    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?date[from]=2020-01-01&date[to]=2030-01-01`,
-    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?filter[from]=2020-01-01&filter[to]=2030-01-01`,
-    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?page[size]=1`,
-    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?filter[date][from]=2020-01-01T00:00:00Z&filter[date][to]=2030-01-01T00:00:00Z`,
+    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?startDate=2020-01-01&endDate=2030-01-01`,
+    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?startDate=2020-01-01T00:00:00Z&endDate=2030-01-01T00:00:00Z`,
+    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?filter[startDate]=2020-01-01&filter[endDate]=2030-01-01`,
   ];
   const results = {};
   for (const path of tries) {

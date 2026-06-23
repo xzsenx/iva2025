@@ -185,7 +185,7 @@ r.get('/addons', (req, res) => {
 
 // Наши шаблоны (создаются в админке) — показываем только если все компоненты в наличии
 r.get('/custom-templates', (req, res) => {
-  const tmpls = db.prepare(`SELECT * FROM custom_templates WHERE hidden=0`).all();
+  const tmpls = db.prepare(`SELECT * FROM custom_templates WHERE hidden=0 AND COALESCE(archived,0)=0`).all();
   if (!tmpls.length) return res.json([]);
   const items = db.prepare(`SELECT template_id, item_id FROM custom_template_items`).all();
   const byTmpl = new Map();

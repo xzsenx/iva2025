@@ -219,9 +219,10 @@ r.post('/sync', async (req, res) => {
    НАШИ шаблоны букетов (создаются в админке)
    ============================================================ */
 
-// Список всех — с availability + список не хватающих компонентов
+// Список — с availability + missing[]. По умолчанию активные, ?archived=1 → архив.
 r.get('/custom-templates', (req, res) => {
-  const tmpls = db.prepare(`SELECT * FROM custom_templates ORDER BY sort_order, created_at DESC`).all();
+  const archived = req.query.archived === '1' ? 1 : 0;
+  const tmpls = db.prepare(`SELECT * FROM custom_templates WHERE COALESCE(archived,0)=? ORDER BY sort_order, created_at DESC`).all(archived);
   const itemsByTmpl = new Map();
   const allRows = db.prepare(`SELECT ct.template_id, ct.item_id, ct.qty,
                                      pi.title as item_title, pi.category_title, pi.price_max
@@ -285,7 +286,21 @@ r.post('/custom-templates', (req, res) => {
   res.json({ ok: true, id: newId });
 });
 
-// Удалить
+// Архивировать (мягкое удаление)
+r.post('/custom-templates/:id/archive', (req, res) => {
+  const id = +req.params.id;
+  db.prepare(`UPDATE custom_templates SET archived=1, archived_at=datetime('now') WHERE id=?`).run(id);
+  res.json({ ok: true });
+});
+
+// Восстановить из архива
+r.post('/custom-templates/:id/restore', (req, res) => {
+  const id = +req.params.id;
+  db.prepare(`UPDATE custom_templates SET archived=0, archived_at=NULL WHERE id=?`).run(id);
+  res.json({ ok: true });
+});
+
+// Удалить навсегда (только из архива)
 r.delete('/custom-templates/:id', (req, res) => {
   const id = +req.params.id;
   db.prepare('DELETE FROM custom_template_items WHERE template_id=?').run(id);

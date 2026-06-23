@@ -400,6 +400,19 @@
   /* Фото колонка — фиксированная высота не нужна, но не растягиваем */
   .cust-3col .cust-section--photo { max-height: none; }
 
+  /* Переключатель Активные / Архив */
+  .cust-modeswitch {
+    padding: 8px 14px; border-radius: 8px;
+    background: transparent; color: var(--cream-dim);
+    border: none; cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    transition: all .15s;
+  }
+  .cust-modeswitch:hover { color: var(--cream); }
+  .cust-modeswitch.active {
+    background: var(--pink); color: #2a1f1d;
+  }
+
   /* Быстрые кнопки наценки */
   .cust-pricebtn {
     padding: 6px 12px; border-radius: 8px;
@@ -1309,25 +1322,36 @@ $('#mSave').addEventListener('click', async () => {
 let customDraft = null;
 let customView = 'list'; // 'list' | 'editor'
 let customInventoryCache = null;
+let customListMode = 'active'; // 'active' | 'archive'
 
 async function renderCustomTemplates() {
   customView = 'list';
   $('#tabs').style.display = '';
+  const isArchive = customListMode === 'archive';
   let list = [];
-  try { list = await api('GET', '/api/admin/custom-templates'); }
+  try { list = await api('GET', '/api/admin/custom-templates' + (isArchive ? '?archived=1' : '')); }
   catch (e) { $('#content').innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>'; return; }
 
-  $('#counter').textContent = list.length + ' шаблонов';
+  $('#counter').textContent = list.length + (isArchive ? ' в архиве' : ' шаблонов');
 
-  let html = `<div style="margin-bottom:16px">
+  let html = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
     <button class="btn btn--primary" id="customNew" style="font-size:15px;padding:12px 20px">+ Создать шаблон</button>
+    <div style="flex:1"></div>
+    <div style="display:flex;background:rgba(255,255,255,.06);border-radius:10px;padding:3px;gap:2px">
+      <button class="cust-modeswitch ${!isArchive?'active':''}" data-mode="active">📋 Активные</button>
+      <button class="cust-modeswitch ${isArchive?'active':''}" data-mode="archive">📦 Архив</button>
+    </div>
   </div>`;
 
   if (!list.length) {
     html += `<div class="loading" style="padding:60px 20px">
-      <div style="font-size:48px;margin-bottom:12px">🌸</div>
-      <div style="margin-bottom:8px;font-size:16px">Шаблонов пока нет</div>
-      <div style="font-size:13px;opacity:.7;max-width:400px;margin:0 auto">Создай первый — он автоматически появится в каталоге, когда все компоненты будут в наличии в Posiflora. Распродались — пропадёт.</div>
+      <div style="font-size:48px;margin-bottom:12px">${isArchive?'📦':'🌸'}</div>
+      <div style="margin-bottom:8px;font-size:16px">${isArchive ? 'Архив пуст' : 'Шаблонов пока нет'}</div>
+      <div style="font-size:13px;opacity:.7;max-width:400px;margin:0 auto">${
+        isArchive
+          ? 'Заархивированные шаблоны видно тут. Можно восстановить или удалить навсегда.'
+          : 'Создай первый — он автоматически появится в каталоге, когда все компоненты будут в наличии в Posiflora. Распродались — пропадёт.'
+      }</div>
     </div>`;
   } else {
     html += '<div class="grid">';
@@ -1339,7 +1363,12 @@ async function renderCustomTemplates() {
       const statusBadge = t.available
         ? '<span style="background:#3a6b40;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">✓ В НАЛИЧИИ</span>'
         : `<span style="background:#7a3a3a;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">⊘ НЕ ХВАТАЕТ ${t.missing_count}</span>`;
-      html += `<div class="card${t.hidden?' is-hidden':''}" data-id="${t.id}" style="cursor:pointer" data-edit-id="${t.id}">
+      const actions = isArchive
+        ? `<button class="btn js-crestore" data-id="${t.id}" style="flex:1;background:#3a6b40">↺ Восстановить</button>
+           <button class="btn js-cwipe" data-id="${t.id}" style="background:#5a2929;width:42px;padding:0" title="Удалить навсегда">🗑</button>`
+        : `<button class="btn js-cedit" data-id="${t.id}" style="flex:1">Редактировать</button>
+           <button class="btn js-carchive" data-id="${t.id}" style="background:#5a4a29;width:42px;padding:0" title="В архив">📦</button>`;
+      html += `<div class="card${t.hidden?' is-hidden':''}" data-id="${t.id}" style="cursor:pointer">
         ${photo
           ? `<img class="card__img" src="${photo.startsWith('/')?API+photo:photo}" alt="">`
           : '<div class="card__noimg">Нет фото</div>'}
@@ -1351,22 +1380,39 @@ async function renderCustomTemplates() {
             ${statusBadge}
           </div>
           <div class="card__sub" style="font-size:11px;margin-top:6px">${itemsStr || 'без состава'}</div>
-          <div class="card__actions" style="display:flex;gap:6px;margin-top:10px">
-            <button class="btn js-cedit" data-id="${t.id}" style="flex:1">Редактировать</button>
-            <button class="btn js-cdel" data-id="${t.id}" style="background:#5a2929;width:42px;padding:0">🗑</button>
-          </div>
+          ${isArchive && t.archived_at ? `<div style="font-size:10px;color:var(--cream-dim);margin-top:4px">Заархивирован: ${t.archived_at}</div>` : ''}
+          <div class="card__actions" style="display:flex;gap:6px;margin-top:10px">${actions}</div>
         </div>
       </div>`;
     }
     html += '</div>';
   }
   $('#content').innerHTML = html;
+
   $('#customNew').addEventListener('click', () => openCustomEditor(null));
+  $$('.cust-modeswitch').forEach(b => b.addEventListener('click', () => {
+    customListMode = b.dataset.mode;
+    renderCustomTemplates();
+  }));
   $$('.js-cedit').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openCustomEditor(+b.dataset.id, list); }));
-  $$('.js-cdel').forEach(b => b.addEventListener('click', async e => {
+  $$('.js-carchive').forEach(b => b.addEventListener('click', async e => {
     e.stopPropagation();
-    if (!confirm('Удалить шаблон?')) return;
+    if (!confirm('Перенести в архив?\nШаблон скроется из каталога, можно восстановить.')) return;
+    await api('POST', '/api/admin/custom-templates/' + b.dataset.id + '/archive');
+    toast('В архиве');
+    renderCustomTemplates();
+  }));
+  $$('.js-crestore').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
+    await api('POST', '/api/admin/custom-templates/' + b.dataset.id + '/restore');
+    toast('Восстановлен');
+    renderCustomTemplates();
+  }));
+  $$('.js-cwipe').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (!confirm('Удалить НАВСЕГДА?\nЭто действие нельзя отменить.')) return;
     await api('DELETE', '/api/admin/custom-templates/' + b.dataset.id);
+    toast('Удалён');
     renderCustomTemplates();
   }));
 }

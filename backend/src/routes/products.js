@@ -183,6 +183,36 @@ r.get('/addons', (req, res) => {
   res.json(out);
 });
 
+// Наши шаблоны (создаются в админке) — показываем только если все компоненты в наличии
+r.get('/custom-templates', (req, res) => {
+  const tmpls = db.prepare(`SELECT * FROM custom_templates WHERE hidden=0`).all();
+  if (!tmpls.length) return res.json([]);
+  const items = db.prepare(`SELECT template_id, item_id FROM custom_template_items`).all();
+  const byTmpl = new Map();
+  for (const it of items) {
+    if (!byTmpl.has(it.template_id)) byTmpl.set(it.template_id, []);
+    byTmpl.get(it.template_id).push(it.item_id);
+  }
+  const invAvailable = new Set(db.prepare('SELECT id FROM posiflora_inventory').all().map(r => r.id));
+  const out = tmpls
+    .filter(t => {
+      const ids = byTmpl.get(t.id) || [];
+      return ids.length > 0 && ids.every(id => invAvailable.has(id));
+    })
+    .map(t => ({
+      id: `ctmpl:${t.id}`,
+      type: 'template',
+      title: t.title,
+      description: t.description,
+      price: t.price,
+      category: 'bouquets',
+      badge: t.badge,
+      popular: 7,
+      img: t.photo_url || null,
+    }));
+  res.json(out);
+});
+
 // Единый /products — всё разом, для совместимости с фронтом
 r.get('/', (req, res) => {
   res.json({

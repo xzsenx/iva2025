@@ -62,6 +62,29 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_recipes_spec ON posiflora_recipes(spec_id);
   CREATE INDEX IF NOT EXISTS idx_recipes_item ON posiflora_recipes(item_id);
 
+  /* === НАШИ шаблоны (созданные в админке) === */
+  CREATE TABLE IF NOT EXISTS custom_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    photo_url TEXT,
+    price REAL NOT NULL DEFAULT 0,
+    badge TEXT,
+    hidden INTEGER DEFAULT 0,
+    sort_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS custom_template_items (
+    template_id INTEGER NOT NULL,
+    item_id TEXT NOT NULL,           -- ссылка на posiflora_inventory.id
+    qty REAL NOT NULL DEFAULT 1,
+    PRIMARY KEY (template_id, item_id),
+    FOREIGN KEY (template_id) REFERENCES custom_templates(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_ctmpl_items_tmpl ON custom_template_items(template_id);
+  CREATE INDEX IF NOT EXISTS idx_ctmpl_items_item ON custom_template_items(item_id);
+
   -- Наш «обвес» поверх Posiflora-сущностей
   CREATE TABLE IF NOT EXISTS catalog_overrides (
     source TEXT NOT NULL,   -- 'spec' | 'bouquet' | 'item'

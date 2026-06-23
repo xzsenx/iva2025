@@ -215,6 +215,96 @@ r.post('/sync', async (req, res) => {
   }
 });
 
+/* ============================================================
+   НАШИ шаблоны букетов (создаются в админке)
+   ============================================================ */
+
+// Список всех — с availability + список не хватающих компонентов
+r.get('/custom-templates', (req, res) => {
+  const tmpls = db.prepare(`SELECT * FROM custom_templates ORDER BY sort_order, created_at DESC`).all();
+  const itemsByTmpl = new Map();
+  const allRows = db.prepare(`SELECT ct.template_id, ct.item_id, ct.qty,
+                                     pi.title as item_title, pi.category_title, pi.price_max
+                              FROM custom_template_items ct
+                              LEFT JOIN posiflora_inventory pi ON pi.id = ct.item_id`).all();
+  for (const r of allRows) {
+    if (!itemsByTmpl.has(r.template_id)) itemsByTmpl.set(r.template_id, []);
+    itemsByTmpl.get(r.template_id).push(r);
+  }
+  const invAvailable = new Set(db.prepare('SELECT id FROM posiflora_inventory').all().map(r => r.id));
+  const out = tmpls.map(t => {
+    const items = itemsByTmpl.get(t.id) || [];
+    const missing = items.filter(i => !invAvailable.has(i.item_id));
+    return {
+      ...t,
+      items: items.map(i => ({
+        item_id: i.item_id,
+        qty: i.qty,
+        title: i.item_title || '(удалено из Posiflora)',
+        category: i.category_title,
+        price_max: i.price_max,
+        available: invAvailable.has(i.item_id),
+      })),
+      available: items.length > 0 && missing.length === 0,
+      missing_count: missing.length,
+    };
+  });
+  res.json(out);
+});
+
+// Создать / обновить
+r.post('/custom-templates', (req, res) => {
+  const { id, title, description, photo_url, price, badge, hidden, sort_order, items } = req.body || {};
+  if (!title || !Array.isArray(items)) return res.status(400).json({ error: 'title and items[] required' });
+  const tx = db.transaction(() => {
+    let tId = id;
+    if (tId) {
+      db.prepare(`UPDATE custom_templates SET
+        title=?, description=?, photo_url=?, price=?, badge=?, hidden=?, sort_order=?, updated_at=datetime('now')
+        WHERE id=?`).run(
+        title, description || null, photo_url || null, +price || 0, badge || null,
+        hidden ? 1 : 0, +sort_order || 0, tId,
+      );
+    } else {
+      const info = db.prepare(`INSERT INTO custom_templates
+        (title, description, photo_url, price, badge, hidden, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`).run(
+        title, description || null, photo_url || null, +price || 0, badge || null,
+        hidden ? 1 : 0, +sort_order || 0,
+      );
+      tId = info.lastInsertRowid;
+    }
+    db.prepare(`DELETE FROM custom_template_items WHERE template_id=?`).run(tId);
+    const ins = db.prepare(`INSERT INTO custom_template_items (template_id, item_id, qty) VALUES (?, ?, ?)`);
+    for (const it of items) {
+      if (it.item_id && +it.qty > 0) ins.run(tId, it.item_id, +it.qty);
+    }
+    return tId;
+  });
+  const newId = tx();
+  res.json({ ok: true, id: newId });
+});
+
+// Удалить
+r.delete('/custom-templates/:id', (req, res) => {
+  const id = +req.params.id;
+  db.prepare('DELETE FROM custom_template_items WHERE template_id=?').run(id);
+  db.prepare('DELETE FROM custom_templates WHERE id=?').run(id);
+  res.json({ ok: true });
+});
+
+// Поиск по inventory для пикера в админке
+r.get('/inventory-search', (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase();
+  const cat = req.query.category;
+  let sql = `SELECT id, title, category_title, price_max FROM posiflora_inventory WHERE 1=1`;
+  const params = [];
+  if (q) { sql += ` AND lower(title) LIKE ?`; params.push('%' + q + '%'); }
+  if (cat) { sql += ` AND category_title = ?`; params.push(cat); }
+  sql += ` ORDER BY category_title, title LIMIT 50`;
+  res.json(db.prepare(sql).all(...params));
+});
+
 r.get('/sync/history', (req, res) => {
   const rows = db.prepare(`SELECT * FROM sync_runs ORDER BY id DESC LIMIT 20`).all();
   res.json(rows.map(r => ({ ...r, counts: JSON.parse(r.counts_json || '{}') })));

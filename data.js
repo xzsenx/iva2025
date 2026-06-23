@@ -39,8 +39,9 @@ async function _fetchJSON(path) {
 
 async function fetchProducts() {
   try {
-    const [templates, showcase, stems, addons, wraps, ribbons] = await Promise.all([
+    const [templates, customTmpls, showcase, stems, addons, wraps, ribbons] = await Promise.all([
       _fetchJSON("/api/products/templates").catch(() => []),
+      _fetchJSON("/api/products/custom-templates").catch(() => []),
       _fetchJSON("/api/products/showcase").catch(() => []),
       _fetchJSON("/api/products/stems").catch(() => []),
       _fetchJSON("/api/products/addons").catch(() => []),
@@ -54,7 +55,7 @@ async function fetchProducts() {
       sizes: null, stock: b.stock ?? 1, img: b.img || null,
     }));
 
-    const templateItems = templates.map(t => ({
+    const templateItems = [...templates, ...customTmpls].map(t => ({
       id: t.id, name: t.title, price: t.price || 0, popular: t.popular || 5,
       category: t.category || "bouquets", badge: t.badge || null,
       desc: t.description || "", sizes: null, stock: 99,

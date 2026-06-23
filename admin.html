@@ -1152,6 +1152,13 @@ function render() {
 
   $('#counter').textContent = filtered.length + ' из ' + lastData.length;
 
+  // Для stems/addons — общая сумма штук
+  if ((currentTab === 'stems' || currentTab === 'addons') && filtered.some(d => d.available != null)) {
+    const total = filtered.reduce((s, d) => s + (+d.available || 0), 0);
+    const positionsWithStock = filtered.filter(d => +d.available > 0).length;
+    $('#counter').textContent = `${filtered.length} позиций · всего ${total.toLocaleString('ru-RU')} шт · в наличии ${positionsWithStock}`;
+  }
+
   if (!filtered.length) {
     $('#content').innerHTML = '<div class="loading">Ничего не найдено</div>';
     return;
@@ -1170,9 +1177,15 @@ function renderCard(d) {
   const photo = ov && ov.photo_url;
   const title = (ov && ov.title) || d.title || '—';
   let sub = '';
+  let subHTML = '';
   if (currentTab === 'showcase') sub = (d.price || d.true_sale_amount || d.sale_amount || 0) + ' ₽ · ' + (d.on_window_at||'').slice(0,10);
   else if (currentTab === 'templates') sub = (d.min_price||0) + '–' + (d.max_price||0) + ' ₽ · ' + (d.status||'');
-  else sub = (d.category_title || '') + ' · до ' + (d.price_max||0) + ' ₽';
+  else {
+    const stockHTML = (d.available != null && d.available > 0)
+      ? `<span style="color:#9ec999;font-weight:700">${d.available} шт</span>`
+      : `<span style="color:#9ec999">в наличии</span>`;
+    subHTML = `${escapeHtml(d.category_title || '')} · ${stockHTML} · до ${d.price_max||0} ₽`;
+  }
   const badge = ov && ov.badge ? '<span class="card__badge">' + ov.badge + '</span>' : '';
   const isHidden = ov && ov.hidden;
   const isSelected = selected.has(d.id);
@@ -1182,7 +1195,7 @@ function renderCard(d) {
     + (photo ? '<img class="card__img" src="' + photo + '" alt="">' : '<div class="card__noimg">Нет фото</div>')
     + '<div class="card__body">'
     + '<div class="card__title">' + escapeHtml(title) + '</div>'
-    + '<div class="card__sub">' + escapeHtml(sub) + '</div>'
+    + '<div class="card__sub">' + (subHTML || escapeHtml(sub)) + '</div>'
     + (badge ? '<div style="display:flex;gap:4px">' + badge + '</div>' : '')
     + '<div class="card__actions"><button class="btn js-edit" data-id="' + d.id + '">Редактировать</button></div>'
     + '</div></div>';

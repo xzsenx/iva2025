@@ -192,14 +192,18 @@ r.delete('/upload/:filename', (req, res) => {
 r.get('/posiflora-debug-balances', async (req, res) => {
   const { posiflora } = await import('../posiflora.js');
   const tries = [
-    '/v1/inventory-item-balances',
-    '/v1/inventory-balances',
-    '/v1/balances',
-    '/v1/stocks',
-    '/v1/inventory-stocks',
-    '/v1/store-balances',
-    '/v1/storage-balances',
-    '/v1/inventory-items-balances',
+    '/v1/inventory-items?filter[available]=true&include=balance,inventoryItemBalances,stocks,balances,quantity,quantities&page[size]=2',
+    '/v1/inventory-items?include=batches&page[size]=2',
+    '/v1/inventory-item-batches',
+    '/v1/batches',
+    '/v1/storage-items',
+    '/v1/store-items',
+    '/v1/items',
+    '/v1/warehouses',
+    '/v1/storages',
+    '/v1/store/balances',
+    '/v1/inventory/balances',
+    '/v1/inventory/balance',
   ];
   const results = {};
   for (const path of tries) {

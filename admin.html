@@ -399,6 +399,64 @@
   }
   /* Фото колонка — фиксированная высота не нужна, но не растягиваем */
   .cust-3col .cust-section--photo { max-height: none; }
+
+  /* === Цена — стильное поле === */
+  .cust-price {
+    position: relative;
+    display: flex; align-items: center;
+    background: linear-gradient(135deg, rgba(201,164,160,.10), rgba(255,255,255,.04));
+    border: 1px solid rgba(201,164,160,.25);
+    border-radius: 12px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .cust-price:focus-within {
+    border-color: var(--pink);
+    box-shadow: 0 0 0 3px rgba(201,164,160,.15);
+  }
+  .cust-price__input {
+    flex: 1;
+    background: transparent; border: none; outline: none;
+    color: var(--cream);
+    font-family: var(--font-serif);
+    font-size: 32px; font-weight: 700;
+    padding: 14px 18px;
+    text-align: right;
+    width: 100%;
+    -moz-appearance: textfield;
+  }
+  .cust-price__input::-webkit-outer-spin-button,
+  .cust-price__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .cust-price__currency {
+    font-family: var(--font-serif);
+    font-size: 28px; font-weight: 600;
+    color: var(--pink-light);
+    padding-right: 18px;
+  }
+
+  /* Разбивка стоимости — две карточки */
+  .cust-cost-hint {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-top: 10px;
+  }
+  .cust-cost-hint:empty { display: none; }
+  .cust-cost-cell {
+    background: rgba(255,255,255,.04);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .cust-cost-cell__label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--cream-dim);
+    margin-bottom: 2px;
+  }
+  .cust-cost-cell__value {
+    font-size: 15px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .cust-cost-cell--profit { background: rgba(58,107,64,.15); }
+  .cust-cost-cell--profit .cust-cost-cell__value { color: #9ec999; }
+  .cust-cost-cell--loss { background: rgba(122,58,58,.15); }
+  .cust-cost-cell--loss .cust-cost-cell__value { color: #ff9090; }
   .cust-editor__top {
     display: flex; gap: 10px; align-items: center;
     padding: 12px 0; margin-bottom: 16px;
@@ -1458,11 +1516,11 @@ function renderCustomEditor() {
         </div>
         <div class="cust-section">
           <div class="cust-section__title">Цена</div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input class="input" type="number" min="0" id="cPrice" value="${+d.price}" style="font-size:20px;font-weight:700;text-align:right">
-            <span style="font-size:20px;font-weight:600">₽</span>
+          <div class="cust-price">
+            <input type="number" min="0" id="cPrice" value="${+d.price}" placeholder="0" class="cust-price__input">
+            <span class="cust-price__currency">₽</span>
           </div>
-          <div id="cCostHint" style="font-size:12px;color:var(--cream-dim);margin-top:6px"></div>
+          <div id="cCostHint" class="cust-cost-hint"></div>
         </div>
         <div class="cust-section" style="grid-column:1/-1">
           <div class="cust-section__title">Описание</div>
@@ -1498,11 +1556,20 @@ function updateCostHint() {
   }, 0);
   const price = +customDraft.price || 0;
   const markup = price - sum;
+  const pct = sum > 0 ? Math.round((markup / sum) * 100) : 0;
   const el = $('#cCostHint');
   if (!el) return;
-  el.innerHTML = sum
-    ? `Себестоимость: <b>${sum.toLocaleString('ru-RU')} ₽</b> · Наценка: <b style="color:${markup>=0?'#9ec999':'#ff8080'}">${markup>=0?'+':''}${markup.toLocaleString('ru-RU')} ₽</b>`
-    : '';
+  if (!sum) { el.innerHTML = ''; return; }
+  const cls = markup >= 0 ? 'cust-cost-cell--profit' : 'cust-cost-cell--loss';
+  el.innerHTML = `
+    <div class="cust-cost-cell">
+      <div class="cust-cost-cell__label">Себестоимость</div>
+      <div class="cust-cost-cell__value">${sum.toLocaleString('ru-RU')} ₽</div>
+    </div>
+    <div class="cust-cost-cell ${cls}">
+      <div class="cust-cost-cell__label">Наценка ${sum>0?`(${pct>0?'+':''}${pct}%)`:''}</div>
+      <div class="cust-cost-cell__value">${markup>=0?'+':''}${markup.toLocaleString('ru-RU')} ₽</div>
+    </div>`;
 }
 
 /* Категории, из которых реально делают букет — только растения и лента. */

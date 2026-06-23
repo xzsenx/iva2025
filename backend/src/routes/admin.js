@@ -195,23 +195,14 @@ r.get('/posiflora-debug-balances', async (req, res) => {
   // Actions — это операции (приход/расход/инвентаризация). Может через них узнаём остатки.
   const ITEM = '00264bd4-f74f-4f48-a546-fe78652eb5e0';
   const tries = [
-    // Inventory item с include всех связей
-    `/v1/inventory-items?filter[id]=${ITEM}&include=group,category,measure,logo,markdowns`,
-    // Группы — может содержат summary с qty
-    `/v1/inventory-groups`,
-    `/v1/inventory-groups/1`,
-    `/v1/inventory-groups/1/inventory-items`,
-    `/v1/inventory-groups/1?include=inventoryItems`,
-    // Маркдауны (скидки/уценки) — могут содержать кол-во
-    `/v1/markdowns`,
-    `/v1/inventory-markdowns`,
-    // Меры
-    `/v1/measures`,
-    // Set Inventory Item Price существует — может Stock тоже
-    `/v1/inventory-item-stocks`,
-    `/v1/inventory-item-quantities`,
-    `/v1/inventory-item-qty`,
-    `/v1/qty`,
+    // НАШЁЛ! Сначала смотрим список магазинов
+    `/v1/stores`,
+    // Пробуем warehouse-movement с разными store-id
+    `/v1/inventory-items/${ITEM}/warehouse-movement/1`,
+    `/v1/inventory-items/${ITEM}/warehouse-movement/642134f2-c233-466d-b551-92585a4d820a`,
+    // И обзорные
+    `/v1/warehouses/1`,
+    `/v1/inventory-items?include=warehouse-movement&filter[id]=${ITEM}`,
   ];
   const results = {};
   for (const path of tries) {

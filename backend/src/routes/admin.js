@@ -191,19 +191,21 @@ r.delete('/upload/:filename', (req, res) => {
 // Диагностика — пробуем разные endpoints Posiflora чтобы найти балансы
 r.get('/posiflora-debug-balances', async (req, res) => {
   const { posiflora } = await import('../posiflora.js');
+  // нашли /v1/warehouses → склад "IVA цветочная студия" id=1
   const tries = [
-    '/v1/inventory-items?filter[available]=true&include=balance,inventoryItemBalances,stocks,balances,quantity,quantities&page[size]=2',
-    '/v1/inventory-items?include=batches&page[size]=2',
-    '/v1/inventory-item-batches',
-    '/v1/batches',
-    '/v1/storage-items',
-    '/v1/store-items',
-    '/v1/items',
-    '/v1/warehouses',
-    '/v1/storages',
-    '/v1/store/balances',
-    '/v1/inventory/balances',
-    '/v1/inventory/balance',
+    '/v1/warehouse-items',
+    '/v1/warehouse-balances',
+    '/v1/warehouses/1/inventory-items',
+    '/v1/warehouses/1/balances',
+    '/v1/warehouses/1/items',
+    '/v1/warehouses/1/stocks',
+    '/v1/warehouses/1',
+    '/v1/inventory-items?filter[warehouse]=1&page[size]=1',
+    // Просто отдельный inventory-item — посмотреть полный набор атрибутов
+    '/v1/inventory-items?page[size]=1&include=warehouses',
+    '/v1/inventory-items?page[size]=1&include=warehouse',
+    '/v1/warehouse-stocks',
+    '/v1/warehouse-inventory',
   ];
   const results = {};
   for (const path of tries) {

@@ -194,15 +194,9 @@ r.get('/posiflora-debug-balances', async (req, res) => {
   // Doc подсказал: Inventory-Items-API/operation/createAction
   // Actions — это операции (приход/расход/инвентаризация). Может через них узнаём остатки.
   const ITEM = '00264bd4-f74f-4f48-a546-fe78652eb5e0';
+  const STORE = '486526f7-bdcd-4f25-8d87-77ed005d00c6';
   const tries = [
-    // НАШЁЛ! Сначала смотрим список магазинов
-    `/v1/stores`,
-    // Пробуем warehouse-movement с разными store-id
-    `/v1/inventory-items/${ITEM}/warehouse-movement/1`,
-    `/v1/inventory-items/${ITEM}/warehouse-movement/642134f2-c233-466d-b551-92585a4d820a`,
-    // И обзорные
-    `/v1/warehouses/1`,
-    `/v1/inventory-items?include=warehouse-movement&filter[id]=${ITEM}`,
+    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}`,
   ];
   const results = {};
   for (const path of tries) {

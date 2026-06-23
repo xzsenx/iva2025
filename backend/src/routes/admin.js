@@ -195,20 +195,23 @@ r.get('/posiflora-debug-balances', async (req, res) => {
   // Actions — это операции (приход/расход/инвентаризация). Может через них узнаём остатки.
   const ITEM = '00264bd4-f74f-4f48-a546-fe78652eb5e0';
   const tries = [
-    // «Inventory Item Info» (из доков) — пробую разные пути
-    `/v1/inventory-items/${ITEM}/info`,
-    `/v1/inventory-item-info/${ITEM}`,
-    `/v1/inventory-items-info/${ITEM}`,
-    `/v1/inventory-item-infos/${ITEM}`,
-    `/v1/inventory-item/${ITEM}/info`,
-    // Списком
-    `/v1/inventory-item-infos?filter[id]=${ITEM}`,
-    `/v1/inventory-items-info?filter[inventoryItem]=${ITEM}`,
-    `/v1/inventory-item-info`,
-    // Может это просто фильтр у обычного list
-    `/v1/inventory-items?filter[dataSource]=catalog&filter[id]=${ITEM}`,
-    `/v1/inventory-items?filter[dataSource]=both&filter[id]=${ITEM}`,
-    `/v1/inventory-items?filter[id]=${ITEM}&filter[store]=1`,
+    // Inventory item с include всех связей
+    `/v1/inventory-items?filter[id]=${ITEM}&include=group,category,measure,logo,markdowns`,
+    // Группы — может содержат summary с qty
+    `/v1/inventory-groups`,
+    `/v1/inventory-groups/1`,
+    `/v1/inventory-groups/1/inventory-items`,
+    `/v1/inventory-groups/1?include=inventoryItems`,
+    // Маркдауны (скидки/уценки) — могут содержать кол-во
+    `/v1/markdowns`,
+    `/v1/inventory-markdowns`,
+    // Меры
+    `/v1/measures`,
+    // Set Inventory Item Price существует — может Stock тоже
+    `/v1/inventory-item-stocks`,
+    `/v1/inventory-item-quantities`,
+    `/v1/inventory-item-qty`,
+    `/v1/qty`,
   ];
   const results = {};
   for (const path of tries) {

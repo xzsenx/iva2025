@@ -400,6 +400,16 @@
   /* Фото колонка — фиксированная высота не нужна, но не растягиваем */
   .cust-3col .cust-section--photo { max-height: none; }
 
+  /* Обертка списка шаблонов с отступами */
+  .cust-list-wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px 24px;
+  }
+  @media (max-width: 600px) {
+    .cust-list-wrap { padding: 12px 16px; }
+  }
+
   /* Переключатель Активные / Архив */
   .cust-modeswitch {
     padding: 8px 14px; border-radius: 8px;
@@ -1334,14 +1344,15 @@ async function renderCustomTemplates() {
 
   $('#counter').textContent = list.length + (isArchive ? ' в архиве' : ' шаблонов');
 
-  let html = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
-    <button class="btn btn--primary" id="customNew" style="font-size:15px;padding:12px 20px">+ Создать шаблон</button>
-    <div style="flex:1"></div>
-    <div style="display:flex;background:rgba(255,255,255,.06);border-radius:10px;padding:3px;gap:2px">
-      <button class="cust-modeswitch ${!isArchive?'active':''}" data-mode="active">📋 Активные</button>
-      <button class="cust-modeswitch ${isArchive?'active':''}" data-mode="archive">📦 Архив</button>
-    </div>
-  </div>`;
+  let html = `<div class="cust-list-wrap">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+      <button class="btn btn--primary" id="customNew" style="font-size:15px;padding:12px 20px">+ Создать шаблон</button>
+      <div style="flex:1"></div>
+      <div style="display:flex;background:rgba(255,255,255,.06);border-radius:10px;padding:3px;gap:2px">
+        <button class="cust-modeswitch ${!isArchive?'active':''}" data-mode="active">📋 Активные</button>
+        <button class="cust-modeswitch ${isArchive?'active':''}" data-mode="archive">📦 Архив</button>
+      </div>
+    </div>`;
 
   if (!list.length) {
     html += `<div class="loading" style="padding:60px 20px">
@@ -1387,6 +1398,7 @@ async function renderCustomTemplates() {
     }
     html += '</div>';
   }
+  html += '</div>'; // close .cust-list-wrap
   $('#content').innerHTML = html;
 
   $('#customNew').addEventListener('click', () => openCustomEditor(null));

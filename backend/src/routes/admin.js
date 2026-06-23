@@ -195,19 +195,20 @@ r.get('/posiflora-debug-balances', async (req, res) => {
   // Actions — это операции (приход/расход/инвентаризация). Может через них узнаём остатки.
   const ITEM = '00264bd4-f74f-4f48-a546-fe78652eb5e0';
   const tries = [
-    // Single GET — посмотреть ВСЕ attrs (вернул ок, но я ел data[0] пустого)
-    `/v1/inventory-items/${ITEM}`,
-    `/v1/inventory-items/${ITEM}?include=actions,balance,quantity,stock,residue`,
-    // Actions как sub-resource
-    `/v1/inventory-items/${ITEM}/actions`,
-    `/v1/inventory-items/${ITEM}/actions?page[size]=2`,
-    `/v1/inventory-items/${ITEM}/relationships/actions`,
-    `/v1/inventory-items/${ITEM}/balance`,
-    `/v1/inventory-items/${ITEM}/quantity`,
-    `/v1/inventory-items/${ITEM}/residue`,
-    // Глобальные actions
-    `/v1/inventory-actions?filter[inventoryItem]=${ITEM}`,
-    `/v1/inventory-item-actions?filter[inventoryItem]=${ITEM}`,
+    // «Inventory Item Info» (из доков) — пробую разные пути
+    `/v1/inventory-items/${ITEM}/info`,
+    `/v1/inventory-item-info/${ITEM}`,
+    `/v1/inventory-items-info/${ITEM}`,
+    `/v1/inventory-item-infos/${ITEM}`,
+    `/v1/inventory-item/${ITEM}/info`,
+    // Списком
+    `/v1/inventory-item-infos?filter[id]=${ITEM}`,
+    `/v1/inventory-items-info?filter[inventoryItem]=${ITEM}`,
+    `/v1/inventory-item-info`,
+    // Может это просто фильтр у обычного list
+    `/v1/inventory-items?filter[dataSource]=catalog&filter[id]=${ITEM}`,
+    `/v1/inventory-items?filter[dataSource]=both&filter[id]=${ITEM}`,
+    `/v1/inventory-items?filter[id]=${ITEM}&filter[store]=1`,
   ];
   const results = {};
   for (const path of tries) {

@@ -188,50 +188,6 @@ r.delete('/upload/:filename', (req, res) => {
   }
 });
 
-// Диагностика — пробуем разные endpoints Posiflora чтобы найти балансы
-r.get('/posiflora-debug-balances', async (req, res) => {
-  const { posiflora } = await import('../posiflora.js');
-  // Doc подсказал: Inventory-Items-API/operation/createAction
-  // Actions — это операции (приход/расход/инвентаризация). Может через них узнаём остатки.
-  const ITEM = '00264bd4-f74f-4f48-a546-fe78652eb5e0';
-  const STORE = '486526f7-bdcd-4f25-8d87-77ed005d00c6';
-  const tries = [
-    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?startDate=2020-01-01&endDate=2030-01-01`,
-    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?startDate=2020-01-01T00:00:00Z&endDate=2030-01-01T00:00:00Z`,
-    `/v1/inventory-items/${ITEM}/warehouse-movement/${STORE}?filter[startDate]=2020-01-01&filter[endDate]=2030-01-01`,
-  ];
-  const results = {};
-  for (const path of tries) {
-    try {
-      // прямой call через posiflora.js — нужен внутренний доступ
-      const axios = (await import('axios')).default;
-      const tok = await (async () => {
-        const r = await axios.post(process.env.POSIFLORA_BASE_URL + '/v1/sessions', {
-          data: { type: 'sessions', attributes: { username: process.env.POSIFLORA_USERNAME, password: process.env.POSIFLORA_PASSWORD } },
-        }, { headers: { 'Content-Type': 'application/vnd.api+json', Accept: 'application/vnd.api+json' }, timeout: 60000 });
-        return r.data.data.attributes.accessToken;
-      })();
-      const r = await axios.get(process.env.POSIFLORA_BASE_URL + path, {
-        params: { 'page[size]': 2 },
-        headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.api+json' },
-        timeout: 30000,
-      });
-      const d = r.data.data;
-      results[path] = Array.isArray(d)
-        ? { ok: true, count: d.length, sample: d[0] || null }
-        : { ok: true, single: d, included: r.data.included };
-    } catch (e) {
-      results[path] = {
-        ok: false,
-        status: e.response?.status,
-        msg: e.message.slice(0, 100),
-        body: e.response?.data || null,
-      };
-    }
-  }
-  res.json(results);
-});
-
 // Диагностика — что реально лежит на диске
 r.get('/uploads-debug', (req, res) => {
   try {

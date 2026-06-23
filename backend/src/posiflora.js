@@ -79,8 +79,17 @@ export const posiflora = {
   specifications: (params) => getAll('/v1/specifications', params),
   specificationWithVariants: (params) => getAll('/v1/specification-with-variants', params),
   specificationVariantItems: (params) => getAll('/v1/specification-variant-items', params),
-  inventoryItems: (params) => getAll('/v1/inventory-items', { 'filter[available]': true, include: 'category,measure,balance,balances,inventoryItemBalance', ...params }),
+  inventoryItems: (params) => getAll('/v1/inventory-items', { 'filter[available]': true, include: 'category,measure', ...params }),
   categories: (params) => getAll('/v1/categories', params),
   stores: () => getAll('/v1/stores'),
+  /**
+   * Движения склада для конкретного item на конкретном store за период.
+   * Возвращает список движений + meta (qtySalesOrder и т.д.).
+   * Текущий остаток = remainderQty последнего движения по дате.
+   */
+  warehouseMovement: (itemId, storeId, startDate, endDate) =>
+    call('GET', `/v1/inventory-items/${itemId}/warehouse-movement/${storeId}`, {
+      params: { 'filter[startDate]': startDate, 'filter[endDate]': endDate },
+    }),
   createOrder: (payload) => call('POST', '/v1/orders', { data: payload }),
 };

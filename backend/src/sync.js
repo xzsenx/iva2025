@@ -23,33 +23,61 @@ export async function runSync() {
     const catTitles = new Map(
       inv.included.filter(i => i.type === 'categories').map(c => [c.id, c.attributes?.title])
     );
-    /* Остатки приходят в included под разными типами в зависимости от версии API.
-       Карта item_id → qty. */
+
+    /* 3.1 Получаем остатки по каждой позиции через warehouse-movement.
+       Берём первый store (обычно один — IVA). Для каждого item делаем GET и
+       извлекаем remainderQty последнего движения. Параллельно по 8. */
+    const stores = await posiflora.stores();
+    const storeId = stores.data?.[0]?.id;
     const balanceMap = new Map();
-    for (const x of inv.included) {
-      if (!x.attributes) continue;
-      const t = x.type || '';
-      if (/balance/i.test(t)) {
-        const qty = Number(x.attributes.qty ?? x.attributes.quantity ?? x.attributes.amount ?? x.attributes.available ?? 0);
-        const itemId = x.relationships?.inventoryItem?.data?.id
-                    || x.relationships?.item?.data?.id;
-        if (itemId && qty > 0) balanceMap.set(itemId, (balanceMap.get(itemId) || 0) + qty);
+    if (storeId) {
+      const start = '2020-01-01';
+      const end = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+      const items = inv.data;
+      const concurrency = 8;
+      let idx = 0, ok = 0, fail = 0;
+      async function worker() {
+        while (idx < items.length) {
+          const i = idx++;
+          const it = items[i];
+          try {
+            const r = await posiflora.warehouseMovement(it.id, storeId, start, end);
+            const moves = r.data || [];
+            if (moves.length === 0) {
+              balanceMap.set(it.id, 0);
+            } else {
+              // Берём movement с самой поздней датой → его remainderQty = текущий остаток
+              moves.sort((a, b) => new Date(b.attributes?.date || 0) - new Date(a.attributes?.date || 0));
+              const last = moves[0];
+              const qty = Number(last.attributes?.remainderQty || 0);
+              balanceMap.set(it.id, qty);
+            }
+            ok++;
+          } catch (e) {
+            fail++;
+            // 404 = у позиции нет движений → 0 остаток
+            if (e.response?.status === 404) balanceMap.set(it.id, 0);
+          }
+        }
       }
+      const workers = Array.from({ length: Math.min(concurrency, items.length) }, worker);
+      await Promise.all(workers);
+      console.log(`[iva] balances synced: ${ok} ok / ${fail} fail / ${items.length} total`);
+    } else {
+      console.warn('[iva] no store found — skipping balance sync');
     }
+
     const tx3 = db.transaction((items) => {
-      // Очищаем таблицу — оставляем только реально доступные позиции
       db.prepare('DELETE FROM posiflora_inventory').run();
       for (const it of items) {
         const catId = it.relationships?.category?.data?.id;
-        const balanceFromInclude = balanceMap.get(it.id);
-        // Также может быть в самом item attributes
-        const balanceFromAttrs = Number(it.attributes?.available ?? it.attributes?.balance ?? it.attributes?.qty ?? 0);
-        const available = balanceFromInclude || balanceFromAttrs || null;
+        const available = balanceMap.has(it.id) ? balanceMap.get(it.id) : null;
         upsertInventory(it, catTitles.get(catId) || null, available);
       }
     });
     tx3(inv.data);
     counts.items = inv.data.length;
+    counts.balances = balanceMap.size;
 
     // 4. Рецепты шаблонов (spec_id + variant_id + item_id + qty)
     //    Без них нельзя понять, можно ли собрать шаблон из текущего наличия.

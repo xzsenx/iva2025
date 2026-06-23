@@ -191,21 +191,22 @@ r.delete('/upload/:filename', (req, res) => {
 // Диагностика — пробуем разные endpoints Posiflora чтобы найти балансы
 r.get('/posiflora-debug-balances', async (req, res) => {
   const { posiflora } = await import('../posiflora.js');
-  // нашли /v1/warehouses → склад "IVA цветочная студия" id=1
+  // Doc подсказал: Inventory-Items-API/operation/createAction
+  // Actions — это операции (приход/расход/инвентаризация). Может через них узнаём остатки.
   const tries = [
-    '/v1/warehouse-items',
-    '/v1/warehouse-balances',
-    '/v1/warehouses/1/inventory-items',
-    '/v1/warehouses/1/balances',
-    '/v1/warehouses/1/items',
-    '/v1/warehouses/1/stocks',
-    '/v1/warehouses/1',
-    '/v1/inventory-items?filter[warehouse]=1&page[size]=1',
-    // Просто отдельный inventory-item — посмотреть полный набор атрибутов
-    '/v1/inventory-items?page[size]=1&include=warehouses',
-    '/v1/inventory-items?page[size]=1&include=warehouse',
-    '/v1/warehouse-stocks',
-    '/v1/warehouse-inventory',
+    '/v1/inventory-item-actions',
+    '/v1/inventory-items-actions',
+    '/v1/actions',
+    '/v1/inventory-actions',
+    '/v1/inventory-item-actions?page[size]=2',
+    '/v1/inventory-actions?page[size]=2',
+    '/v1/actions?page[size]=2',
+    '/v1/inventory-item-residues',
+    '/v1/inventory-residues',
+    '/v1/residues',
+    '/v1/inventory-amounts',
+    '/v1/amounts',
+    '/v1/inventory-items/00264bd4-f74f-4f48-a546-fe78652eb5e0', // single GET, посмотреть полные attrs
   ];
   const results = {};
   for (const path of tries) {

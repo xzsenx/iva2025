@@ -1463,9 +1463,19 @@ function updateCostHint() {
     : '';
 }
 
+/* Категории, из которых реально делают букет.
+   Свечи / Шары / Игрушки / Цифры / Латекс / Фигуры / Доп.товары / Инструменты — не нужны. */
+const BOUQUET_CATEGORIES = new Set([
+  'Цветы', 'Зелень', 'Сухоцветы',
+  'коробки/кашпо', 'Пакеты подарочные',
+  'Лента',
+]);
+
 function renderInventoryPicker(query, category) {
-  const inv = customInventoryCache || [];
-  // Категории — топ-12 по кол-ву
+  const allInv = customInventoryCache || [];
+  // Фильтр — только то что реально в букете
+  const inv = allInv.filter(i => BOUQUET_CATEGORIES.has(i.category_title));
+  // Категории — только разрешённые
   const catCounts = {};
   for (const i of inv) catCounts[i.category_title] = (catCounts[i.category_title] || 0) + 1;
   const cats = Object.entries(catCounts).sort((a,b) => b[1]-a[1]).map(c => c[0]);

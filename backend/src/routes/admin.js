@@ -193,20 +193,21 @@ r.get('/posiflora-debug-balances', async (req, res) => {
   const { posiflora } = await import('../posiflora.js');
   // Doc подсказал: Inventory-Items-API/operation/createAction
   // Actions — это операции (приход/расход/инвентаризация). Может через них узнаём остатки.
+  const ITEM = '00264bd4-f74f-4f48-a546-fe78652eb5e0';
   const tries = [
-    '/v1/inventory-item-actions',
-    '/v1/inventory-items-actions',
-    '/v1/actions',
-    '/v1/inventory-actions',
-    '/v1/inventory-item-actions?page[size]=2',
-    '/v1/inventory-actions?page[size]=2',
-    '/v1/actions?page[size]=2',
-    '/v1/inventory-item-residues',
-    '/v1/inventory-residues',
-    '/v1/residues',
-    '/v1/inventory-amounts',
-    '/v1/amounts',
-    '/v1/inventory-items/00264bd4-f74f-4f48-a546-fe78652eb5e0', // single GET, посмотреть полные attrs
+    // Single GET — посмотреть ВСЕ attrs (вернул ок, но я ел data[0] пустого)
+    `/v1/inventory-items/${ITEM}`,
+    `/v1/inventory-items/${ITEM}?include=actions,balance,quantity,stock,residue`,
+    // Actions как sub-resource
+    `/v1/inventory-items/${ITEM}/actions`,
+    `/v1/inventory-items/${ITEM}/actions?page[size]=2`,
+    `/v1/inventory-items/${ITEM}/relationships/actions`,
+    `/v1/inventory-items/${ITEM}/balance`,
+    `/v1/inventory-items/${ITEM}/quantity`,
+    `/v1/inventory-items/${ITEM}/residue`,
+    // Глобальные actions
+    `/v1/inventory-actions?filter[inventoryItem]=${ITEM}`,
+    `/v1/inventory-item-actions?filter[inventoryItem]=${ITEM}`,
   ];
   const results = {};
   for (const path of tries) {
@@ -224,7 +225,10 @@ r.get('/posiflora-debug-balances', async (req, res) => {
         headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.api+json' },
         timeout: 30000,
       });
-      results[path] = { ok: true, count: r.data.data?.length || 0, sample: r.data.data?.[0] || null };
+      const d = r.data.data;
+      results[path] = Array.isArray(d)
+        ? { ok: true, count: d.length, sample: d[0] || null }
+        : { ok: true, single: d, included: r.data.included };
     } catch (e) {
       results[path] = { ok: false, status: e.response?.status, msg: e.message.slice(0, 100) };
     }

@@ -354,10 +354,30 @@
   .switch input:checked + .switch__slider::before { transform: translateX(22px); }
 
   /* === Custom-template editor (полная страница) === */
-  .cust-editor { max-width: 760px; margin: 0 auto; }
-  .cust-editor--stack { display: flex; flex-direction: column; gap: 16px; }
-  .cust-section--photo { padding: 0; background: transparent; }
-  .cust-photo--hero { aspect-ratio: 1/1; max-height: 70vh; border-radius: 16px; margin-bottom: 12px; }
+  .cust-editor { max-width: 1400px; margin: 0 auto; }
+  .cust-editor--wide { display: flex; flex-direction: column; gap: 16px; }
+  /* Три колонки: фото | состав | компоненты */
+  .cust-3col {
+    display: grid; gap: 16px;
+    grid-template-columns: minmax(260px, 1fr) minmax(280px, 1.2fr) minmax(280px, 1.4fr);
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .cust-3col { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 700px) {
+    .cust-3col { grid-template-columns: 1fr; }
+  }
+  /* Под колонками — 2-колоночная сетка для базовых полей */
+  .cust-bottom-grid {
+    display: grid; gap: 16px;
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 700px) {
+    .cust-bottom-grid { grid-template-columns: 1fr; }
+  }
+  /* Колонка-результатов — в одну колонку (узкая) */
+  .cust-results--col { grid-template-columns: 1fr; max-height: 520px; }
   .cust-editor__top {
     display: flex; gap: 10px; align-items: center;
     padding: 12px 0; margin-bottom: 16px;
@@ -1367,77 +1387,77 @@ function renderCustomEditor() {
     : '<div style="padding:30px 20px;text-align:center;color:var(--cream-dim);font-size:13px;background:rgba(255,255,255,.03);border-radius:10px">Состав пуст. Выбери компоненты ниже ↓</div>';
 
   $('#content').innerHTML = `
-    <div class="cust-editor cust-editor--stack">
+    <div class="cust-editor cust-editor--wide">
       <div class="cust-editor__top">
         <button class="btn btn--secondary" id="cBack">← Назад к списку</button>
         <div style="flex:1"></div>
         <button class="btn" id="cSaveTop" style="background:#3a6b40;color:#fff">Сохранить</button>
       </div>
 
-      <!-- 1. Фото на всю ширину -->
-      <div class="cust-section cust-section--photo">
-        <div class="cust-photo cust-photo--hero">
-          ${photoSrc
-            ? `<img src="${photoSrc}" id="cPreview">
-               <button class="cust-photo__remove" id="cRemovePhoto" title="Удалить фото">×</button>`
-            : `<div class="cust-photo__placeholder">Нет фото</div>`}
+      <!-- Три колонки: фото | состав | компоненты -->
+      <div class="cust-3col">
+        <!-- Левая: фото -->
+        <div class="cust-section cust-section--photo">
+          <div class="cust-section__title">Фото</div>
+          <div class="cust-photo">
+            ${photoSrc
+              ? `<img src="${photoSrc}" id="cPreview">
+                 <button class="cust-photo__remove" id="cRemovePhoto" title="Удалить фото">×</button>`
+              : `<div class="cust-photo__placeholder">Нет фото</div>`}
+          </div>
+          <div id="cDropzone" class="cust-dropzone">
+            <div style="font-size:22px;margin-bottom:4px">📷</div>
+            <div><b>Кликни</b> или перетащи</div>
+            <div style="font-size:11px;color:var(--cream-dim);margin-top:4px">JPG/PNG/HEIC, до 20 МБ</div>
+          </div>
+          <input type="file" id="cFile" accept="image/*" style="display:none">
+          <div id="cUpStatus" style="font-size:12px;color:var(--cream-dim);margin-top:6px;min-height:16px"></div>
         </div>
-        <div id="cDropzone" class="cust-dropzone">
-          <div style="font-size:22px;margin-bottom:4px">📷</div>
-          <div><b>Кликни</b> или перетащи фото сюда</div>
-          <div style="font-size:11px;color:var(--cream-dim);margin-top:4px">JPG/PNG/HEIC, до 20 МБ</div>
+
+        <!-- Средняя: состав букета -->
+        <div class="cust-section">
+          <div class="cust-section__title">Состав букета (${d.items.length})</div>
+          <div class="cust-items">${itemsHtml}</div>
         </div>
-        <input type="file" id="cFile" accept="image/*" style="display:none">
-        <div id="cUpStatus" style="font-size:12px;color:var(--cream-dim);margin-top:6px;min-height:16px"></div>
-      </div>
 
-      <!-- 2. Состав букета -->
-      <div class="cust-section">
-        <div class="cust-section__title">Состав букета (${d.items.length})</div>
-        <div class="cust-items">${itemsHtml}</div>
-      </div>
-
-      <!-- 3. Список компонентов -->
-      <div class="cust-section">
-        <div class="cust-section__title">Добавить компонент</div>
-        <input class="input" id="cSearch" placeholder="🔍 Найти цветок, зелень, ленту..." autocomplete="off">
-        <div id="cCatChips" class="cust-chips"></div>
-        <div id="cSearchResults" class="cust-results"></div>
-      </div>
-
-      <!-- 4. Название -->
-      <div class="cust-section">
-        <div class="cust-section__title">Название</div>
-        <input class="input" id="cTitle" value="${escapeHtml(d.title)}" placeholder="Букет 3 пиона + 4 розы">
-      </div>
-
-      <!-- 5. Описание -->
-      <div class="cust-section">
-        <div class="cust-section__title">Описание</div>
-        <textarea class="input" id="cDesc" rows="2" placeholder="Краткое описание под названием в каталоге">${escapeHtml(d.description)}</textarea>
-      </div>
-
-      <!-- 6. Цена -->
-      <div class="cust-section">
-        <div class="cust-section__title">Цена</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input class="input" type="number" min="0" id="cPrice" value="${+d.price}" style="font-size:20px;font-weight:700;text-align:right">
-          <span style="font-size:20px;font-weight:600">₽</span>
+        <!-- Правая: компоненты для выбора -->
+        <div class="cust-section">
+          <div class="cust-section__title">Добавить компонент</div>
+          <input class="input" id="cSearch" placeholder="🔍 Найти цветок, ленту..." autocomplete="off">
+          <div id="cCatChips" class="cust-chips"></div>
+          <div id="cSearchResults" class="cust-results cust-results--col"></div>
         </div>
-        <div id="cCostHint" style="font-size:12px;color:var(--cream-dim);margin-top:6px"></div>
       </div>
 
-      <!-- 7. Скрытие -->
-      <label class="toggle-field" for="cHidden">
-        <div class="toggle-field__label">
-          <div class="toggle-field__title">Скрыть из каталога</div>
-          <div class="toggle-field__hint">Шаблон останется в админке, но не появится в мини-аппе</div>
+      <!-- Внизу под колонками: название, описание, цена, скрыть -->
+      <div class="cust-bottom-grid">
+        <div class="cust-section">
+          <div class="cust-section__title">Название</div>
+          <input class="input" id="cTitle" value="${escapeHtml(d.title)}" placeholder="Букет 3 пиона + 4 розы">
         </div>
-        <span class="switch">
-          <input type="checkbox" id="cHidden" ${d.hidden?'checked':''}>
-          <span class="switch__slider"></span>
-        </span>
-      </label>
+        <div class="cust-section">
+          <div class="cust-section__title">Цена</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="input" type="number" min="0" id="cPrice" value="${+d.price}" style="font-size:20px;font-weight:700;text-align:right">
+            <span style="font-size:20px;font-weight:600">₽</span>
+          </div>
+          <div id="cCostHint" style="font-size:12px;color:var(--cream-dim);margin-top:6px"></div>
+        </div>
+        <div class="cust-section" style="grid-column:1/-1">
+          <div class="cust-section__title">Описание</div>
+          <textarea class="input" id="cDesc" rows="2" placeholder="Краткое описание под названием в каталоге">${escapeHtml(d.description)}</textarea>
+        </div>
+        <label class="toggle-field" for="cHidden" style="grid-column:1/-1">
+          <div class="toggle-field__label">
+            <div class="toggle-field__title">Скрыть из каталога</div>
+            <div class="toggle-field__hint">Шаблон останется в админке, но не появится в мини-аппе</div>
+          </div>
+          <span class="switch">
+            <input type="checkbox" id="cHidden" ${d.hidden?'checked':''}>
+            <span class="switch__slider"></span>
+          </span>
+        </label>
+      </div>
 
       <div class="cust-editor__bottom">
         <button class="btn" id="cCancel">Отмена</button>

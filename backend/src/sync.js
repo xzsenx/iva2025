@@ -23,12 +23,29 @@ export async function runSync() {
     const catTitles = new Map(
       inv.included.filter(i => i.type === 'categories').map(c => [c.id, c.attributes?.title])
     );
+    /* Остатки приходят в included под разными типами в зависимости от версии API.
+       Карта item_id → qty. */
+    const balanceMap = new Map();
+    for (const x of inv.included) {
+      if (!x.attributes) continue;
+      const t = x.type || '';
+      if (/balance/i.test(t)) {
+        const qty = Number(x.attributes.qty ?? x.attributes.quantity ?? x.attributes.amount ?? x.attributes.available ?? 0);
+        const itemId = x.relationships?.inventoryItem?.data?.id
+                    || x.relationships?.item?.data?.id;
+        if (itemId && qty > 0) balanceMap.set(itemId, (balanceMap.get(itemId) || 0) + qty);
+      }
+    }
     const tx3 = db.transaction((items) => {
       // Очищаем таблицу — оставляем только реально доступные позиции
       db.prepare('DELETE FROM posiflora_inventory').run();
       for (const it of items) {
         const catId = it.relationships?.category?.data?.id;
-        upsertInventory(it, catTitles.get(catId) || null, null);
+        const balanceFromInclude = balanceMap.get(it.id);
+        // Также может быть в самом item attributes
+        const balanceFromAttrs = Number(it.attributes?.available ?? it.attributes?.balance ?? it.attributes?.qty ?? 0);
+        const available = balanceFromInclude || balanceFromAttrs || null;
+        upsertInventory(it, catTitles.get(catId) || null, available);
       }
     });
     tx3(inv.data);

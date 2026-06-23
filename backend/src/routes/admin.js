@@ -121,7 +121,7 @@ r.get('/inventory', (req, res) => {
   const cat = req.query.category;
   const where = cat ? 'WHERE category_title = ?' : '';
   const params = cat ? [cat] : [];
-  const rows = db.prepare(`SELECT id, title, category_title, price_min, price_max FROM posiflora_inventory ${where} ORDER BY category_title, title`).all(...params);
+  const rows = db.prepare(`SELECT id, title, category_title, price_min, price_max, available FROM posiflora_inventory ${where} ORDER BY category_title, title`).all(...params);
   res.json(rows);
 });
 

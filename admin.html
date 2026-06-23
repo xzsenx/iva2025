@@ -1492,9 +1492,12 @@ function renderInventoryPicker(query, category) {
   $('#cSearchResults').innerHTML = filtered.length
     ? filtered.map(i => {
         const added = inDraftIds.has(i.id);
+        const stock = i.available != null
+          ? `<span style="color:#9ec999;font-weight:600">${i.available} шт</span>`
+          : `<span style="color:#9ec999">в наличии</span>`;
         return `<button class="cust-result ${added?'added':''}" data-id="${i.id}" data-title="${escapeHtml(i.title)}" data-cat="${escapeHtml(i.category_title||'')}">
           <div class="cust-result__title">${escapeHtml(i.title)}</div>
-          <div class="cust-result__sub">${escapeHtml(i.category_title||'')} · ${+i.price_max||0} ₽</div>
+          <div class="cust-result__sub">${stock} · ${+i.price_max||0} ₽</div>
           <div class="cust-result__action">${added?'✓':'+'}</div>
         </button>`;
       }).join('')
@@ -1506,13 +1509,72 @@ function renderInventoryPicker(query, category) {
   $$('.cust-result').forEach(el => el.addEventListener('click', () => {
     const id = el.dataset.id;
     if (customDraft.items.find(x => x.item_id === id)) {
-      // Уже добавлено — удалить
       customDraft.items = customDraft.items.filter(x => x.item_id !== id);
     } else {
       customDraft.items.push({ item_id: id, qty: 1, title: el.dataset.title, category: el.dataset.cat });
     }
-    renderCustomEditor();
+    // НЕ перерисовываем всю страницу (иначе скролл слетает) —
+    // обновляем только нужные кусочки: состав букета, бейдж + хинт цены, ✓ в пикере
+    updateComposition();
+    updatePickerBadges();
+    updateCostHint();
   }));
+}
+
+/* Перерисовать только блок состава букета */
+function updateComposition() {
+  const d = customDraft;
+  const itemsHtml = d.items.length
+    ? d.items.map((it, idx) => `
+        <div class="ci-row" data-idx="${idx}">
+          <div class="ci-row__title">
+            <div style="font-weight:600">${escapeHtml(it.title || it.item_id)}</div>
+            <div style="font-size:11px;color:var(--cream-dim);margin-top:2px">${escapeHtml(it.category||'')}</div>
+          </div>
+          <div class="ci-row__qty">
+            <button class="ci-minus" data-idx="${idx}">−</button>
+            <input type="number" min="1" max="999" value="${it.qty}" data-idx="${idx}" class="ci-qty">
+            <button class="ci-plus" data-idx="${idx}">+</button>
+          </div>
+          <button class="ci-del" data-idx="${idx}">×</button>
+        </div>`).join('')
+    : '<div style="padding:30px 20px;text-align:center;color:var(--cream-dim);font-size:13px;background:rgba(255,255,255,.03);border-radius:10px">Состав пуст. Выбери компоненты ниже ↓</div>';
+  const box = document.querySelector('.cust-items');
+  if (box) box.innerHTML = itemsHtml;
+  // обновим счётчик в заголовке секции
+  const titles = document.querySelectorAll('.cust-section__title');
+  for (const t of titles) {
+    if (t.textContent.startsWith('Состав букета')) t.textContent = `Состав букета (${d.items.length})`;
+  }
+  // перепривязать обработчики qty/del
+  $$('.ci-qty').forEach(inp => inp.addEventListener('input', e => {
+    const i = +e.target.dataset.idx;
+    customDraft.items[i].qty = +e.target.value || 1;
+    updateCostHint();
+    updatePickerBadges();
+  }));
+  $$('.ci-plus').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.idx; customDraft.items[i].qty++; updateComposition(); updateCostHint(); updatePickerBadges();
+  }));
+  $$('.ci-minus').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.idx;
+    if (customDraft.items[i].qty > 1) { customDraft.items[i].qty--; updateComposition(); updateCostHint(); updatePickerBadges(); }
+  }));
+  $$('.ci-del').forEach(b => b.addEventListener('click', () => {
+    customDraft.items.splice(+b.dataset.idx, 1);
+    updateComposition(); updateCostHint(); updatePickerBadges();
+  }));
+}
+
+/* Обновить статус ✓/+ у карточек пикера БЕЗ перерисовки всей сетки */
+function updatePickerBadges() {
+  const inDraftIds = new Set(customDraft.items.map(i => i.item_id));
+  $$('.cust-result').forEach(card => {
+    const has = inDraftIds.has(card.dataset.id);
+    card.classList.toggle('added', has);
+    const action = card.querySelector('.cust-result__action');
+    if (action) action.textContent = has ? '✓' : '+';
+  });
 }
 
 function bindCustomEditor() {

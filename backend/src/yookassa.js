@@ -11,11 +11,26 @@ const api = axios.create({
   timeout: 30000,
 });
 
+/**
+ * Нормализует телефон в формат ЮKassa E.164 без '+' — 11 цифр, начинается с 7.
+ * Возвращает null если телефон невалидный — тогда caller передаст fallback.
+ *
+ * Примеры:
+ *   "+7 (999) 123-45-67" → "79991234567"
+ *   "8 999 123 45 67"    → "79991234567"
+ *   "9991234567"         → "79991234567"
+ *   "1234"               → null (мусор)
+ *   "+1 555 123 4567"    → null (не РФ)
+ */
 function normalizePhone(phone) {
-  const digits = String(phone || '').replace(/\D/g, '');
+  let digits = String(phone || '').replace(/\D/g, '');
   if (!digits) return null;
-  if (digits.length === 11) return digits;
-  if (digits.length === 10) return '7' + digits;
+  // 8XXXXXXXXXX → 7XXXXXXXXXX
+  if (digits.length === 11 && digits.startsWith('8')) digits = '7' + digits.slice(1);
+  // 10 цифр (без кода страны) → добавим 7
+  if (digits.length === 10) digits = '7' + digits;
+  // Должно быть ровно 11 цифр, начинаться с 7 (Россия)
+  if (digits.length !== 11 || !digits.startsWith('7')) return null;
   return digits;
 }
 
@@ -25,13 +40,18 @@ export async function createPayment({ amount, description, items, phone, email, 
     throw new Error('YOOKASSA_SHOP_ID / YOOKASSA_SECRET_KEY not set');
   }
   const customer = {};
-  if (email) customer.email = email;
+  if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    customer.email = email;
+  }
   if (phone) {
     const p = normalizePhone(phone);
     if (p) customer.phone = p;
+    else console.warn('[yookassa] phone rejected (not 11-digit RU):', phone);
   }
+  // 54-ФЗ: нужен ХОТЯ БЫ ОДИН контакт. Если ничего валидного — даём поддельный email.
+  // (Чек пройдёт, чек сформируется но уйдёт «в никуда», что приемлемо для теста.)
   if (!customer.email && !customer.phone) {
-    customer.phone = '79999999999'; // fallback — иначе чек не пройдёт
+    customer.email = 'noreply@ivaflowers.ru';
   }
 
   // Receipt items — 54-ФЗ

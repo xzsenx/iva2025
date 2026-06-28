@@ -1268,9 +1268,19 @@ const app = (() => {
         <div class="tier-card ${isCurrent ? "tier-card--current" : ""} ${isUnlocked ? "tier-card--unlocked" : ""}"
              style="--tier-color:${t.color};--tier-glow:${t.glow}">
           <div class="tier-card__icon">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7 21V13l-3-2 5-4 3-5 3 5 5 4-3 2v8H7Z"/>
-              <circle cx="12" cy="14" r="2.5"/>
+            <svg viewBox="0 0 32 32" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <!-- цветы шапкой -->
+              <circle cx="11" cy="9" r="3"/>
+              <circle cx="21" cy="9" r="3"/>
+              <circle cx="16" cy="6" r="3"/>
+              <!-- стебли сходятся -->
+              <path d="M11 12 L16 18"/>
+              <path d="M16 9 L16 18"/>
+              <path d="M21 12 L16 18"/>
+              <!-- упаковка-конус -->
+              <path d="M10 18 L16 28 L22 18 Z"/>
+              <!-- ленточка -->
+              <path d="M13 22 L19 22"/>
             </svg>
           </div>
           <div class="tier-card__name">${t.name}</div>
@@ -1292,10 +1302,12 @@ const app = (() => {
          </div>`
       : "";
 
+    const remain = next ? next.threshold - n : 0;
+    const remainWord = remain === 1 ? "букет" : remain < 5 ? "букета" : "букетов";
     const nextHint = next
-      ? `<div class="profile-progress__hint">
-           Ещё <b>${next.threshold - n}</b> ${(next.threshold - n) === 1 ? "букет" : (next.threshold - n) < 5 ? "букета" : "букетов"} до <b style="color:${next.color}">${next.name}</b> — скидка ${next.discount}%
-         </div>`
+      ? (cur.id === "none"
+          ? `<div class="profile-progress__hint">Сейчас без скидки. Ещё <b>${remain}</b> ${remainWord} — и откроется <b style="color:${next.color}">${next.name}</b> со скидкой ${next.discount}%</div>`
+          : `<div class="profile-progress__hint">Ещё <b>${remain}</b> ${remainWord} до <b style="color:${next.color}">${next.name}</b> — скидка ${next.discount}%</div>`)
       : `<div class="profile-progress__hint">Максимальный уровень в этом месяце ✨</div>`;
 
     $("#profileBody").innerHTML = `

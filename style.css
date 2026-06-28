@@ -1391,12 +1391,13 @@ html.is-tg .checkout-form {
 }
 .profile-progress__label { font-size: 13px; color: var(--cream-dim); }
 .profile-progress__count {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 15px;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 .profile-progress__current {
   font-size: 26px; font-weight: 700; color: var(--cream);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 .profile-progress__total { color: var(--cream-dim); }
 
@@ -1417,15 +1418,6 @@ html.is-tg .checkout-form {
   position: relative;
 }
 .profile-progress__fill.is-animating { width: var(--target); }
-.profile-progress__fill::after {
-  content: ""; position: absolute; inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
-  animation: shimmer 2.5s ease-in-out infinite;
-}
-@keyframes shimmer {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
 .profile-progress__hint {
   margin-top: 12px;
   font-size: 13px; color: var(--cream-dim); line-height: 1.5;
@@ -1490,10 +1482,11 @@ html.is-tg .checkout-form {
   margin-bottom: 6px; line-height: 1.3;
 }
 .tier-card__discount {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 18px; font-weight: 700;
   color: var(--tier-color);
-  letter-spacing: .5px;
+  letter-spacing: .3px;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* === ЗАМЕТКА ПРО ПОДАРКИ === */

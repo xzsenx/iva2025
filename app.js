@@ -1261,31 +1261,36 @@ const app = (() => {
     // История заказов (последние 5)
     const log = getOrdersLog().slice().reverse().slice(0, 5);
 
-    const tierCardsHTML = TIERS.slice(1).map(t => {
+    const tierCardsHTML = TIERS.map(t => {
       const isCurrent = cur.id === t.id;
       const isUnlocked = n >= t.threshold;
+      const thresholdLabel = t.id === "none" ? "до 5 букетов" : `от ${t.threshold} букетов`;
+      const discountLabel = t.discount > 0 ? `−${t.discount}%` : "0%";
+      // Иконка: для гостя — пустая корзинка/одиночный цветок, для остальных — букет
+      const iconSvg = t.id === "none"
+        ? `<svg viewBox="0 0 32 32" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+             <!-- росток -->
+             <path d="M16 26 L16 14"/>
+             <path d="M16 16 C16 12, 12 9, 9 9 C9 13, 12 16, 16 16 Z"/>
+             <path d="M16 14 C16 10, 20 7, 23 7 C23 11, 20 14, 16 14 Z"/>
+           </svg>`
+        : `<svg viewBox="0 0 32 32" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+             <circle cx="11" cy="9" r="3"/>
+             <circle cx="21" cy="9" r="3"/>
+             <circle cx="16" cy="6" r="3"/>
+             <path d="M11 12 L16 18"/>
+             <path d="M16 9 L16 18"/>
+             <path d="M21 12 L16 18"/>
+             <path d="M10 18 L16 28 L22 18 Z"/>
+             <path d="M13 22 L19 22"/>
+           </svg>`;
       return `
         <div class="tier-card ${isCurrent ? "tier-card--current" : ""} ${isUnlocked ? "tier-card--unlocked" : ""}"
              style="--tier-color:${t.color};--tier-glow:${t.glow}">
-          <div class="tier-card__icon">
-            <svg viewBox="0 0 32 32" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-              <!-- цветы шапкой -->
-              <circle cx="11" cy="9" r="3"/>
-              <circle cx="21" cy="9" r="3"/>
-              <circle cx="16" cy="6" r="3"/>
-              <!-- стебли сходятся -->
-              <path d="M11 12 L16 18"/>
-              <path d="M16 9 L16 18"/>
-              <path d="M21 12 L16 18"/>
-              <!-- упаковка-конус -->
-              <path d="M10 18 L16 28 L22 18 Z"/>
-              <!-- ленточка -->
-              <path d="M13 22 L19 22"/>
-            </svg>
-          </div>
+          <div class="tier-card__icon">${iconSvg}</div>
           <div class="tier-card__name">${t.name}</div>
-          <div class="tier-card__threshold">от ${t.threshold} букетов</div>
-          <div class="tier-card__discount">−${t.discount}%</div>
+          <div class="tier-card__threshold">${thresholdLabel}</div>
+          <div class="tier-card__discount">${discountLabel}</div>
         </div>`;
     }).join("");
 

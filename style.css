@@ -1434,8 +1434,13 @@ html.is-tg .checkout-form {
   margin-bottom: 12px;
 }
 .tier-cards {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
 }
+.tier-card { padding: 14px 6px; }
+.tier-card__name { font-size: 13px; }
+.tier-card__threshold { font-size: 9px; }
+.tier-card__discount { font-size: 15px; }
+.tier-card__icon svg { width: 28px; height: 28px; }
 .tier-card {
   position: relative;
   padding: 16px 10px;

@@ -22,6 +22,7 @@ const app = (() => {
     checkout:    $("#screen-checkout"),
     thanks:      $("#screen-thanks"),
     constructor: $("#screen-constructor"),
+    profile:     $("#screen-profile"),
   };
 
   const els = {
@@ -747,6 +748,9 @@ const app = (() => {
       }
       const data = await resp.json();
 
+      /* Записываем покупку в локальную историю — растит уровень в профиле */
+      try { recordOrderForTier(items); } catch (e) { console.warn("[profile] log fail:", e); }
+
       /* Очищаем корзину до редиректа */
       cart = [];
       saveCart();
@@ -1163,6 +1167,204 @@ const app = (() => {
     showCatalog();
   }
 
+  /* ============================================================
+     ПРОФИЛЬ + СИСТЕМА ТИРОВ (локально)
+     ============================================================
+     Хранение: localStorage 'iva_orders_log' = [{ ts, bouquets, recipient }]
+     Тиры по букетам за текущий месяц:
+       Бронза:  5+  → 5%
+       Серебро: 10+ → 10%
+       Золото:  15+ → 15%
+     При оформлении заказа любой букет считается, даже если в подарок —
+     это покупка с аккаунта юзера, его прогресс растёт. */
+
+  const TIERS = [
+    { id: "none",    name: "Гость",   threshold: 0,  discount: 0,  color: "#8a9491", glow: "rgba(138,148,145,.3)" },
+    { id: "bronze",  name: "Бронза",  threshold: 5,  discount: 5,  color: "#cd7f32", glow: "rgba(205,127,50,.45)" },
+    { id: "silver",  name: "Серебро", threshold: 10, discount: 10, color: "#c0c0c0", glow: "rgba(192,192,192,.5)" },
+    { id: "gold",    name: "Золото",  threshold: 15, discount: 15, color: "#d4af37", glow: "rgba(212,175,55,.6)" },
+  ];
+
+  function getOrdersLog() {
+    try { return JSON.parse(localStorage.getItem("iva_orders_log") || "[]"); }
+    catch { return []; }
+  }
+  function saveOrdersLog(log) {
+    try { localStorage.setItem("iva_orders_log", JSON.stringify(log)); } catch {}
+  }
+  function thisMonthKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+  function bouquetsThisMonth() {
+    const log = getOrdersLog();
+    const key = thisMonthKey();
+    return log
+      .filter(o => o.month === key)
+      .reduce((s, o) => s + (o.bouquets || 0), 0);
+  }
+  function currentTier() {
+    const n = bouquetsThisMonth();
+    let chosen = TIERS[0];
+    for (const t of TIERS) if (n >= t.threshold) chosen = t;
+    return chosen;
+  }
+  function nextTier() {
+    const n = bouquetsThisMonth();
+    return TIERS.find(t => t.threshold > n);
+  }
+
+  /* Вызывается из submitOrder при успешной отправке */
+  function recordOrderForTier(items) {
+    const bouquets = items.reduce((s, it) => {
+      // Учитываем букеты + composers (свои сборки). Допы (gift) — не букет.
+      const isBouquet = !it.id?.toString().startsWith("custom:") && it.qty
+        ? !["gifts","addon","wrap","ribbon","stem"].includes(it.category || it.type || "")
+        : it.id?.toString().startsWith("custom:");
+      return s + (isBouquet ? (it.qty || 1) : 0);
+    }, 0);
+    if (bouquets <= 0) return;
+    const log = getOrdersLog();
+    log.push({
+      ts: Date.now(),
+      month: thisMonthKey(),
+      bouquets,
+      recipient: null, // можно расширить из формы checkout
+    });
+    saveOrdersLog(log);
+  }
+
+  function profileBackToCatalog() { showCatalog(); }
+
+  function showProfile() {
+    haptic && haptic("light");
+    renderProfile();
+    showScreen("profile");
+  }
+
+  function renderProfile() {
+    const cur = currentTier();
+    const next = nextTier();
+    const n = bouquetsThisMonth();
+    const progressPct = next
+      ? Math.min(100, Math.round(((n - cur.threshold) / (next.threshold - cur.threshold)) * 100))
+      : 100;
+
+    // Данные юзера из TG
+    const tgUser = (window.Telegram?.WebApp?.initDataUnsafe?.user) || null;
+    const name = tgUser?.first_name || tgUser?.username || "Цветочный гость";
+    const photoUrl = tgUser?.photo_url || "";
+
+    // Месяц человекочитаемо
+    const monthName = new Date().toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+
+    // История заказов (последние 5)
+    const log = getOrdersLog().slice().reverse().slice(0, 5);
+
+    const tierCardsHTML = TIERS.slice(1).map(t => {
+      const isCurrent = cur.id === t.id;
+      const isUnlocked = n >= t.threshold;
+      return `
+        <div class="tier-card ${isCurrent ? "tier-card--current" : ""} ${isUnlocked ? "tier-card--unlocked" : ""}"
+             style="--tier-color:${t.color};--tier-glow:${t.glow}">
+          <div class="tier-card__icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 21V13l-3-2 5-4 3-5 3 5 5 4-3 2v8H7Z"/>
+              <circle cx="12" cy="14" r="2.5"/>
+            </svg>
+          </div>
+          <div class="tier-card__name">${t.name}</div>
+          <div class="tier-card__threshold">от ${t.threshold} букетов</div>
+          <div class="tier-card__discount">−${t.discount}%</div>
+        </div>`;
+    }).join("");
+
+    const historyHTML = log.length
+      ? `<div class="profile-section">
+           <div class="profile-section__title">История заказов</div>
+           <div class="history-list">
+             ${log.map(o => `
+               <div class="history-item">
+                 <div class="history-item__date">${new Date(o.ts).toLocaleDateString("ru-RU", { day:"numeric", month:"long" })}</div>
+                 <div class="history-item__qty">${o.bouquets} букет${o.bouquets === 1 ? "" : o.bouquets < 5 ? "а" : "ов"}</div>
+               </div>`).join("")}
+           </div>
+         </div>`
+      : "";
+
+    const nextHint = next
+      ? `<div class="profile-progress__hint">
+           Ещё <b>${next.threshold - n}</b> ${(next.threshold - n) === 1 ? "букет" : (next.threshold - n) < 5 ? "букета" : "букетов"} до <b style="color:${next.color}">${next.name}</b> — скидка ${next.discount}%
+         </div>`
+      : `<div class="profile-progress__hint">Максимальный уровень в этом месяце ✨</div>`;
+
+    $("#profileBody").innerHTML = `
+      <!-- Hero -->
+      <div class="profile-hero">
+        <div class="profile-avatar" style="--tier-color:${cur.color};--tier-glow:${cur.glow}">
+          ${photoUrl
+            ? `<img src="${photoUrl}" alt="${name}">`
+            : `<div class="profile-avatar__fallback">${name.slice(0,1).toUpperCase()}</div>`}
+          <div class="profile-avatar__ring"></div>
+        </div>
+        <h1 class="profile-name">${name}</h1>
+        <div class="profile-tier-badge" style="--tier-color:${cur.color};--tier-glow:${cur.glow}">
+          <span class="profile-tier-badge__dot"></span>
+          ${cur.name}${cur.discount ? ` · скидка ${cur.discount}%` : ""}
+        </div>
+      </div>
+
+      <!-- Прогресс -->
+      <div class="profile-progress">
+        <div class="profile-progress__header">
+          <div class="profile-progress__label">Букетов в ${monthName}</div>
+          <div class="profile-progress__count">
+            <span class="profile-progress__current">${n}</span>${next ? ` <span class="profile-progress__total">/ ${next.threshold}</span>` : ""}
+          </div>
+        </div>
+        <div class="profile-progress__bar">
+          <div class="profile-progress__fill" style="--target:${progressPct}%;--tier-color:${(next || cur).color}"></div>
+        </div>
+        ${nextHint}
+      </div>
+
+      <!-- Уровни -->
+      <div class="profile-section">
+        <div class="profile-section__title">Уровни</div>
+        <div class="tier-cards">${tierCardsHTML}</div>
+      </div>
+
+      <!-- Подсказка про заказ другому -->
+      <div class="profile-note">
+        <div class="profile-note__icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 12v9H4v-9"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="profile-note__title">Подарки тоже считаются</div>
+          <div class="profile-note__text">Заказы для других людей растят ваш уровень так же, как покупки для себя.</div>
+        </div>
+      </div>
+
+      ${historyHTML}
+
+      <div class="profile-foot">Прогресс обнуляется в начале каждого месяца</div>
+    `;
+
+    // Триггер анимации прогресс-бара после рендера
+    requestAnimationFrame(() => {
+      const fill = $("#profileBody .profile-progress__fill");
+      if (fill) fill.classList.add("is-animating");
+      // Стаггер карточек уровней
+      $$(".tier-card").forEach((c, i) => {
+        c.style.animationDelay = `${0.15 + i * 0.1}s`;
+      });
+    });
+  }
+
   /* ── Public API ── */
   return {
     showProduct,
@@ -1185,5 +1387,7 @@ const app = (() => {
     addConstructorBouquet,
     constructorSetStemFilter,
     constructorSetStemSort,
+    showProfile,
+    profileBackToCatalog,
   };
 })();

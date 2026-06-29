@@ -1,0 +1,115 @@
+[
+  {
+    "id": 2,
+    "name": "test",
+    "price": 1,
+    "popular": 1,
+    "category": "roses",
+    "badge": "season",
+    "desc": "",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "stock": 100,
+    "img": "https://image2url.com/r2/default/images/1770325979654-e6b91b2f-ae53-4690-b923-a0bb3b44ccd5.png"
+  },
+  {
+    "id": 10,
+    "name": "букет",
+    "price": 4900,
+    "popular": 8,
+    "category": "gifts",
+    "badge": "hit",
+    "desc": "",
+    "sizes": null,
+    "stock": 10,
+    "img": "https://image2url.com/r2/default/images/1770413312741-e8975073-397b-413e-b7e1-fea29907af43.png"
+  },
+  {
+    "id": 1,
+    "name": "Blanc Mood",
+    "price": 6890,
+    "popular": 1,
+    "category": "bouquets",
+    "badge": "hit",
+    "desc": "",
+    "sizes": null,
+    "stock": 1,
+    "img": "https://image2url.com/r2/default/images/1770412978721-0a5843d1-19fc-43fe-b559-0d6424fb2892.png"
+  },
+  {
+    "id": 3,
+    "name": "Ivory Touch",
+    "price": 4500,
+    "popular": 7,
+    "category": "bouquets",
+    "badge": "season",
+    "desc": "",
+    "sizes": [
+      "M",
+      "L"
+    ],
+    "stock": 8,
+    "img": "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?w=600&q=80"
+  },
+  {
+    "id": 4,
+    "name": "Pure Aesthetic",
+    "price": 3800,
+    "popular": 8,
+    "category": "bouquets",
+    "badge": null,
+    "desc": "",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "stock": 15,
+    "img": "https://image2url.com/r2/default/images/1770413212673-d7c7e5dd-19fe-4405-b772-ff2230498101.png"
+  },
+  {
+    "id": 6,
+    "name": "Soft Silence",
+    "price": 2400,
+    "popular": 4,
+    "category": "bouquets",
+    "badge": "p",
+    "desc": "",
+    "sizes": [
+      "S",
+      "M"
+    ],
+    "stock": 20,
+    "img": "https://image2url.com/r2/default/images/1770413347815-438b7ab0-cc02-4d70-9c38-7ba8c5f114e4.png"
+  },
+  {
+    "id": 7,
+    "name": "Rose Atelier",
+    "price": 5500,
+    "popular": 6,
+    "category": "compose",
+    "badge": "hit",
+    "desc": "",
+    "sizes": [
+      "M",
+      "L"
+    ],
+    "stock": 5,
+    "img": "https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=600&q=80"
+  },
+  {
+    "id": 9,
+    "name": "Floral State",
+    "price": 1800,
+    "popular": 6,
+    "category": "gifts",
+    "badge": "new",
+    "desc": "",
+    "sizes": null,
+    "stock": 30,
+    "img": "https://image2url.com/r2/default/images/1770413253968-57670f53-5264-436a-bf29-770b5dd40a4b.png"
+  }
+]

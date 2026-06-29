@@ -48,14 +48,19 @@ app.use('/uploads', express.static(UPLOAD_DIR, {
   fallthrough: false,
 }));
 
-/* Раздаём статику фронтенда (index.html, app.js, data.js, style.css и т.д.) */
-const FRONTEND_DIR = process.env.FRONTEND_DIR || path.join(__dirname, '..', '..');
-app.use(express.static(FRONTEND_DIR, { extensions: ['html'] }));
+/* Публичный сайт (iva2025/site) — корень домена */
+const SITE_DIR = process.env.SITE_DIR || path.join(__dirname, '..', '..', 'site');
+/* TG mini-app (iva2025 root: index.html, app.js, data.js, style.css, admin.*) — под /app */
+const APP_DIR = process.env.APP_DIR || path.join(__dirname, '..', '..');
+
+app.use('/app', express.static(APP_DIR, { extensions: ['html'] }));
+app.use(express.static(SITE_DIR, { extensions: ['html'] }));
 
 const PORT = Number(process.env.PORT) || 3001;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[iva] backend on :${PORT}`);
-  console.log(`[iva] serving frontend from ${FRONTEND_DIR}`);
+  console.log(`[iva] site:    ${SITE_DIR}`);
+  console.log(`[iva] miniapp: ${APP_DIR} (mounted at /app)`);
 });
 
 /* Graceful shutdown — Railway шлёт SIGTERM при swap'е деплоев.

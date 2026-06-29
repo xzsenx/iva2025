@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ИВА — Цветочная студия в Белгороде</title>
+  <meta name="description" content="Авторские букеты, доставка по Белгороду в день заказа. Минимализм, эстетика, премиальные цветы.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ====== Header ====== -->
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a href="index.html" class="logo">
+        <svg class="logo__icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22c-4-3-8-7.5-8-12a8 8 0 0 1 16 0c0 4.5-4 9-8 12Z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        <span>
+          <span class="logo__text">ИВА</span>
+          <span class="logo__sub">Цветочная студия</span>
+        </span>
+      </a>
+
+      <nav class="nav" id="nav">
+        <a href="index.html" class="active">Главная</a>
+        <a href="catalog.html">Каталог</a>
+        <a href="reviews.html">Отзывы</a>
+        <a href="contacts.html">Контакты</a>
+      </nav>
+
+      <div class="header__actions">
+        <a class="header__phone" href="tel:+74722000000">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          +7 (4722) 00-00-00
+        </a>
+        <button class="cart-btn" id="cartBtn" aria-label="Корзина">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 0 1-8 0"/>
+          </svg>
+          <span class="cart-btn__count" id="cartCount">0</span>
+        </button>
+        <button class="burger" id="burger" aria-label="Меню">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ====== Hero ====== -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero__grid">
+          <div>
+            <span class="eyebrow">Белгород · с 2019</span>
+            <h1 class="hero__title">Цветы, в которых<br><em>живёт настроение</em></h1>
+            <p class="hero__text">Авторские букеты из премиальных цветов. Собираем с любовью, доставляем в день заказа.</p>
+            <div class="hero__cta">
+              <a href="catalog.html" class="btn btn--primary">Смотреть каталог</a>
+              <a href="contacts.html" class="btn btn--ghost">Связаться</a>
+            </div>
+          </div>
+          <div class="hero__image">
+            <img src="https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=900&q=80" alt="Букет ИВА">
+            <div class="hero__badge">
+              <strong>от 1 800 ₽</strong>
+              Доставка от 30 минут
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== Stats ====== -->
+    <div class="container">
+      <div class="stats">
+        <div class="stat"><div class="stat__num">7</div><div class="stat__label">лет на рынке</div></div>
+        <div class="stat"><div class="stat__num">12k+</div><div class="stat__label">счастливых клиентов</div></div>
+        <div class="stat"><div class="stat__num">30м</div><div class="stat__label">средняя доставка</div></div>
+        <div class="stat"><div class="stat__num">4.9</div><div class="stat__label">оценка на картах</div></div>
+      </div>
+    </div>
+
+    <!-- ====== Popular ====== -->
+    <section class="section">
+      <div class="container">
+        <span class="eyebrow" style="display:block;text-align:center">Бестселлеры</span>
+        <h2 class="section-title">Что выбирают чаще</h2>
+        <p class="section-sub">Подборка букетов, которые мы собираем каждый день</p>
+        <div class="grid" id="popularGrid"></div>
+        <div style="text-align:center;margin-top:48px">
+          <a href="catalog.html" class="btn btn--ghost">Весь каталог</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== About ====== -->
+    <section class="section" style="background:var(--bg-dark)">
+      <div class="container">
+        <div class="about">
+          <div class="about__img">
+            <img src="https://images.unsplash.com/photo-1563241527-3004b7be0ffd?w=900&q=80" alt="Студия ИВА">
+          </div>
+          <div class="about__text">
+            <span class="eyebrow">О студии</span>
+            <h2 style="margin-bottom:24px">Букет — это<br>маленькая история</h2>
+            <p>ИВА — это не просто магазин цветов. Это студия, где каждый букет собирается вручную, с вниманием к настроению того, кому он предназначен.</p>
+            <p>Работаем с премиальными поставщиками, отбираем цветы по утрам, собираем композиции в день доставки.</p>
+            <div class="about__features">
+              <div class="about__feature">
+                <div class="about__feature-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                  <div class="about__feature-title">Доставка за 30 мин</div>
+                  <div class="about__feature-text">По центру Белгорода</div>
+                </div>
+              </div>
+              <div class="about__feature">
+                <div class="about__feature-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </div>
+                <div>
+                  <div class="about__feature-title">Свежие цветы</div>
+                  <div class="about__feature-text">Гарантия 7 дней</div>
+                </div>
+              </div>
+              <div class="about__feature">
+                <div class="about__feature-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.5 0 4.78 1 6.42 2.66"/></svg>
+                </div>
+                <div>
+                  <div class="about__feature-title">Фото перед отправкой</div>
+                  <div class="about__feature-text">Покажем букет</div>
+                </div>
+              </div>
+              <div class="about__feature">
+                <div class="about__feature-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <div>
+                  <div class="about__feature-title">Авторский подход</div>
+                  <div class="about__feature-text">Без шаблонов</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== CTA ====== -->
+    <section class="section">
+      <div class="container container--narrow" style="text-align:center">
+        <span class="eyebrow">Не знаете, что выбрать?</span>
+        <h2 style="margin-bottom:24px">Соберём букет под вас</h2>
+        <p style="margin-bottom:32px;font-size:17px">Расскажите о поводе и получателе — флорист предложит варианты под бюджет.</p>
+        <a href="contacts.html" class="btn btn--primary btn--lg">Написать флористу</a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====== Footer ====== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="logo" style="margin-bottom:16px">
+            <svg class="logo__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4-3-8-7.5-8-12a8 8 0 0 1 16 0c0 4.5-4 9-8 12Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="logo__text" style="font-size:22px">ИВА</span>
+          </div>
+          <p>Авторская цветочная студия в Белгороде. Букеты, композиции, оформление.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Каталог</h4>
+          <ul>
+            <li><a href="catalog.html?cat=bouquets">Букеты</a></li>
+            <li><a href="catalog.html?cat=roses">Розы</a></li>
+            <li><a href="catalog.html?cat=compose">Композиции</a></li>
+            <li><a href="catalog.html?cat=gifts">Подарки</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Студия</h4>
+          <ul>
+            <li><a href="reviews.html">Отзывы</a></li>
+            <li><a href="contacts.html">Контакты</a></li>
+            <li><a href="privacy.html">Политика</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Контакты</h4>
+          <ul>
+            <li><a href="tel:+74722000000">+7 (4722) 00-00-00</a></li>
+            <li><a href="mailto:hello@iva-flowers.ru">hello@iva-flowers.ru</a></li>
+            <li>Белгород, ул. Попова 23</li>
+            <li>9:00 — 21:00</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2026 ИВА. Все права защищены.</div>
+        <div><a href="privacy.html">Политика конфиденциальности</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cart drawer -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="drawer" aria-label="Корзина">
+    <div class="drawer__head">
+      <h3 class="drawer__title">Корзина</h3>
+      <button class="drawer__close" id="drawerClose" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer__body" id="cartBody"></div>
+    <div class="drawer__foot" id="cartFoot"></div>
+  </aside>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Petals -->
+  <div class="petals" id="petals"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

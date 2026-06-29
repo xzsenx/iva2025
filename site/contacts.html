@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Контакты — ИВА</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a href="index.html" class="logo">
+        <svg class="logo__icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4-3-8-7.5-8-12a8 8 0 0 1 16 0c0 4.5-4 9-8 12Z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span><span class="logo__text">ИВА</span><span class="logo__sub">Цветочная студия</span></span>
+      </a>
+      <nav class="nav" id="nav">
+        <a href="index.html">Главная</a>
+        <a href="catalog.html">Каталог</a>
+        <a href="reviews.html">Отзывы</a>
+        <a href="contacts.html" class="active">Контакты</a>
+      </nav>
+      <div class="header__actions">
+        <a class="header__phone" href="tel:+74722000000">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          +7 (4722) 00-00-00
+        </a>
+        <button class="cart-btn" id="cartBtn" aria-label="Корзина">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <span class="cart-btn__count" id="cartCount">0</span>
+        </button>
+        <button class="burger" id="burger" aria-label="Меню">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section section--sm">
+      <div class="container">
+        <div style="margin-bottom:56px">
+          <span class="eyebrow">Контакты</span>
+          <h1 style="font-size:clamp(40px,5vw,64px);margin-bottom:16px">Мы рядом</h1>
+          <p style="max-width:520px;font-size:17px">Заходите в студию, звоните или пишите. Всегда рады новым лицам.</p>
+        </div>
+
+        <div class="contacts-grid">
+
+          <div class="contact-info">
+            <div class="contact-row">
+              <div class="contact-row__icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <div>
+                <div class="contact-row__label">Адрес</div>
+                <div class="contact-row__value">Белгород, ул. Попова 23</div>
+              </div>
+            </div>
+
+            <div class="contact-row">
+              <div class="contact-row__icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </div>
+              <div>
+                <div class="contact-row__label">Телефон</div>
+                <div class="contact-row__value"><a href="tel:+74722000000">+7 (4722) 00-00-00</a></div>
+              </div>
+            </div>
+
+            <div class="contact-row">
+              <div class="contact-row__icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <div>
+                <div class="contact-row__label">Почта</div>
+                <div class="contact-row__value"><a href="mailto:hello@iva-flowers.ru">hello@iva-flowers.ru</a></div>
+              </div>
+            </div>
+
+            <div class="contact-row">
+              <div class="contact-row__icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div>
+                <div class="contact-row__label">Часы работы</div>
+                <div class="contact-row__value">Каждый день 9:00 — 21:00</div>
+              </div>
+            </div>
+
+            <div class="contact-row">
+              <div class="contact-row__icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              </div>
+              <div>
+                <div class="contact-row__label">Мессенджеры</div>
+                <div class="contact-row__value">
+                  <a href="https://t.me/" target="_blank" rel="noopener">Telegram</a> ·
+                  <a href="https://wa.me/" target="_blank" rel="noopener">WhatsApp</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="map">
+              <iframe src="https://yandex.ru/map-widget/v1/?ll=36.587223%2C50.595414&z=14&pt=36.587223,50.595414,pm2rdm" loading="lazy" title="Карта"></iframe>
+            </div>
+
+            <form class="form" id="contactForm" style="margin-top:32px" novalidate>
+              <h3 style="font-family:var(--font-serif);font-size:28px;margin-bottom:8px">Напишите нам</h3>
+              <p style="margin-bottom:8px">Ответим в течение часа в рабочее время</p>
+              <label class="field">
+                <span class="field__label">Имя</span>
+                <input class="input" name="name" type="text" placeholder="Анна" required>
+                <span class="field__error">Введите имя</span>
+              </label>
+              <label class="field">
+                <span class="field__label">Телефон</span>
+                <input class="input" name="phone" type="tel" placeholder="+7 (___) ___-__-__" required>
+                <span class="field__error">Введите номер</span>
+              </label>
+              <label class="field">
+                <span class="field__label">Сообщение</span>
+                <textarea class="textarea" name="message" placeholder="Расскажите о поводе и пожеланиях..."></textarea>
+              </label>
+              <button class="btn btn--primary btn--block" type="submit">Отправить</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="logo" style="margin-bottom:16px">
+            <svg class="logo__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4-3-8-7.5-8-12a8 8 0 0 1 16 0c0 4.5-4 9-8 12Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="logo__text" style="font-size:22px">ИВА</span>
+          </div>
+          <p>Авторская цветочная студия в Белгороде.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Каталог</h4>
+          <ul>
+            <li><a href="catalog.html?cat=bouquets">Букеты</a></li>
+            <li><a href="catalog.html?cat=roses">Розы</a></li>
+            <li><a href="catalog.html?cat=compose">Композиции</a></li>
+            <li><a href="catalog.html?cat=gifts">Подарки</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Студия</h4>
+          <ul>
+            <li><a href="reviews.html">Отзывы</a></li>
+            <li><a href="contacts.html">Контакты</a></li>
+            <li><a href="privacy.html">Политика</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Контакты</h4>
+          <ul>
+            <li><a href="tel:+74722000000">+7 (4722) 00-00-00</a></li>
+            <li><a href="mailto:hello@iva-flowers.ru">hello@iva-flowers.ru</a></li>
+            <li>Белгород, ул. Попова 23</li>
+            <li>9:00 — 21:00</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© 2026 ИВА. Все права защищены.</div>
+        <div><a href="privacy.html">Политика конфиденциальности</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="drawer" aria-label="Корзина">
+    <div class="drawer__head">
+      <h3 class="drawer__title">Корзина</h3>
+      <button class="drawer__close" id="drawerClose" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer__body" id="cartBody"></div>
+    <div class="drawer__foot" id="cartFoot"></div>
+  </aside>
+
+  <div class="toast" id="toast"></div>
+  <div class="petals" id="petals"></div>
+  <script src="app.js"></script>
+</body>
+</html>

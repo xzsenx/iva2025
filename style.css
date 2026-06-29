@@ -189,7 +189,7 @@ html.is-tg .back-btn { display: none; }
   margin-top: 2px;
 }
 
-/* ── CTA: Собрать букет (под промо) — нежно-розовая ── */
+/* ── CTA: Собрать букет (под промо) — цвет активного пилла ── */
 .cta-build {
   position: relative;
   display: flex;
@@ -198,46 +198,50 @@ html.is-tg .back-btn { display: none; }
   width: calc(100% - 32px);
   margin: 0 16px 12px;
   padding: 14px 18px;
-  border: 1px solid rgba(244, 210, 210, .35);
-  border-radius: 14px;
-  background: linear-gradient(135deg, #f6d5d5 0%, #ecbcbc 100%);
-  color: #6b3a3a;
+  border: 1px solid var(--pink);
+  border-radius: 20px;
+  background: var(--pink);
+  color: #fff;
   font-family: inherit;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
   overflow: visible;
-  box-shadow: 0 6px 16px rgba(201, 164, 160, .25);
-  transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+  box-shadow: 0 4px 14px rgba(201, 164, 160, .25);
+  transition: transform .18s ease, box-shadow .25s ease, filter .25s ease;
 }
-.cta-build:hover { filter: brightness(1.04); box-shadow: 0 8px 22px rgba(201, 164, 160, .35); }
-.cta-build:active { transform: scale(.97); }
+.cta-build:hover { filter: brightness(1.05); box-shadow: 0 6px 18px rgba(201, 164, 160, .35); }
+.cta-build:active { transform: scale(.96); }
 
-/* Лепестки при клике */
+/* Лепестки при клике — повторяют фоновые .petal, но летят из кнопки */
 .cta-petal {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
-  border-radius: 50% 12% 50% 12%;
-  background: radial-gradient(circle at 30% 30%, #fff0f0, #f4c1c1 60%, #d99a9a);
-  box-shadow: 0 2px 4px rgba(120, 60, 60, .15);
+  width: 18px;
+  height: 22px;
+  margin: -11px 0 0 -9px;
+  background: #D4A0A0;
+  border-radius: 50% 0 50% 0;
+  filter: blur(.5px);
   pointer-events: none;
-  opacity: 1;
-  transform: translate(0,0) rotate(0deg) scale(1);
-  animation: cta-petal-fly 1100ms cubic-bezier(.22,.61,.36,1) forwards;
+  opacity: 0;
+  animation: cta-petal-fly 1800ms cubic-bezier(.22,.61,.36,1) forwards;
   will-change: transform, opacity;
   z-index: 5;
 }
+.cta-petal:nth-child(odd)  { background: #E0B5B0; width:15px; height:19px; border-radius: 0 50% 0 50%; margin: -9px 0 0 -7px; }
+.cta-petal:nth-child(3n)   { background: #C99090; width:20px; height:25px; border-radius: 50% 0 50% 0; margin: -12px 0 0 -10px; }
+.cta-petal:nth-child(4n)   { background: #E8C5C0; width:14px; height:17px; border-radius: 0 50% 0 50%; margin: -8px 0 0 -7px; }
+
 @keyframes cta-petal-fly {
-  0%   { transform: translate(0,0) rotate(0deg) scale(.6); opacity: 0; }
-  10%  { opacity: 1; }
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(.6); }
+  15%  { opacity: .9; transform: translate(calc(var(--dx, 0) * .25), calc(var(--dy, 60px) * .15)) rotate(calc(var(--rot, 180deg) * .2)) scale(1); }
+  60%  { opacity: .75; }
   100% {
-    transform: translate(var(--dx, 0), var(--dy, 60px)) rotate(var(--rot, 180deg)) scale(.9);
     opacity: 0;
+    transform: translate(var(--dx, 0), var(--dy, 60px)) rotate(var(--rot, 360deg)) scale(.95);
   }
 }
 

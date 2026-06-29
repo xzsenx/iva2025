@@ -958,31 +958,6 @@ const app = (() => {
     renderConstructor();
   }
 
-  /* CTA «Собрать букет» — лепестки + плавный переход */
-  function buildBouquetClick(e) {
-    const btn = e.currentTarget;
-    haptic("light");
-    spawnPetals(btn, 16);
-    setTimeout(() => showConstructor(), 380);
-  }
-
-  function spawnPetals(host, count) {
-    for (let i = 0; i < count; i++) {
-      const p = document.createElement("span");
-      p.className = "cta-petal";
-      const angle = (Math.PI * 2 * i) / count + (Math.random() - .5) * .5;
-      const dist = 90 + Math.random() * 90;
-      const dx = Math.cos(angle) * dist;
-      const dy = Math.sin(angle) * dist + 50; // тянет вниз
-      const rot = (Math.random() * 720 - 360) | 0;
-      p.style.setProperty("--dx", dx.toFixed(0) + "px");
-      p.style.setProperty("--dy", dy.toFixed(0) + "px");
-      p.style.setProperty("--rot", rot + "deg");
-      p.style.animationDelay = (Math.random() * 180) + "ms";
-      host.appendChild(p);
-      setTimeout(() => p.remove(), 2100);
-    }
-  }
 
   function safe(id) { return String(id).replace(/'/g, "\\'"); }
 
@@ -1327,6 +1302,5 @@ const app = (() => {
     constructorSetStemSort,
     applyPromocodeForm,
     clearPromocode,
-    buildBouquetClick,
   };
 })();

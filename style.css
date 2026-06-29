@@ -192,18 +192,17 @@ html.is-tg .back-btn { display: none; }
 /* ── CTA: Собрать букет (под промо) — цвет активного пилла ── */
 .cta-build {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(100% - 32px);
-  margin: 0 16px 12px;
-  padding: 14px 18px;
+  margin: 4px 16px 14px;
+  padding: 10px 22px;
   border: 1px solid var(--pink);
   border-radius: 20px;
   background: var(--pink);
   color: #fff;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;

@@ -47,8 +47,13 @@ html.is-tg body {
   padding-top: 0;
   padding-bottom: var(--tg-safe-bottom, var(--safe-bot));
 }
-html.is-tg .header {
+/* Большой верхний отступ под статус-бар — только TG на телефонах.
+   На TG Desktop/Web — обычный padding (см. .header). */
+html.is-tg-mobile .header {
   padding-top: calc(max(var(--tg-safe-top, 0px), 100px) + 8px);
+}
+html.is-tg:not(.is-tg-mobile) .header {
+  padding-top: calc(var(--tg-safe-top, 0px) + 16px);
 }
 
 /* ── Screens ── */

@@ -40,7 +40,14 @@ const app = (() => {
   /* ── Telegram WebApp ── */
   const tg = window.Telegram && window.Telegram.WebApp;
   const IS_TG = !!(tg && tg.initData !== undefined);
-  if (IS_TG) document.documentElement.classList.add("is-tg");
+  if (IS_TG) {
+    document.documentElement.classList.add("is-tg");
+    // Большой верхний отступ нужен только на телефонах (под статус-бар).
+    // На TG Desktop/Web/планшетах эта "бровь" не нужна.
+    const platform = String(tg.platform || "").toLowerCase();
+    const isMobilePlatform = platform === "ios" || platform === "android";
+    if (isMobilePlatform) document.documentElement.classList.add("is-tg-mobile");
+  }
 
   if (tg) {
     try {

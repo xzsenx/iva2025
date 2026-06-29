@@ -38,7 +38,7 @@ r.post('/', async (req, res) => {
   /* 2. Создаём платёж в ЮKassa */
   try {
     /* Передаём ТОЛЬКО товарные позиции для чека — корректно для 54-ФЗ */
-    const receiptItems = items.flatMap((it) => {
+    const receiptItemsRaw = items.flatMap((it) => {
       if (it.custom && Array.isArray(it.custom.items)) {
         return it.custom.items.map((sub) => ({
           title: sub.title, qty: sub.qty, price: sub.price,
@@ -46,6 +46,18 @@ r.post('/', async (req, res) => {
       }
       return [{ title: it.name || it.title || `Товар #${it.id}`, qty: it.qty || 1, price: it.price || 0 }];
     });
+
+    /* Если есть скидка (total меньше суммы позиций) — масштабируем цены пропорционально,
+       чтобы сумма чека = totalNum (54-ФЗ требует совпадения amount = сумма receipt items). */
+    const rawSum = receiptItemsRaw.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 1), 0);
+    let receiptItems = receiptItemsRaw;
+    if (rawSum > 0 && totalNum < rawSum) {
+      const k = totalNum / rawSum;
+      receiptItems = receiptItemsRaw.map(it => ({
+        ...it,
+        price: Number((Number(it.price || 0) * k).toFixed(2)),
+      }));
+    }
 
     const payment = await createPayment({
       amount: totalNum,

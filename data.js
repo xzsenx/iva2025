@@ -1,10 +1,9 @@
 /* ======  IVA — каталог товаров (источник: backend Posiflora-sync)  ====== */
 
 const _DEFAULT_CATEGORIES = [
-  { id: "bouquets",  name: "Букеты"       },
-  { id: "showcase",  name: "Витрина"      },
-  { id: "custom",    name: "Собрать букет"},
-  { id: "gifts",     name: "Подарки"      },
+  { id: "bouquets",  name: "Букеты"  },
+  { id: "showcase",  name: "Витрина" },
+  { id: "gifts",     name: "Подарки" },
 ];
 
 let CATEGORIES = (function() {

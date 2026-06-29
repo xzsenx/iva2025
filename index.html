@@ -50,6 +50,23 @@
       </div>
     </section>
 
+    <!-- CTA: Собрать букет -->
+    <button class="cta-build" id="ctaBuild" onclick="app.showConstructor()">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="7" r="2.5"/>
+        <circle cx="15" cy="7" r="2.5"/>
+        <circle cx="12" cy="4.5" r="2.5"/>
+        <path d="M9 9.5 L12 14"/>
+        <path d="M12 7 L12 14"/>
+        <path d="M15 9.5 L12 14"/>
+        <path d="M8 14 L12 22 L16 14 Z"/>
+      </svg>
+      <span>Собрать свой букет</span>
+    </button>
+
+    <!-- Скидка-плашка (если включена в админке) -->
+    <div class="sale-strip" id="saleStrip" style="display:none"></div>
+
     <!-- Категории -->
     <nav class="categories" id="categories"></nav>
 
@@ -201,7 +218,7 @@
     })();
   </script>
 
-  <script src="data.js?v=19"></script>
-  <script src="app.js?v=19"></script>
+  <script src="data.js?v=20"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>

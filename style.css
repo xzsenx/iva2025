@@ -189,6 +189,53 @@ html.is-tg .back-btn { display: none; }
   margin-top: 2px;
 }
 
+/* ── CTA: Собрать букет (под промо) ── */
+.cta-build {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: calc(100% - 32px);
+  margin: 0 16px 12px;
+  padding: 14px 18px;
+  border: 1px solid rgba(232, 220, 200, .22);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(232, 220, 200, .12), rgba(232, 220, 200, .04));
+  color: var(--cream);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  cursor: pointer;
+  transition: transform .15s ease, background .2s ease, border-color .2s ease;
+}
+.cta-build:hover { background: linear-gradient(135deg, rgba(232, 220, 200, .18), rgba(232, 220, 200, .06)); border-color: rgba(232, 220, 200, .35); }
+.cta-build:active { transform: scale(.98); }
+.cta-build svg { flex-shrink: 0; opacity: .9; }
+
+/* ── Sale strip (плашка со скидкой под CTA) ── */
+.sale-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #c97862, #a35a48);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(201, 120, 98, .25);
+}
+.sale-strip__badge {
+  background: rgba(255, 255, 255, .22);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+
 /* ── Categories ── */
 .categories {
   display: flex;
@@ -607,6 +654,48 @@ html.is-tg .cart-footer {
 }
 .cart-total__label { font-size:14px; color:var(--cream-dim); }
 .cart-total__sum   { font-size:20px; font-weight:800; color:var(--pink-light); letter-spacing:.3px; }
+
+.cart-totals__row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; color: var(--cream-dim); margin-bottom: 4px;
+}
+.cart-totals__row--discount { color: #d6a78a; font-weight: 600; }
+.cart-totals__row + .cart-total { margin-top: 6px; }
+
+.promocode-box { margin-bottom: 10px; }
+.promocode-box__form {
+  display: flex; gap: 8px;
+}
+.promocode-box__form input {
+  flex: 1; padding: 10px 12px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  color: var(--cream);
+  font-family: inherit; font-size: 13px;
+  outline: none;
+}
+.promocode-box__form input:focus { border-color: rgba(232,220,200,.35); }
+.promocode-box__form button {
+  padding: 10px 14px;
+  border: 1px solid rgba(232,220,200,.22);
+  background: rgba(232,220,200,.08);
+  color: var(--cream);
+  border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 13px;
+  font-weight: 600;
+}
+.promocode-box__applied {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px;
+  background: rgba(214,167,138,.12);
+  border: 1px solid rgba(214,167,138,.3);
+  border-radius: 10px;
+  font-size: 13px; color: var(--cream);
+}
+.promocode-box__clear {
+  background: none; border: none; color: var(--cream-dim);
+  font-size: 16px; cursor: pointer; padding: 0 4px;
+}
 
 /* ── Checkout Form ── */
 .checkout-form {

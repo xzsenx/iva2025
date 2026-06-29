@@ -468,12 +468,18 @@ const app = (() => {
     el.classList.toggle("visible", count > 0);
   }
 
-  function cartTotal() {
+  function cartSubtotal() {
     return cart.reduce((s, i) => {
       if (i.custom) return s + i.custom.price * i.qty;
       const b = BOUQUETS.find((x) => x.id === i.id);
       return s + (b ? b.price * i.qty : 0);
     }, 0);
+  }
+  function cartDiscountAmount() {
+    return Math.round(cartSubtotal() * activeDiscountPercent() / 100);
+  }
+  function cartTotal() {
+    return Math.max(0, cartSubtotal() - cartDiscountAmount());
   }
 
   function quickAdd(id) {
@@ -653,15 +659,54 @@ const app = (() => {
       })
       .join("");
 
+    const pct = activeDiscountPercent();
+    const discountAmt = cartDiscountAmount();
+    const list = (APP_SETTINGS.discount && APP_SETTINGS.discount.promocodes) || [];
+    const promocodesEnabled = list.length > 0;
+
+    const promocodeBlock = promocodesEnabled ? `
+      <div class="promocode-box">
+        ${APPLIED_PROMOCODE
+          ? `<div class="promocode-box__applied">
+               <span>Промокод: <b>${APPLIED_PROMOCODE}</b></span>
+               <button class="promocode-box__clear" onclick="app.clearPromocode()">✕</button>
+             </div>`
+          : `<form class="promocode-box__form" onsubmit="return app.applyPromocodeForm(event)">
+               <input type="text" name="code" placeholder="Промокод" autocomplete="off">
+               <button type="submit">Применить</button>
+             </form>`}
+      </div>` : "";
+
+    const totalsBlock = `
+      <div class="cart-totals">
+        ${pct > 0 ? `
+          <div class="cart-totals__row">
+            <span>Сумма</span><span>${formatPrice(cartSubtotal())}</span>
+          </div>
+          <div class="cart-totals__row cart-totals__row--discount">
+            <span>Скидка ${pct}%</span><span>−${formatPrice(discountAmt)}</span>
+          </div>` : ""}
+        <div class="cart-total">
+          <span class="cart-total__label">Итого</span>
+          <span class="cart-total__sum">${formatPrice(cartTotal())}</span>
+        </div>
+      </div>`;
+
     els.cartFooter.innerHTML = `
-      <div class="cart-total">
-        <span class="cart-total__label">Итого</span>
-        <span class="cart-total__sum">${formatPrice(cartTotal())}</span>
-      </div>
+      ${promocodeBlock}
+      ${totalsBlock}
       <button class="btn btn--primary btn--lg" onclick="app.showCheckout()">
         Оформить заказ
       </button>
     `;
+  }
+
+  function applyPromocodeForm(e) {
+    e.preventDefault();
+    const input = e.target.querySelector('input[name="code"]');
+    const res = tryApplyPromocode(input.value);
+    toast(res.message);
+    return false;
   }
 
   function showCart() {
@@ -784,26 +829,88 @@ const app = (() => {
     showScreen("catalog");
   }
 
-  /* ── Promo Banner ── */
-  function loadPromo() {
-    const saved = localStorage.getItem("iva_promo");
-    if (saved) {
-      try {
-        const p = JSON.parse(saved);
-        const el = (id) => document.getElementById(id);
-        if (p.emoji) el("promoEmoji").textContent = p.emoji;
-        if (p.title) el("promoTitle").textContent = p.title;
-        if (p.text)  el("promoText").textContent = p.text;
-        if (p.hidden) el("promoBanner").style.display = "none";
-      } catch {}
+  /* ── App settings (promo + скидки) ── */
+  let APP_SETTINGS = {
+    promo: { emoji: "🌿", title: "Букет дня", text: "Нежный минимал — сегодня со скидкой", hidden: false },
+    discount: { enabled: false, percent: 0, label: "", promocodes: [] },
+  };
+  let APPLIED_PROMOCODE = (() => {
+    try { return JSON.parse(localStorage.getItem("iva_applied_promocode") || "null"); }
+    catch { return null; }
+  })();
+
+  async function loadAppSettings() {
+    try {
+      const res = await fetch(API_BASE + "/api/app-settings", { cache: "no-store" });
+      if (res.ok) APP_SETTINGS = { ...APP_SETTINGS, ...(await res.json()) };
+    } catch {}
+    applyPromo();
+    applySaleStrip();
+  }
+
+  function applyPromo() {
+    const p = APP_SETTINGS.promo || {};
+    const el = (id) => document.getElementById(id);
+    if (p.emoji) el("promoEmoji").textContent = p.emoji;
+    if (p.title) el("promoTitle").textContent = p.title;
+    if (p.text)  el("promoText").textContent = p.text;
+    el("promoBanner").style.display = p.hidden ? "none" : "";
+  }
+
+  function applySaleStrip() {
+    const d = APP_SETTINGS.discount || {};
+    const strip = document.getElementById("saleStrip");
+    if (!strip) return;
+    if (d.enabled && d.percent > 0) {
+      const label = d.label || "Скидка на весь каталог";
+      strip.innerHTML = `<span class="sale-strip__badge">−${d.percent}%</span><span>${label}</span>`;
+      strip.style.display = "";
+    } else {
+      strip.style.display = "none";
     }
+  }
+
+  /* Активная скидка: либо глобальная, либо валидный промокод (что больше). */
+  function activeDiscountPercent() {
+    const d = APP_SETTINGS.discount || {};
+    let pct = d.enabled && d.percent > 0 ? Number(d.percent) : 0;
+    if (APPLIED_PROMOCODE && Array.isArray(d.promocodes)) {
+      const found = d.promocodes.find(c => String(c.code || "").toUpperCase() === APPLIED_PROMOCODE.toUpperCase());
+      if (found && found.percent > 0) pct = Math.max(pct, Number(found.percent));
+    }
+    return Math.min(100, Math.max(0, pct));
+  }
+
+  function tryApplyPromocode(codeRaw) {
+    const code = String(codeRaw || "").trim();
+    if (!code) {
+      APPLIED_PROMOCODE = null;
+      localStorage.removeItem("iva_applied_promocode");
+      renderCart();
+      return { ok: false, message: "Пустой код" };
+    }
+    const list = (APP_SETTINGS.discount && APP_SETTINGS.discount.promocodes) || [];
+    const found = list.find(c => String(c.code || "").toUpperCase() === code.toUpperCase());
+    if (!found) {
+      return { ok: false, message: "Промокод не найден" };
+    }
+    APPLIED_PROMOCODE = found.code;
+    localStorage.setItem("iva_applied_promocode", JSON.stringify(found.code));
+    renderCart();
+    return { ok: true, message: `−${found.percent}% применено` };
+  }
+
+  function clearPromocode() {
+    APPLIED_PROMOCODE = null;
+    localStorage.removeItem("iva_applied_promocode");
+    renderCart();
   }
 
   /* ── Init ── */
   async function init() {
     renderCategories();
     updateCartBadge();
-    loadPromo();
+    loadAppSettings();
 
     /* Пинг бэкенда (warm-up для Render Free) */
     fetch(API_BASE + "/health").catch(() => {});
@@ -1192,5 +1299,7 @@ const app = (() => {
     addConstructorBouquet,
     constructorSetStemFilter,
     constructorSetStemSort,
+    applyPromocodeForm,
+    clearPromocode,
   };
 })();

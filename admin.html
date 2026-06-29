@@ -721,6 +721,7 @@
     <button class="tab" data-tab="stems">Цветы</button>
     <button class="tab" data-tab="addons">Допы</button>
     <button class="tab" data-tab="orders">Заказы</button>
+    <button class="tab" data-tab="miniapp">Мини-апп</button>
   </div>
   <div class="toolbar" id="toolbar">
     <input class="input" id="search" placeholder="Поиск по названию..." style="max-width:280px">
@@ -1066,7 +1067,7 @@ async function updateSyncStatus() {
 
 async function loadTab(tab) {
   $('#content').innerHTML = '<div class="loading">Загрузка...</div>';
-  $('#toolbar').style.display = (tab === 'custom' || tab === 'orders') ? 'none' : '';
+  $('#toolbar').style.display = (tab === 'custom' || tab === 'orders' || tab === 'miniapp') ? 'none' : '';
   try {
     if (tab === 'showcase') lastData = await api('GET', '/api/admin/bouquets?status=demonstrated');
     else if (tab === 'templates') lastData = await api('GET', '/api/admin/specs');
@@ -1080,6 +1081,7 @@ async function loadTab(tab) {
       lastData = all.filter(i => i.category_title && !['Цветы','Зелень','Сухоцветы'].includes(i.category_title));
     }
     else if (tab === 'orders') { renderOrders(); return; }
+    else if (tab === 'miniapp') { renderMiniappSettings(); return; }
   } catch (e) {
     $('#content').innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>';
     return;
@@ -1870,6 +1872,203 @@ async function renderOrders() {
   } catch (e) {
     $('#content').innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>';
   }
+}
+
+/* ============================================================
+   Вкладка «Мини-апп» — редактор promo баннера и системы скидок
+   ============================================================ */
+let _miniappSettings = null;
+
+async function renderMiniappSettings() {
+  $('#counter').textContent = '';
+  $('#content').innerHTML = '<div class="loading">Загрузка настроек...</div>';
+  try {
+    _miniappSettings = await api('GET', '/api/app-settings');
+  } catch (e) {
+    $('#content').innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>';
+    return;
+  }
+  drawMiniappSettings();
+}
+
+function drawMiniappSettings() {
+  const s = _miniappSettings || {};
+  const p = s.promo || { emoji: '🌿', title: '', text: '', hidden: false };
+  const d = s.discount || { enabled: false, percent: 0, label: '', promocodes: [] };
+  const codes = Array.isArray(d.promocodes) ? d.promocodes : [];
+
+  const codesHtml = codes.length
+    ? codes.map((c, i) => `
+        <div class="ms-code-row">
+          <input class="input" data-code-idx="${i}" data-code-field="code" value="${escapeHtml(c.code||'')}" placeholder="CODE">
+          <input class="input" data-code-idx="${i}" data-code-field="percent" type="number" min="0" max="100" value="${Number(c.percent)||0}" placeholder="%" style="max-width:90px">
+          <button class="btn" data-code-remove="${i}" style="background:#5a2929">×</button>
+        </div>`).join('')
+    : '<div style="color:var(--cream-dim);font-size:13px">Промокодов нет</div>';
+
+  $('#content').innerHTML = `
+    <div style="padding:0 22px 80px;max-width:760px">
+      <style>
+        .ms-card { background: var(--bg-card); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:20px; margin-bottom:16px; }
+        .ms-card h3 { margin:0 0 14px; font-size:16px; }
+        .ms-row { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+        .ms-row label { color: var(--cream-dim); font-size:12px; }
+        .ms-row .input { width:100%; }
+        .ms-grid2 { display:grid; grid-template-columns: 120px 1fr; gap:12px; }
+        .ms-toggle { display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+        .ms-toggle input { width:18px; height:18px; }
+        .ms-preview {
+          margin-top:10px; padding:14px 18px; border-radius:14px;
+          background: linear-gradient(135deg, rgba(232,220,200,.08), rgba(232,220,200,.02));
+          border:1px solid rgba(232,220,200,.18);
+          display:flex; align-items:center; gap:14px;
+        }
+        .ms-preview__emoji { font-size:32px; }
+        .ms-preview__title { font-size:18px; font-weight:600; color:var(--cream); }
+        .ms-preview__text { font-size:13px; color:var(--cream-dim); margin-top:2px; }
+        .ms-code-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+        .ms-code-row .input { flex:1; }
+        .ms-strip-preview { margin-top:10px; padding:10px 14px; border-radius:12px; background: linear-gradient(135deg,#c97862,#a35a48); color:#fff; font-size:13px; display:flex; gap:10px; align-items:center; }
+        .ms-strip-preview__badge { background: rgba(255,255,255,.22); padding:2px 8px; border-radius:999px; font-weight:700; font-size:12px; }
+      </style>
+
+      <div class="ms-card">
+        <h3>Промо-баннер</h3>
+        <div class="ms-grid2">
+          <div class="ms-row">
+            <label>Эмодзи</label>
+            <input class="input" id="msEmoji" value="${escapeHtml(p.emoji||'')}" maxlength="4">
+          </div>
+          <div class="ms-row">
+            <label>Заголовок</label>
+            <input class="input" id="msTitle" value="${escapeHtml(p.title||'')}" placeholder="Букет дня">
+          </div>
+        </div>
+        <div class="ms-row">
+          <label>Подпись</label>
+          <input class="input" id="msText" value="${escapeHtml(p.text||'')}" placeholder="Нежный минимал — сегодня со скидкой">
+        </div>
+        <label class="ms-toggle">
+          <input type="checkbox" id="msHidden" ${p.hidden ? 'checked' : ''}>
+          <span>Скрыть баннер</span>
+        </label>
+        <div id="msPreview" class="ms-preview">
+          <span class="ms-preview__emoji">${escapeHtml(p.emoji||'🌿')}</span>
+          <div>
+            <div class="ms-preview__title">${escapeHtml(p.title||'Букет дня')}</div>
+            <div class="ms-preview__text">${escapeHtml(p.text||'')}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ms-card">
+        <h3>Скидки</h3>
+        <label class="ms-toggle" style="margin-bottom:14px">
+          <input type="checkbox" id="msDiscEnabled" ${d.enabled ? 'checked' : ''}>
+          <span>Глобальная скидка на весь каталог</span>
+        </label>
+        <div class="ms-grid2">
+          <div class="ms-row">
+            <label>Процент</label>
+            <input class="input" id="msDiscPercent" type="number" min="0" max="100" value="${Number(d.percent)||0}">
+          </div>
+          <div class="ms-row">
+            <label>Подпись на плашке</label>
+            <input class="input" id="msDiscLabel" value="${escapeHtml(d.label||'')}" placeholder="Скидка на весь каталог">
+          </div>
+        </div>
+        <div id="msStripPreview" class="ms-strip-preview" style="${d.enabled && d.percent > 0 ? '' : 'display:none'}">
+          <span class="ms-strip-preview__badge">−${Number(d.percent)||0}%</span>
+          <span>${escapeHtml(d.label||'Скидка на весь каталог')}</span>
+        </div>
+
+        <div style="margin-top:22px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <strong>Промокоды</strong>
+            <button class="btn" id="msAddCode">+ Промокод</button>
+          </div>
+          <div id="msCodesList">${codesHtml}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button class="btn btn--primary" id="msSave">Сохранить</button>
+        <button class="btn" id="msReload">Отменить</button>
+      </div>
+    </div>
+  `;
+
+  /* live-обновление preview */
+  const upd = () => {
+    $('#msPreview .ms-preview__emoji').textContent = $('#msEmoji').value || '🌿';
+    $('#msPreview .ms-preview__title').textContent = $('#msTitle').value || 'Букет дня';
+    $('#msPreview .ms-preview__text').textContent = $('#msText').value || '';
+    const pct = Number($('#msDiscPercent').value) || 0;
+    const en = $('#msDiscEnabled').checked;
+    const strip = $('#msStripPreview');
+    if (en && pct > 0) {
+      strip.style.display = '';
+      strip.querySelector('.ms-strip-preview__badge').textContent = '−' + pct + '%';
+      strip.querySelector('span:last-child').textContent = $('#msDiscLabel').value || 'Скидка на весь каталог';
+    } else {
+      strip.style.display = 'none';
+    }
+  };
+  ['msEmoji','msTitle','msText','msDiscPercent','msDiscEnabled','msDiscLabel'].forEach(id => {
+    const el = $('#' + id);
+    if (el) el.addEventListener('input', upd);
+    if (el && el.type === 'checkbox') el.addEventListener('change', upd);
+  });
+
+  $('#msAddCode').addEventListener('click', () => {
+    _miniappSettings.discount = _miniappSettings.discount || { promocodes: [] };
+    _miniappSettings.discount.promocodes = collectCodesFromDom();
+    _miniappSettings.discount.promocodes.push({ code: '', percent: 5 });
+    drawMiniappSettings();
+  });
+
+  document.querySelectorAll('[data-code-remove]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.codeRemove);
+      _miniappSettings.discount.promocodes = collectCodesFromDom();
+      _miniappSettings.discount.promocodes.splice(idx, 1);
+      drawMiniappSettings();
+    });
+  });
+
+  $('#msReload').addEventListener('click', renderMiniappSettings);
+
+  $('#msSave').addEventListener('click', async () => {
+    const body = {
+      promo: {
+        emoji: $('#msEmoji').value.trim() || '🌿',
+        title: $('#msTitle').value.trim() || 'Букет дня',
+        text: $('#msText').value.trim(),
+        hidden: $('#msHidden').checked,
+      },
+      discount: {
+        enabled: $('#msDiscEnabled').checked,
+        percent: Number($('#msDiscPercent').value) || 0,
+        label: $('#msDiscLabel').value.trim(),
+        promocodes: collectCodesFromDom().filter(c => c.code && c.percent > 0),
+      },
+    };
+    try {
+      _miniappSettings = await api('PUT', '/api/app-settings', body);
+      toast('Сохранено');
+      drawMiniappSettings();
+    } catch (e) {
+      toast('Ошибка: ' + e.message);
+    }
+  });
+}
+
+function collectCodesFromDom() {
+  const rows = document.querySelectorAll('#msCodesList .ms-code-row');
+  return [...rows].map(row => ({
+    code: row.querySelector('[data-code-field="code"]').value.trim().toUpperCase(),
+    percent: Number(row.querySelector('[data-code-field="percent"]').value) || 0,
+  }));
 }
 
 if (getAuth()) {

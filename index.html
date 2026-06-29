@@ -28,12 +28,6 @@
         <p class="header__sub">Цветочная студия · Белгород</p>
       </div>
       <div class="header__right">
-        <button class="icon-btn icon-btn--profile" id="profileBtn" onclick="app.showProfile()" aria-label="Профиль">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
-          </svg>
-        </button>
         <button class="cart-btn" id="cartBtn" onclick="app.showCart()">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
@@ -71,20 +65,6 @@
 
     <!-- Сетка товаров -->
     <section class="grid" id="grid"></section>
-  </div>
-
-  <!-- ====== ЭКРАН: Профиль ====== -->
-  <div id="screen-profile" class="screen">
-    <header class="header header--inner">
-      <button class="back-btn" onclick="app.showCatalog()">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <h2 class="header__title">Профиль</h2>
-      <div style="width:22px"></div>
-    </header>
-    <div id="profileBody" class="profile"></div>
   </div>
 
   <!-- ====== ЭКРАН 2: Карточка товара ====== -->
@@ -221,7 +201,7 @@
     })();
   </script>
 
-  <script src="data.js?v=17"></script>
-  <script src="app.js?v=17"></script>
+  <script src="data.js?v=18"></script>
+  <script src="app.js?v=18"></script>
 </body>
 </html>

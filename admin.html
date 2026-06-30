@@ -1262,19 +1262,27 @@ function openEditor(id) {
 
 /* AI генератор названий в модалке витрина/шаблон */
 $('#mGenName')?.addEventListener('click', async () => {
-  const source = $('#mSource').value; // 'spec' | 'bouquet'
+  const source = $('#mSource').value;   // 'spec' | 'bouquet' | 'item'
   const sourceId = $('#mSourceId').value;
-  if (source !== 'spec') {
-    toast('AI генерация пока работает только для шаблонов (Posiflora specifications)');
-    return;
-  }
+  const item = lastData.find(d => d.id === sourceId);
   const btn = $('#mGenName');
   const sug = $('#mNameSuggestions');
+
+  /* Тело запроса: для spec/ctmpl — состав из БД, иначе fallback на заголовок */
+  let body = null;
+  if (source === 'spec') {
+    body = { source: 'spec', sourceId };
+  } else if (item?.title) {
+    /* для bouquet (витрина) и item — отправляем заголовок Posiflora как состав */
+    body = { items: [{ title: item.title, qty: 1 }] };
+  }
+  if (!body) { toast('Не нашёл из чего генерить'); return; }
+
   btn.disabled = true; btn.textContent = '✨ Думаю...';
   sug.style.display = 'flex';
   sug.innerHTML = '<span style="color:var(--cream-dim);font-size:12px">DeepSeek подбирает варианты...</span>';
   try {
-    const r = await api('POST', '/api/admin/generate-name', { source, sourceId });
+    const r = await api('POST', '/api/admin/generate-name', body);
     sug.innerHTML = (r.names || []).map(n =>
       `<button type="button" class="btn cust-name-sug" data-name="${escapeHtml(n)}" style="font-size:13px;padding:6px 12px;background:rgba(201,164,160,.15);border:1px solid rgba(201,164,160,.3);color:var(--cream)">${escapeHtml(n)}</button>`
     ).join('');

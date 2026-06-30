@@ -442,11 +442,18 @@ p  { color: var(--cream-dim); }
   color: var(--cream);
   font-family: inherit;
   font-size: 13px;
-  padding: 10px 16px;
+  padding: 10px 36px 10px 16px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23EDE6DA' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='1.5,1.5 6,6.5 10.5,1.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
 }
+.sort:focus { outline: none; border-color: rgba(237,230,218,.3); }
 
 /* ── About block ── */
 .about {

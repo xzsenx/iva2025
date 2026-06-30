@@ -146,6 +146,8 @@ safeAlter(`ALTER TABLE posiflora_bouquets ADD COLUMN discount REAL`);
 safeAlter(`ALTER TABLE custom_templates ADD COLUMN archived INTEGER DEFAULT 0`);
 safeAlter(`ALTER TABLE custom_templates ADD COLUMN archived_at TEXT`);
 safeAlter(`ALTER TABLE orders ADD COLUMN notified_at TEXT`);
+safeAlter(`ALTER TABLE sync_runs ADD COLUMN diff_json TEXT`);
+safeAlter(`ALTER TABLE sync_runs ADD COLUMN acknowledged_at TEXT`);
 
 /* Нормализация photo_url: было http(s)://domain/uploads/X → стало /uploads/X */
 try {
@@ -236,8 +238,9 @@ export function replaceAllRecipes(rows) {
 }
 
 export function saveSyncRun(runInfo) {
-  db.prepare(`INSERT INTO sync_runs (started_at, finished_at, ok, counts_json, error)
-    VALUES (?, ?, ?, ?, ?)`)
+  db.prepare(`INSERT INTO sync_runs (started_at, finished_at, ok, counts_json, error, diff_json)
+    VALUES (?, ?, ?, ?, ?, ?)`)
     .run(runInfo.startedAt, runInfo.finishedAt, runInfo.ok ? 1 : 0,
-         JSON.stringify(runInfo.counts || {}), runInfo.error || null);
+         JSON.stringify(runInfo.counts || {}), runInfo.error || null,
+         runInfo.diff ? JSON.stringify(runInfo.diff) : null);
 }

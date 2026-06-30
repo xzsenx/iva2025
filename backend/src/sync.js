@@ -1,6 +1,5 @@
 import { posiflora } from './posiflora.js';
 import { db, upsertSpec, upsertBouquet, upsertInventory, replaceAllRecipes, saveSyncRun } from './db.js';
-import { notifySyncDiff } from './services/tgNotify.js';
 
 /* Помечаем новую позицию как hidden=1 (черновик) — чтобы она не попала на витрину
    до того, как админ добавит фото и название. */
@@ -168,15 +167,7 @@ export async function runSync() {
       counts.recipes = 0;
     }
 
-    saveSyncRun({ startedAt, finishedAt: new Date().toISOString(), ok: true, counts });
-
-    /* TG-уведомление о изменениях (если есть) */
-    if (diff.specs_added.length || diff.specs_removed.length ||
-        diff.bouquets_added.length || diff.bouquets_removed.length) {
-      try { await notifySyncDiff(diff); }
-      catch (e) { console.warn('[tg] sync diff notify failed:', e.message); }
-    }
-
+    saveSyncRun({ startedAt, finishedAt: new Date().toISOString(), ok: true, counts, diff });
     return { ok: true, counts, diff };
   } catch (err) {
     const msg = err.response?.data ? JSON.stringify(err.response.data).slice(0, 500) : err.message;

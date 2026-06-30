@@ -334,7 +334,32 @@ r.get('/inventory-search', (req, res) => {
 
 r.get('/sync/history', (req, res) => {
   const rows = db.prepare(`SELECT * FROM sync_runs ORDER BY id DESC LIMIT 20`).all();
-  res.json(rows.map(r => ({ ...r, counts: JSON.parse(r.counts_json || '{}') })));
+  res.json(rows.map(r => ({
+    ...r,
+    counts: JSON.parse(r.counts_json || '{}'),
+    diff: r.diff_json ? JSON.parse(r.diff_json) : null,
+  })));
+});
+
+/* Последнее непрочитанное событие синхронизации (для плашки в админке) */
+r.get('/sync/unread', (req, res) => {
+  const row = db.prepare(`
+    SELECT id, finished_at, diff_json
+    FROM sync_runs
+    WHERE ok=1 AND diff_json IS NOT NULL AND acknowledged_at IS NULL
+    ORDER BY id DESC LIMIT 1
+  `).get();
+  if (!row) return res.json({ unread: null });
+  const diff = JSON.parse(row.diff_json);
+  const hasChanges = (diff.specs_added?.length || 0) + (diff.specs_removed?.length || 0)
+                  + (diff.bouquets_added?.length || 0) + (diff.bouquets_removed?.length || 0);
+  if (!hasChanges) return res.json({ unread: null });
+  res.json({ unread: { id: row.id, finished_at: row.finished_at, diff } });
+});
+
+r.post('/sync/:id/ack', (req, res) => {
+  db.prepare(`UPDATE sync_runs SET acknowledged_at = datetime('now') WHERE id = ?`).run(+req.params.id);
+  res.json({ ok: true });
 });
 
 /* Генератор названий через DeepSeek.

@@ -628,38 +628,38 @@ const enhanceSelect = (sel) => {
   sel.dataset.enhanced = '1';
 
   const wrap = document.createElement('div');
-  wrap.className = 'select';
+  wrap.className = 'dropdown';
   sel.parentNode.insertBefore(wrap, sel);
   wrap.appendChild(sel);
-  sel.classList.add('select__native');
+  sel.classList.add('dropdown__native');
 
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'select__btn';
+  btn.className = 'dropdown__btn';
   btn.setAttribute('aria-haspopup', 'listbox');
   btn.setAttribute('aria-expanded', 'false');
   btn.innerHTML = `
-    <span class="select__label"></span>
-    <svg class="select__chev" viewBox="0 0 12 8" width="12" height="8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <span class="dropdown__label"></span>
+    <svg class="dropdown__chev" viewBox="0 0 12 8" width="12" height="8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="1.5,1.5 6,6.5 10.5,1.5"/>
     </svg>`;
   wrap.appendChild(btn);
 
   const menu = document.createElement('div');
-  menu.className = 'select__menu';
+  menu.className = 'dropdown__menu';
   menu.setAttribute('role', 'listbox');
   wrap.appendChild(menu);
 
   const opts = [...sel.options];
   menu.innerHTML = opts.map(o =>
-    `<button type="button" role="option" class="select__opt" data-val="${o.value}">${o.textContent}</button>`
+    `<button type="button" role="option" class="dropdown__opt" data-val="${o.value}">${o.textContent}</button>`
   ).join('');
 
-  const label = btn.querySelector('.select__label');
+  const label = btn.querySelector('.dropdown__label');
   const sync = () => {
     const cur = opts.find(o => o.value === sel.value) || opts[0];
     label.textContent = cur.textContent;
-    menu.querySelectorAll('.select__opt').forEach(b => {
+    menu.querySelectorAll('.dropdown__opt').forEach(b => {
       b.classList.toggle('is-active', b.dataset.val === sel.value);
     });
   };
@@ -673,7 +673,7 @@ const enhanceSelect = (sel) => {
     wrap.classList.contains('is-open') ? close() : open();
   });
   menu.addEventListener('click', (e) => {
-    const o = e.target.closest('.select__opt');
+    const o = e.target.closest('.dropdown__opt');
     if (!o) return;
     sel.value = o.dataset.val;
     sel.dispatchEvent(new Event('change', { bubbles: true }));

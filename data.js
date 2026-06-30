@@ -57,7 +57,8 @@ async function fetchProducts() {
     const templateItems = [...templates, ...customTmpls].map(t => ({
       id: t.id, name: t.title, price: t.price || 0, popular: t.popular || 5,
       category: t.category || "bouquets", badge: t.badge || null,
-      desc: t.description || "", sizes: null, stock: 99,
+      desc: t.description || "", sizes: null,
+      stock: (typeof t.max_count === "number") ? t.max_count : 99,
       img: t.img || null,
     }));
 

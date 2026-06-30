@@ -309,8 +309,8 @@ const app = (() => {
       return `<div class="card__stock card__stock--out">Нет в наличии</div>`;
     }
     const qty = getCartQty(b.id);
-    const stockHTML = b.stock != null && b.stock <= 5
-      ? `<div class="card__stock card__stock--low">Осталось: ${b.stock}</div>` : "";
+    const stockHTML = b.stock != null && b.stock <= 30
+      ? `<div class="card__stock card__stock--low">Можно собрать: ${b.stock}</div>` : "";
     if (qty > 0) {
       const maxReached = b.stock != null && qty >= b.stock;
       return `${stockHTML}

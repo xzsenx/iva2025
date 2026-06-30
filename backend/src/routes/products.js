@@ -198,23 +198,34 @@ r.get('/addons', (req, res) => {
   res.json(out);
 });
 
-// Наши шаблоны (создаются в админке) — показываем только если все компоненты в наличии
+// Наши шаблоны (созданные в админке) — max_count = min(остаток/qty)
 r.get('/custom-templates', (req, res) => {
   const tmpls = db.prepare(`SELECT * FROM custom_templates WHERE hidden=0 AND COALESCE(archived,0)=0`).all();
   if (!tmpls.length) return res.json([]);
-  const items = db.prepare(`SELECT template_id, item_id FROM custom_template_items`).all();
+  const items = db.prepare(`SELECT template_id, item_id, qty FROM custom_template_items`).all();
   const byTmpl = new Map();
   for (const it of items) {
     if (!byTmpl.has(it.template_id)) byTmpl.set(it.template_id, []);
-    byTmpl.get(it.template_id).push(it.item_id);
+    byTmpl.get(it.template_id).push({ item_id: it.item_id, qty: Number(it.qty) || 1 });
   }
-  const invAvailable = new Set(db.prepare('SELECT id FROM posiflora_inventory').all().map(r => r.id));
+  const invStock = new Map(
+    db.prepare(`SELECT id, available FROM posiflora_inventory`).all()
+      .map(r => [r.id, Number(r.available) || 0])
+  );
   const out = tmpls
-    .filter(t => {
-      const ids = byTmpl.get(t.id) || [];
-      return ids.length > 0 && ids.every(id => invAvailable.has(id));
+    .map(t => {
+      const list = byTmpl.get(t.id) || [];
+      if (!list.length) return { tmpl: t, max_count: 0 };
+      let max = Infinity;
+      for (const { item_id, qty } of list) {
+        const have = invStock.get(item_id) || 0;
+        max = Math.min(max, Math.floor(have / qty));
+      }
+      if (max === Infinity) max = 0;
+      return { tmpl: t, max_count: max };
     })
-    .map(t => ({
+    .filter(x => x.max_count > 0)
+    .map(({ tmpl: t, max_count }) => ({
       id: `ctmpl:${t.id}`,
       type: 'template',
       title: t.title,
@@ -224,6 +235,7 @@ r.get('/custom-templates', (req, res) => {
       badge: t.badge,
       popular: 7,
       img: t.photo_url || null,
+      max_count,
     }));
   res.json(out);
 });

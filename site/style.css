@@ -406,9 +406,18 @@ p  { color: var(--cream-dim); }
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 24px;
+  gap: 12px 16px;
+  margin-bottom: 32px;
   align-items: center;
+  justify-content: space-between;
+}
+.filters__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 .chip {
   padding: 10px 18px;
@@ -428,7 +437,6 @@ p  { color: var(--cream-dim); }
   border-color: var(--pink);
 }
 .sort {
-  margin-left: auto;
   background: var(--bg-card);
   border: 1px solid rgba(237,230,218,.1);
   color: var(--cream);
@@ -437,6 +445,7 @@ p  { color: var(--cream-dim); }
   padding: 10px 16px;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 /* ── About block ── */

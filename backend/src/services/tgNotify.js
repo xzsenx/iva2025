@@ -89,6 +89,47 @@ export async function notifyOrder(orderId) {
   }
 }
 
+/* Уведомление о diff синхронизации с Posiflora.
+   diff: { specs_added, specs_removed, bouquets_added, bouquets_removed } — массивы {id, title} */
+export async function notifySyncDiff(diff) {
+  const cfg = getNotifyConfig();
+  if (!cfg.enabled || !cfg.chat_id || !cfg.bot_token) return { ok: false, reason: 'not_configured' };
+
+  const lines = [];
+  const block = (label, list) => {
+    if (!list.length) return;
+    lines.push(`<b>${label}</b>`);
+    for (const x of list.slice(0, 10)) {
+      lines.push(`• ${escapeHtml(x.title || x.id)}`);
+    }
+    if (list.length > 10) lines.push(`<i>...и ещё ${list.length - 10}</i>`);
+    lines.push('');
+  };
+
+  lines.push('🔄 <b>Синхронизация с Posiflora</b>');
+  lines.push('');
+  block('🆕 Новые шаблоны (черновики):', diff.specs_added);
+  block('🆕 Новые букеты на витрину (черновики):', diff.bouquets_added);
+  block('🗑 Удалённые шаблоны:', diff.specs_removed);
+  block('🗑 Удалённые букеты:', diff.bouquets_removed);
+
+  if (diff.specs_added.length || diff.bouquets_added.length) {
+    lines.push('<i>Новые позиции скрыты от мини-аппки — добавь фото/название и сними скрытие в админке.</i>');
+  }
+
+  try {
+    await axios.post(
+      `https://api.telegram.org/bot${cfg.bot_token}/sendMessage`,
+      { chat_id: cfg.chat_id, text: lines.join('\n'), parse_mode: 'HTML', disable_web_page_preview: true },
+      { timeout: 10_000 }
+    );
+    return { ok: true };
+  } catch (e) {
+    console.error('[tg] sync diff notify failed:', e.response?.data?.description || e.message);
+    return { ok: false, reason: e.response?.data?.description || e.message };
+  }
+}
+
 /* Тестовое сообщение из админки — проверить что chat_id/токен живые */
 export async function notifyTest() {
   const cfg = getNotifyConfig();

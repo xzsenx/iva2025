@@ -1,21 +1,61 @@
 import { posiflora } from './posiflora.js';
 import { db, upsertSpec, upsertBouquet, upsertInventory, replaceAllRecipes, saveSyncRun } from './db.js';
+import { notifySyncDiff } from './services/tgNotify.js';
+
+/* Помечаем новую позицию как hidden=1 (черновик) — чтобы она не попала на витрину
+   до того, как админ добавит фото и название. */
+function markAsDraft(source, sourceId, title) {
+  db.prepare(`
+    INSERT INTO catalog_overrides (source, source_id, hidden, title)
+    VALUES (?, ?, 1, NULL)
+    ON CONFLICT(source, source_id) DO NOTHING
+  `).run(source, sourceId);
+}
 
 export async function runSync() {
   const startedAt = new Date().toISOString();
   const counts = { specs: 0, bouquets: 0, items: 0, recipes: 0 };
+  const diff = { specs_added: [], specs_removed: [], bouquets_added: [], bouquets_removed: [] };
   try {
+    /* Снимок до синхронизации */
+    const prevSpecs = new Map(db.prepare(`SELECT id, title FROM posiflora_specifications`).all().map(r => [r.id, r.title]));
+    const prevBouquets = new Map(db.prepare(`SELECT id, title FROM posiflora_bouquets`).all().map(r => [r.id, r.title]));
+
     // 1. Specifications (шаблоны букетов)
     const specs = await posiflora.specifications();
     const tx1 = db.transaction((rows) => rows.forEach(upsertSpec));
     tx1(specs.data);
     counts.specs = specs.data.length;
 
+    /* diff: новые спеки */
+    const freshSpecIds = new Set(specs.data.map(s => s.id));
+    for (const s of specs.data) {
+      if (!prevSpecs.has(s.id)) {
+        diff.specs_added.push({ id: s.id, title: s.attributes?.title || '?' });
+        markAsDraft('spec', s.id);
+      }
+    }
+    for (const [id, title] of prevSpecs) {
+      if (!freshSpecIds.has(id)) diff.specs_removed.push({ id, title });
+    }
+
     // 2. Bouquets (физические собранные — берём все, фильтр на фронте)
     const bouquets = await posiflora.bouquets();
     const tx2 = db.transaction((rows) => rows.forEach(upsertBouquet));
     tx2(bouquets.data);
     counts.bouquets = bouquets.data.length;
+
+    /* diff: новые букеты */
+    const freshBouquetIds = new Set(bouquets.data.map(b => b.id));
+    for (const b of bouquets.data) {
+      if (!prevBouquets.has(b.id)) {
+        diff.bouquets_added.push({ id: b.id, title: b.attributes?.title || '?' });
+        markAsDraft('bouquet', b.id);
+      }
+    }
+    for (const [id, title] of prevBouquets) {
+      if (!freshBouquetIds.has(id)) diff.bouquets_removed.push({ id, title });
+    }
 
     // 3. Inventory items (для конструктора и допов) — filter[available]=true,
     //    то есть приходят только позиции, которые сейчас есть в наличии
@@ -129,7 +169,15 @@ export async function runSync() {
     }
 
     saveSyncRun({ startedAt, finishedAt: new Date().toISOString(), ok: true, counts });
-    return { ok: true, counts };
+
+    /* TG-уведомление о изменениях (если есть) */
+    if (diff.specs_added.length || diff.specs_removed.length ||
+        diff.bouquets_added.length || diff.bouquets_removed.length) {
+      try { await notifySyncDiff(diff); }
+      catch (e) { console.warn('[tg] sync diff notify failed:', e.message); }
+    }
+
+    return { ok: true, counts, diff };
   } catch (err) {
     const msg = err.response?.data ? JSON.stringify(err.response.data).slice(0, 500) : err.message;
     saveSyncRun({ startedAt, finishedAt: new Date().toISOString(), ok: false, counts, error: msg });

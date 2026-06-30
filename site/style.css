@@ -449,20 +449,19 @@ p  { color: var(--cream-dim); }
 .select__btn {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: var(--bg-card);
   border: none;
-  color: var(--cream);
+  color: var(--cream-dim);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   padding: 10px 16px;
-  border-radius: var(--radius-sm);
+  border-radius: 100px;
   cursor: pointer;
-  transition: background .2s ease;
-  min-width: 200px;
-  justify-content: space-between;
+  transition: background .2s ease, color .2s ease;
 }
+.select__btn:hover { color: var(--cream); }
 .select__btn:focus { outline: none; }
 .select__chev {
   transition: transform .2s ease;
@@ -472,26 +471,19 @@ p  { color: var(--cream-dim); }
 .select.is-open .select__chev { transform: rotate(180deg); color: var(--cream); }
 
 .select__menu {
+  display: none;
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  min-width: 220px;
+  min-width: 200px;
   background: var(--bg-light, #4A5E5A);
   border: 1px solid rgba(237,230,218,.12);
   border-radius: 14px;
   padding: 6px;
   box-shadow: 0 16px 40px rgba(0,0,0,.45);
   z-index: 80;
-  opacity: 0;
-  transform: translateY(-6px);
-  pointer-events: none;
-  transition: opacity .18s ease, transform .18s ease;
 }
-.select.is-open .select__menu {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
+.select.is-open .select__menu { display: block; }
 .select__opt {
   display: flex;
   align-items: center;

@@ -621,6 +621,69 @@ const loadProducts = async () => {
   PRODUCTS = list;
 };
 
+/* Custom dropdown: оборачиваем <select.sort> в нашу менюшку,
+   нативный селект остаётся источником истины (value + change event). */
+const enhanceSelect = (sel) => {
+  if (!sel || sel.dataset.enhanced) return;
+  sel.dataset.enhanced = '1';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'select';
+  sel.parentNode.insertBefore(wrap, sel);
+  wrap.appendChild(sel);
+  sel.classList.add('select__native');
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'select__btn';
+  btn.setAttribute('aria-haspopup', 'listbox');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.innerHTML = `
+    <span class="select__label"></span>
+    <svg class="select__chev" viewBox="0 0 12 8" width="12" height="8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="1.5,1.5 6,6.5 10.5,1.5"/>
+    </svg>`;
+  wrap.appendChild(btn);
+
+  const menu = document.createElement('div');
+  menu.className = 'select__menu';
+  menu.setAttribute('role', 'listbox');
+  wrap.appendChild(menu);
+
+  const opts = [...sel.options];
+  menu.innerHTML = opts.map(o =>
+    `<button type="button" role="option" class="select__opt" data-val="${o.value}">${o.textContent}</button>`
+  ).join('');
+
+  const label = btn.querySelector('.select__label');
+  const sync = () => {
+    const cur = opts.find(o => o.value === sel.value) || opts[0];
+    label.textContent = cur.textContent;
+    menu.querySelectorAll('.select__opt').forEach(b => {
+      b.classList.toggle('is-active', b.dataset.val === sel.value);
+    });
+  };
+  sync();
+
+  const close = () => { wrap.classList.remove('is-open'); btn.setAttribute('aria-expanded', 'false'); };
+  const open  = () => { wrap.classList.add('is-open');    btn.setAttribute('aria-expanded', 'true');  };
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    wrap.classList.contains('is-open') ? close() : open();
+  });
+  menu.addEventListener('click', (e) => {
+    const o = e.target.closest('.select__opt');
+    if (!o) return;
+    sel.value = o.dataset.val;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    sync();
+    close();
+  });
+  document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
   seedPetals();
   wireBurger();
@@ -628,6 +691,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   wireContactForm();
   updateCartBadge();
   renderCart();
+  document.querySelectorAll('.sort').forEach(enhanceSelect);
   await loadProducts();
   renderPopular();
   renderCatalog();

@@ -1696,9 +1696,9 @@ function updateCostHint() {
   el.innerHTML = `Если поштучно: <b>${sum.toLocaleString('ru-RU')} ₽</b> · Разница: <b style="color:${colorDiff}">${sign}${diff.toLocaleString('ru-RU')} ₽ (${sign}${pct}%)</b>`;
 }
 
-/* Категории, из которых реально делают букет — только растения и лента. */
+/* Категории, из которых реально делают букет — растения, лента и упаковка. */
 const BOUQUET_CATEGORIES = new Set([
-  'Цветы', 'Зелень', 'Сухоцветы', 'Лента',
+  'Цветы', 'Зелень', 'Сухоцветы', 'Лента', 'коробки/кашпо', 'Пакеты подарочные',
 ]);
 
 function renderInventoryPicker(query, category) {

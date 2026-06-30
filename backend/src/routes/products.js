@@ -30,35 +30,49 @@ r.get('/templates', (req, res) => {
     FROM posiflora_specifications WHERE status='on'
   `).all();
 
-  // Карта наличия: id позиции → true (в БД лежат только available=true)
-  const invAvailable = new Set(db.prepare(`SELECT id FROM posiflora_inventory`).all().map(r => r.id));
+  // Карта остатков: id позиции → available qty
+  const invStock = new Map(
+    db.prepare(`SELECT id, available FROM posiflora_inventory`).all()
+      .map(r => [r.id, Number(r.available) || 0])
+  );
 
-  // Рецепты по spec, сгруппировано по variant
-  const recipes = db.prepare(`SELECT spec_id, variant_id, item_id FROM posiflora_recipes`).all();
-  const specVariants = new Map(); // spec_id → Map<variant_id, item_id[]>
+  // Рецепты по spec, сгруппировано по variant: [{item_id, qty}]
+  const recipes = db.prepare(`SELECT spec_id, variant_id, item_id, qty FROM posiflora_recipes`).all();
+  const specVariants = new Map(); // spec_id → Map<variant_id, {item_id, qty}[]>
   for (const r of recipes) {
     if (!specVariants.has(r.spec_id)) specVariants.set(r.spec_id, new Map());
     const v = specVariants.get(r.spec_id);
     if (!v.has(r.variant_id)) v.set(r.variant_id, []);
-    v.get(r.variant_id).push(r.item_id);
+    v.get(r.variant_id).push({ item_id: r.item_id, qty: Number(r.qty) || 1 });
   }
 
-  // Можно ли собрать spec? Если рецепта вообще нет — fallback: показываем
-  // (например рецепт ещё не подтянулся при первом запуске).
-  // Если есть — нужно чтобы хотя бы один variant был полностью комплектуем.
-  function isAvailable(specId) {
+  // Сколько таких можно собрать из остатков? Берём max по вариантам.
+  // Если рецепта нет — null (неизвестно).
+  function maxCountForSpec(specId) {
     const variants = specVariants.get(specId);
-    if (!variants || variants.size === 0) return true; // нет рецепта → fallback показываем
+    if (!variants || variants.size === 0) return null;
+    let best = 0;
     for (const items of variants.values()) {
-      if (items.every(itemId => invAvailable.has(itemId))) return true;
+      let canBuild = Infinity;
+      for (const { item_id, qty } of items) {
+        const have = invStock.get(item_id) || 0;
+        canBuild = Math.min(canBuild, Math.floor(have / qty));
+      }
+      if (canBuild === Infinity) canBuild = 0;
+      if (canBuild > best) best = canBuild;
     }
-    return false;
+    return best;
   }
 
   const ov = getOverrides('spec');
   const out = specs
-    .filter(s => isAvailable(s.id))
-    .map(s => applyOverride({
+    .map(s => {
+      const max = maxCountForSpec(s.id);
+      return { spec: s, max_count: max };
+    })
+    // если рецепт известен и max=0 — скрываем; если рецепта нет — показываем
+    .filter(x => x.max_count === null || x.max_count > 0)
+    .map(({ spec: s, max_count }) => applyOverride({
       id: `spec:${s.id}`,
       type: 'template',
       title: s.title,
@@ -68,6 +82,7 @@ r.get('/templates', (req, res) => {
       badge: null,
       popular: 5,
       img: null,
+      max_count,
     }, ov.get(s.id))).filter(p => !p.hidden);
   res.json(out);
 });

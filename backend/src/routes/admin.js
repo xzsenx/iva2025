@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import sharp from 'sharp';
 import heicConvert from 'heic-convert';
+import { generateBouquetNames } from '../services/nameGen.js';
 
 const r = Router();
 
@@ -334,6 +335,38 @@ r.get('/inventory-search', (req, res) => {
 r.get('/sync/history', (req, res) => {
   const rows = db.prepare(`SELECT * FROM sync_runs ORDER BY id DESC LIMIT 20`).all();
   res.json(rows.map(r => ({ ...r, counts: JSON.parse(r.counts_json || '{}') })));
+});
+
+/* Генератор названий через DeepSeek.
+   Принимает либо items: [{title, qty}], либо source/sourceId/id для подтягивания состава из БД. */
+r.post('/generate-name', async (req, res) => {
+  try {
+    let items = req.body?.items;
+    if (!Array.isArray(items) || !items.length) {
+      const { source, sourceId } = req.body || {};
+      if (source === 'spec' && sourceId) {
+        const rows = db.prepare(`
+          SELECT i.title, r.qty FROM posiflora_recipes r
+          JOIN posiflora_inventory i ON i.id = r.item_id
+          WHERE r.spec_id = ?`).all(sourceId);
+        items = rows.map(x => ({ title: x.title, qty: x.qty }));
+      } else if (source === 'ctmpl' && sourceId) {
+        const rows = db.prepare(`
+          SELECT i.title, ci.qty FROM custom_template_items ci
+          JOIN posiflora_inventory i ON i.id = ci.item_id
+          WHERE ci.template_id = ?`).all(sourceId);
+        items = rows.map(x => ({ title: x.title, qty: x.qty }));
+      }
+    }
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ error: 'empty composition' });
+    }
+    const names = await generateBouquetNames(items);
+    res.json({ names });
+  } catch (e) {
+    console.error('[gen-name]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 export default r;

@@ -16,6 +16,11 @@ const DEFAULTS = {
     label: '',
     promocodes: [],
   },
+  notifications: {
+    tg_enabled: true,
+    tg_chat_id: '',
+    tg_bot_token: '',
+  },
 };
 
 function readAll() {
@@ -41,15 +46,36 @@ function writeKey(key, value) {
     .run(key, JSON.stringify(value));
 }
 
+/* Публичный GET не должен светить токен бота */
 r.get('/', (req, res) => {
-  res.json(readAll());
+  const s = readAll();
+  if (s.notifications) {
+    s.notifications = { ...s.notifications, tg_bot_token: s.notifications.tg_bot_token ? '***' : '' };
+  }
+  res.json(s);
 });
 
 r.put('/', (req, res) => {
   const body = req.body || {};
   if (body.promo) writeKey('promo', body.promo);
   if (body.discount) writeKey('discount', body.discount);
-  res.json(readAll());
+  if (body.notifications) {
+    /* токен === '***' значит фронт прислал маску — оставляем старый */
+    const cur = (() => {
+      try { return JSON.parse(db.prepare(`SELECT value FROM app_settings WHERE key='notifications'`).get()?.value || '{}'); }
+      catch { return {}; }
+    })();
+    const next = { ...body.notifications };
+    if (next.tg_bot_token === '***' || next.tg_bot_token === undefined) {
+      next.tg_bot_token = cur.tg_bot_token || '';
+    }
+    writeKey('notifications', next);
+  }
+  const out = readAll();
+  if (out.notifications) {
+    out.notifications = { ...out.notifications, tg_bot_token: out.notifications.tg_bot_token ? '***' : '' };
+  }
+  res.json(out);
 });
 
 export default r;

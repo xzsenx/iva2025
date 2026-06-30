@@ -378,6 +378,12 @@ p  { color: var(--cream-dim); }
   text-transform: uppercase;
   color: var(--cream-faint);
 }
+.card__stock {
+  font-size: 12px;
+  color: var(--cream-dim);
+  margin: 4px 0 8px;
+}
+.card__stock b { color: var(--cream); font-weight: 600; }
 .card__foot {
   display: flex;
   align-items: center;

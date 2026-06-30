@@ -34,6 +34,13 @@ const saveCart = (cart) => localStorage.setItem(CART_KEY, JSON.stringify(cart));
 
 /* ── Money ── */
 const money = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
+const pluralBouquet = (n) => {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return 'сборок';
+  if (b > 1 && b < 5) return 'сборки';
+  if (b === 1) return 'сборка';
+  return 'сборок';
+};
 
 /* ── Toast ── */
 let toastTimer;
@@ -173,6 +180,7 @@ const productCard = (p) => {
       <div class="card__body">
         <div class="card__cat">${cat}</div>
         <h3 class="card__title"><a href="product.html?id=${idEnc}">${name}</a></h3>
+        ${typeof p.max_count === 'number' ? `<div class="card__stock">осталось <b>${p.max_count}</b> ${pluralBouquet(p.max_count)}</div>` : ''}
         <div class="card__foot">
           <div class="card__price">${money(p.price)}</div>
           <button class="card__btn" data-add="${idEnc}" aria-label="В корзину">

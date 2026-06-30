@@ -2,6 +2,22 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { createPayment, getPayment } from '../yookassa.js';
 import { createPosifloraOrderForLocal } from '../services/posifloraOrder.js';
+import { notifyOrder, notifyTest } from '../services/tgNotify.js';
+
+/* Идемпотентно шлём TG-уведомление о заказе. */
+async function notifyOrderSafely(orderId) {
+  /* Не дублируем — если уже слали, столбец notified_at заполнен */
+  const row = db.prepare(`SELECT notified_at FROM orders WHERE id=?`).get(orderId);
+  if (row?.notified_at) return;
+  try {
+    const r = await notifyOrder(orderId);
+    if (r.ok) {
+      db.prepare(`UPDATE orders SET notified_at = datetime('now') WHERE id=?`).run(orderId);
+    }
+  } catch (e) {
+    console.error('[tg] notify error:', e.message);
+  }
+}
 
 /* Идемпотентно отправить заказ в Posiflora. Безопасно вызывать несколько раз. */
 async function pushToPosifloraSafely(orderId) {
@@ -107,12 +123,19 @@ r.post('/webhook', async (req, res) => {
   db.prepare(`UPDATE orders SET payment_status = ?, status = ? WHERE id = ?`)
     .run(actual.status, actual.status === 'succeeded' ? 'paid' : orderRow.status, orderRow.id);
 
-  /* Оплата прошла → отправляем заказ в Posiflora (списать остатки + отметить продажу) */
+  /* Оплата прошла → отправляем заказ в Posiflora + уведомление в TG */
   if (actual.status === 'succeeded') {
     pushToPosifloraSafely(orderRow.id);
+    notifyOrderSafely(orderRow.id);
   }
 
   res.json({ ok: true });
+});
+
+/* Тестовое сообщение в TG (из вкладки «Мини-апп» в админке) */
+r.post('/notify-test', async (req, res) => {
+  const r1 = await notifyTest();
+  res.json(r1);
 });
 
 /** Получить актуальный статус заказа (для polling после редиректа) */
@@ -129,6 +152,7 @@ r.get('/:id/status', async (req, res) => {
         row.payment_status = p.status;
         if (p.status === 'succeeded') {
           pushToPosifloraSafely(row.id);
+          notifyOrderSafely(row.id);
         }
       }
     } catch {}

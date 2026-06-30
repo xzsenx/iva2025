@@ -145,6 +145,7 @@ safeAlter(`ALTER TABLE posiflora_bouquets ADD COLUMN markup REAL`);
 safeAlter(`ALTER TABLE posiflora_bouquets ADD COLUMN discount REAL`);
 safeAlter(`ALTER TABLE custom_templates ADD COLUMN archived INTEGER DEFAULT 0`);
 safeAlter(`ALTER TABLE custom_templates ADD COLUMN archived_at TEXT`);
+safeAlter(`ALTER TABLE orders ADD COLUMN notified_at TEXT`);
 
 /* Нормализация photo_url: было http(s)://domain/uploads/X → стало /uploads/X */
 try {

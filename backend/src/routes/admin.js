@@ -237,13 +237,15 @@ r.get('/custom-templates', (req, res) => {
   const out = tmpls.map(t => {
     const items = itemsByTmpl.get(t.id) || [];
     const missing = items.filter(i => !invIds.has(i.item_id));
-    // Макс. кол-во букетов = min(stock / qty) по всем компонентам.
-    // Если у хотя бы одного компонента qty не известно (stock NULL) — возвращаем null.
+    // Макс. кол-во букетов = min(stock / qty) по всем компонентам с известным остатком.
+    // Если у всех остаток NULL — оставляем null (покажем "В НАЛИЧИИ"). Если у кого-то 0 — 0.
     let maxBouquets = null;
     if (items.length > 0 && missing.length === 0) {
-      const haveAllStocks = items.every(i => i.stock != null && +i.stock > 0);
-      if (haveAllStocks) {
-        maxBouquets = Math.min(...items.map(i => Math.floor((+i.stock) / (+i.qty || 1))));
+      const known = items.filter(i => i.stock != null);
+      if (known.length > 0) {
+        // Есть хотя бы один известный остаток → берём min по известным
+        const perItem = known.map(i => Math.floor((+i.stock) / (+i.qty || 1)));
+        maxBouquets = Math.max(0, Math.min(...perItem));
       }
     }
     return {

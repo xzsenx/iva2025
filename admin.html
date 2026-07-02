@@ -722,6 +722,8 @@
     <button class="tab" data-tab="addons">Допы</button>
     <button class="tab" data-tab="orders">Заказы</button>
     <button class="tab" data-tab="miniapp">Мини-апп</button>
+    <button class="tab" data-tab="site">Сайт</button>
+    <button class="tab" data-tab="analytics">Аналитика</button>
   </div>
   <div class="toolbar" id="toolbar">
     <input class="input" id="search" placeholder="Поиск по названию..." style="max-width:280px">
@@ -1129,7 +1131,7 @@ async function updateSyncStatus() {
 
 async function loadTab(tab) {
   $('#content').innerHTML = '<div class="loading">Загрузка...</div>';
-  $('#toolbar').style.display = (tab === 'custom' || tab === 'orders' || tab === 'miniapp') ? 'none' : '';
+  $('#toolbar').style.display = (['custom','orders','miniapp','site','analytics'].includes(tab)) ? 'none' : '';
   try {
     if (tab === 'showcase') lastData = await api('GET', '/api/admin/bouquets?status=demonstrated');
     else if (tab === 'templates') lastData = await api('GET', '/api/admin/specs');
@@ -1144,6 +1146,8 @@ async function loadTab(tab) {
     }
     else if (tab === 'orders') { renderOrders(); return; }
     else if (tab === 'miniapp') { renderMiniappSettings(); return; }
+    else if (tab === 'site') { renderSiteEditor(); return; }
+    else if (tab === 'analytics') { renderAnalytics(); return; }
   } catch (e) {
     $('#content').innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>';
     return;
@@ -2240,6 +2244,252 @@ function collectCodesFromDom() {
     code: row.querySelector('[data-code-field="code"]').value.trim().toUpperCase(),
     percent: Number(row.querySelector('[data-code-field="percent"]').value) || 0,
   }));
+}
+
+/* ============================================================
+   Вкладка «Сайт» — редактор hero-баннера
+   ============================================================ */
+let _siteSettings = null;
+
+async function renderSiteEditor() {
+  $('#counter').textContent = '';
+  $('#content').innerHTML = '<div class="loading">Загрузка настроек...</div>';
+  try {
+    _siteSettings = await api('GET', '/api/app-settings');
+  } catch (e) {
+    $('#content').innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>';
+    return;
+  }
+  drawSiteEditor();
+}
+
+function drawSiteEditor() {
+  const s = (_siteSettings && _siteSettings.site) || {};
+  const abs = (u) => (!u ? '' : u.startsWith('/') ? (API + u) : u);
+  $('#content').innerHTML = `
+    <div style="padding:0 22px 80px;max-width:820px">
+      <style>
+        .se-card { background: var(--bg-card); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:20px; margin-bottom:16px; }
+        .se-card h3 { margin:0 0 14px; font-size:16px; }
+        .se-row { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+        .se-row label { color: var(--cream-dim); font-size:12px; }
+        .se-grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+        .se-imgbox { display:flex; gap:14px; align-items:flex-start; }
+        .se-imgbox img { width:180px; height:120px; object-fit:cover; border-radius:10px; background:#000; }
+        .se-imgbox .se-imgcol { flex:1; }
+        .se-dropzone { border:2px dashed rgba(255,255,255,.18); border-radius:10px; padding:14px; text-align:center; cursor:pointer; color:var(--cream-dim); font-size:13px; }
+        .se-dropzone:hover { border-color: var(--pink); }
+      </style>
+
+      <div class="se-card">
+        <h3>Hero-баннер (главная)</h3>
+        <div class="se-row">
+          <label>Надпись сверху (eyebrow)</label>
+          <input class="input" id="seEyebrow" value="${escapeHtml(s.hero_eyebrow||'')}">
+        </div>
+        <div class="se-grid2">
+          <div class="se-row"><label>Заголовок строка 1</label><input class="input" id="seTitle1" value="${escapeHtml(s.hero_title_1||'')}"></div>
+          <div class="se-row"><label>Заголовок строка 2 (курсив)</label><input class="input" id="seTitle2" value="${escapeHtml(s.hero_title_2||'')}"></div>
+        </div>
+        <div class="se-row">
+          <label>Подпись под заголовком</label>
+          <textarea class="input" id="seText" rows="2">${escapeHtml(s.hero_text||'')}</textarea>
+        </div>
+
+        <div class="se-imgbox" style="margin-top:14px">
+          <img id="seHeroImg" src="${abs(s.hero_image)}" onerror="this.style.opacity=.2">
+          <div class="se-imgcol">
+            <label style="color:var(--cream-dim);font-size:12px;margin-bottom:6px;display:block">Картинка (URL или загрузка)</label>
+            <input class="input" id="seHeroUrl" value="${escapeHtml(s.hero_image||'')}">
+            <div class="se-dropzone" id="seHeroDrop" style="margin-top:8px">Клик или перетащи фото</div>
+            <input type="file" id="seHeroFile" accept="image/*" style="display:none">
+            <div id="seHeroUpStatus" style="font-size:12px;color:var(--cream-dim);min-height:16px;margin-top:4px"></div>
+          </div>
+        </div>
+
+        <div class="se-grid2" style="margin-top:14px">
+          <div class="se-row"><label>Плашка на картинке — цена</label><input class="input" id="seBadgePrice" value="${escapeHtml(s.hero_badge_price||'')}"></div>
+          <div class="se-row"><label>Плашка на картинке — текст</label><input class="input" id="seBadgeText" value="${escapeHtml(s.hero_badge_text||'')}"></div>
+        </div>
+      </div>
+
+      <div class="se-card">
+        <h3>Блок «О студии»</h3>
+        <div class="se-imgbox">
+          <img id="seAboutImg" src="${abs(s.about_image)}" onerror="this.style.opacity=.2">
+          <div class="se-imgcol">
+            <label style="color:var(--cream-dim);font-size:12px;margin-bottom:6px;display:block">Картинка</label>
+            <input class="input" id="seAboutUrl" value="${escapeHtml(s.about_image||'')}">
+            <div class="se-dropzone" id="seAboutDrop" style="margin-top:8px">Клик или перетащи фото</div>
+            <input type="file" id="seAboutFile" accept="image/*" style="display:none">
+            <div id="seAboutUpStatus" style="font-size:12px;color:var(--cream-dim);min-height:16px;margin-top:4px"></div>
+          </div>
+        </div>
+        <div class="se-grid2" style="margin-top:14px">
+          <div class="se-row"><label>Заголовок строка 1</label><input class="input" id="seAboutT1" value="${escapeHtml(s.about_title_1||'')}"></div>
+          <div class="se-row"><label>Заголовок строка 2</label><input class="input" id="seAboutT2" value="${escapeHtml(s.about_title_2||'')}"></div>
+        </div>
+        <div class="se-row"><label>Абзац 1</label><textarea class="input" id="seAboutP1" rows="2">${escapeHtml(s.about_text_1||'')}</textarea></div>
+        <div class="se-row"><label>Абзац 2</label><textarea class="input" id="seAboutP2" rows="2">${escapeHtml(s.about_text_2||'')}</textarea></div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button class="btn btn--primary" id="seSave">Сохранить</button>
+        <button class="btn" id="seReload">Отменить</button>
+      </div>
+    </div>`;
+
+  /* Live preview картинок */
+  $('#seHeroUrl').addEventListener('input', e => { $('#seHeroImg').src = abs(e.target.value); });
+  $('#seAboutUrl').addEventListener('input', e => { $('#seAboutImg').src = abs(e.target.value); });
+
+  /* Загрузка hero-фото */
+  const wireUpload = (dropId, fileId, urlId, statusId) => {
+    const drop = $('#' + dropId), file = $('#' + fileId), url = $('#' + urlId), status = $('#' + statusId);
+    drop.addEventListener('click', () => file.click());
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = 'var(--pink)'; });
+    drop.addEventListener('dragleave', () => drop.style.borderColor = '');
+    drop.addEventListener('drop', e => { e.preventDefault(); drop.style.borderColor = ''; if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
+    file.addEventListener('change', e => { if (e.target.files[0]) upload(e.target.files[0]); });
+    async function upload(f) {
+      status.textContent = 'Загружаю...';
+      const fd = new FormData(); fd.append('file', f);
+      try {
+        const res = await fetch(API + '/api/admin/upload', {
+          method: 'POST', headers: { Authorization: 'Basic ' + getAuth() }, body: fd,
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const j = await res.json();
+        url.value = j.photo_url;
+        url.dispatchEvent(new Event('input'));
+        status.textContent = 'Готово ✓';
+      } catch (e) { status.textContent = 'Ошибка: ' + e.message; }
+    }
+  };
+  wireUpload('seHeroDrop', 'seHeroFile', 'seHeroUrl', 'seHeroUpStatus');
+  wireUpload('seAboutDrop', 'seAboutFile', 'seAboutUrl', 'seAboutUpStatus');
+
+  $('#seReload').addEventListener('click', renderSiteEditor);
+
+  $('#seSave').addEventListener('click', async () => {
+    const site = {
+      hero_eyebrow: $('#seEyebrow').value.trim(),
+      hero_title_1: $('#seTitle1').value.trim(),
+      hero_title_2: $('#seTitle2').value.trim(),
+      hero_text: $('#seText').value.trim(),
+      hero_image: $('#seHeroUrl').value.trim(),
+      hero_badge_price: $('#seBadgePrice').value.trim(),
+      hero_badge_text: $('#seBadgeText').value.trim(),
+      about_image: $('#seAboutUrl').value.trim(),
+      about_title_1: $('#seAboutT1').value.trim(),
+      about_title_2: $('#seAboutT2').value.trim(),
+      about_text_1: $('#seAboutP1').value.trim(),
+      about_text_2: $('#seAboutP2').value.trim(),
+    };
+    try {
+      _siteSettings = await api('PUT', '/api/app-settings', { site });
+      toast('Сохранено');
+    } catch (e) {
+      toast('Ошибка: ' + e.message);
+    }
+  });
+}
+
+/* ============================================================
+   Вкладка «Аналитика»
+   ============================================================ */
+async function renderAnalytics() {
+  $('#counter').textContent = '';
+  $('#content').innerHTML = '<div class="loading">Загрузка аналитики...</div>';
+  let a;
+  try {
+    a = await api('GET', '/api/admin/analytics');
+  } catch (e) {
+    $('#content').innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>';
+    return;
+  }
+  const money = (n) => (Number(n) || 0).toLocaleString('ru-RU') + ' ₽';
+  const maxRev = Math.max(1, ...a.by_day.map(d => d.revenue || 0));
+
+  const drafts = (a.drafts?.specs || 0) + (a.drafts?.bouquets || 0);
+
+  $('#content').innerHTML = `
+    <div style="padding:0 22px 80px;max-width:1100px">
+      <style>
+        .an-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:20px; }
+        .an-tile { background:var(--bg-card); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:20px; }
+        .an-tile__label { font-size:12px; color:var(--cream-dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px; }
+        .an-tile__value { font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:700; color:var(--cream); }
+        .an-tile__sub { font-size:12px; color:var(--cream-dim); margin-top:4px; }
+        .an-tile--warn { border-color: rgba(232,180,120,.4); background: rgba(232,180,120,.06); }
+        .an-tile--warn .an-tile__value { color:#e8b478; }
+        .an-card { background:var(--bg-card); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:20px; margin-bottom:16px; }
+        .an-card h3 { margin:0 0 14px; font-size:15px; }
+        .an-bars { display:flex; align-items:flex-end; gap:6px; height:180px; padding-bottom:24px; position:relative; }
+        .an-bar { flex:1; background:linear-gradient(180deg,var(--pink),rgba(201,164,160,.3)); border-radius:6px 6px 0 0; position:relative; min-height:2px; transition: all .3s ease; }
+        .an-bar__val { position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:11px; color:var(--cream); white-space:nowrap; opacity:.8; }
+        .an-bar__day { position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); font-size:10px; color:var(--cream-dim); }
+        .an-top { display:flex; flex-direction:column; gap:8px; }
+        .an-top__row { display:flex; align-items:center; gap:12px; }
+        .an-top__num { width:26px; height:26px; border-radius:50%; background:rgba(201,164,160,.15); color:var(--pink); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+        .an-top__name { flex:1; color:var(--cream); font-size:14px; }
+        .an-top__qty { font-size:13px; color:var(--cream-dim); font-weight:600; }
+      </style>
+
+      <div class="an-grid">
+        <div class="an-tile">
+          <div class="an-tile__label">Сегодня</div>
+          <div class="an-tile__value">${money(a.today.revenue)}</div>
+          <div class="an-tile__sub">${a.today.orders} заказ(ов)</div>
+        </div>
+        <div class="an-tile">
+          <div class="an-tile__label">Этот месяц</div>
+          <div class="an-tile__value">${money(a.month.revenue)}</div>
+          <div class="an-tile__sub">${a.month.orders} заказ(ов)</div>
+        </div>
+        <div class="an-tile">
+          <div class="an-tile__label">Всего</div>
+          <div class="an-tile__value">${money(a.totals.revenue)}</div>
+          <div class="an-tile__sub">${a.totals.orders} заказ(ов) за всё время</div>
+        </div>
+        ${drafts > 0 ? `
+          <div class="an-tile an-tile--warn">
+            <div class="an-tile__label">Черновики</div>
+            <div class="an-tile__value">${drafts}</div>
+            <div class="an-tile__sub">${a.drafts.specs} шаблонов · ${a.drafts.bouquets} букетов ждут фото/названия</div>
+          </div>` : ''}
+      </div>
+
+      <div class="an-card">
+        <h3>Выручка за 7 дней</h3>
+        ${a.by_day.length === 0
+          ? '<div style="color:var(--cream-dim);font-size:13px">Нет оплаченных заказов за неделю</div>'
+          : `<div class="an-bars">
+              ${a.by_day.map(d => {
+                const h = Math.round((d.revenue / maxRev) * 100);
+                const dayShort = d.day.slice(5).replace('-', '.');
+                return `<div class="an-bar" style="height:${h}%" title="${d.day}: ${money(d.revenue)} · ${d.orders} заказ.">
+                  <span class="an-bar__val">${money(d.revenue)}</span>
+                  <span class="an-bar__day">${dayShort}</span>
+                </div>`;
+              }).join('')}
+            </div>`}
+      </div>
+
+      <div class="an-card">
+        <h3>Топ товаров в этом месяце</h3>
+        ${a.top_products.length === 0
+          ? '<div style="color:var(--cream-dim);font-size:13px">Нет данных</div>'
+          : `<div class="an-top">
+              ${a.top_products.map((p, i) => `
+                <div class="an-top__row">
+                  <div class="an-top__num">${i+1}</div>
+                  <div class="an-top__name">${escapeHtml(p.name)}</div>
+                  <div class="an-top__qty">×${p.qty}</div>
+                </div>`).join('')}
+            </div>`}
+      </div>
+    </div>`;
 }
 
 if (getAuth()) {

@@ -21,6 +21,20 @@ const DEFAULTS = {
     tg_chat_id: '',
     tg_bot_token: '',
   },
+  site: {
+    hero_eyebrow: 'Белгород · с 2019',
+    hero_title_1: 'Цветы, в которых',
+    hero_title_2: 'живёт настроение',
+    hero_text: 'Авторские букеты из премиальных цветов. Собираем с любовью, доставляем в день заказа.',
+    hero_image: 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=900&q=80',
+    hero_badge_price: 'от 1 800 ₽',
+    hero_badge_text: 'Доставка от 30 минут',
+    about_image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?w=900&q=80',
+    about_title_1: 'Букет — это',
+    about_title_2: 'маленькая история',
+    about_text_1: 'ИВА — это не просто магазин цветов. Это студия, где каждый букет собирается вручную, с вниманием к настроению того, кому он предназначен.',
+    about_text_2: 'Работаем с премиальными поставщиками, отбираем цветы по утрам, собираем композиции в день доставки.',
+  },
 };
 
 function readAll() {
@@ -59,6 +73,7 @@ r.put('/', (req, res) => {
   const body = req.body || {};
   if (body.promo) writeKey('promo', body.promo);
   if (body.discount) writeKey('discount', body.discount);
+  if (body.site) writeKey('site', body.site);
   if (body.notifications) {
     /* токен === '***' значит фронт прислал маску — оставляем старый */
     const cur = (() => {

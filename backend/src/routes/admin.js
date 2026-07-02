@@ -332,6 +332,83 @@ r.get('/inventory-search', (req, res) => {
   res.json(db.prepare(sql).all(...params));
 });
 
+/* Аналитика — цифры для дашборда */
+r.get('/analytics', (req, res) => {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const start7d = new Date(now.getTime() - 7 * 86400000).toISOString();
+
+  const paidFilter = `payment_status IN ('succeeded','waiting_for_capture') OR status='paid'`;
+
+  const totals = db.prepare(`
+    SELECT
+      COUNT(*) AS orders_total,
+      SUM(total_price) AS revenue_total
+    FROM orders WHERE ${paidFilter}
+  `).get();
+
+  const month = db.prepare(`
+    SELECT COUNT(*) AS orders, SUM(total_price) AS revenue
+    FROM orders WHERE (${paidFilter}) AND created_at >= ?
+  `).get(startOfMonth);
+
+  const today = db.prepare(`
+    SELECT COUNT(*) AS orders, SUM(total_price) AS revenue
+    FROM orders WHERE (${paidFilter}) AND created_at >= ?
+  `).get(startOfDay);
+
+  /* Выручка по дням за 7 дней */
+  const byDay = db.prepare(`
+    SELECT substr(created_at, 1, 10) AS day,
+           COUNT(*) AS orders,
+           SUM(total_price) AS revenue
+    FROM orders
+    WHERE (${paidFilter}) AND created_at >= ?
+    GROUP BY day ORDER BY day
+  `).all(start7d);
+
+  /* Топ товаров из items_json */
+  const orders = db.prepare(`
+    SELECT items_json FROM orders WHERE (${paidFilter}) AND created_at >= ?
+  `).all(startOfMonth);
+  const productCount = new Map();
+  for (const o of orders) {
+    let items = [];
+    try { items = JSON.parse(o.items_json || '[]'); } catch {}
+    for (const it of items) {
+      const name = it.name || it.title || 'Без названия';
+      productCount.set(name, (productCount.get(name) || 0) + (it.qty || 1));
+    }
+  }
+  const topProducts = [...productCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([name, qty]) => ({ name, qty }));
+
+  /* Черновики (unpublished drafts) — сколько ждут ручного оформления */
+  const draftsSpec = db.prepare(`
+    SELECT COUNT(*) AS c FROM catalog_overrides
+    WHERE source='spec' AND hidden=1 AND (title IS NULL OR title='') AND (photo_url IS NULL OR photo_url='')
+  `).get().c;
+  const draftsBouquet = db.prepare(`
+    SELECT COUNT(*) AS c FROM catalog_overrides
+    WHERE source='bouquet' AND hidden=1 AND (title IS NULL OR title='') AND (photo_url IS NULL OR photo_url='')
+  `).get().c;
+
+  res.json({
+    totals: {
+      orders: totals.orders_total || 0,
+      revenue: totals.revenue_total || 0,
+    },
+    month: { orders: month.orders || 0, revenue: month.revenue || 0 },
+    today: { orders: today.orders || 0, revenue: today.revenue || 0 },
+    by_day: byDay.map(d => ({ ...d, revenue: Number(d.revenue) || 0 })),
+    top_products: topProducts,
+    drafts: { specs: draftsSpec, bouquets: draftsBouquet },
+  });
+});
+
 r.get('/sync/history', (req, res) => {
   const rows = db.prepare(`SELECT * FROM sync_runs ORDER BY id DESC LIMIT 20`).all();
   res.json(rows.map(r => ({

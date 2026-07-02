@@ -692,6 +692,35 @@ const enhanceSelect = (sel) => {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 };
 
+/* Гидратация hero/about из /api/app-settings — админ меняет тексты/картинки в реальном времени */
+const hydrateSiteContent = async () => {
+  try {
+    const s = await fetch('/api/app-settings', { cache: 'no-store' }).then(r => r.json());
+    const site = s?.site || {};
+    const setText = (sel, val) => { const el = document.querySelector(sel); if (el && val != null) el.textContent = val; };
+    const setHTML = (sel, html) => { const el = document.querySelector(sel); if (el && html != null) el.innerHTML = html; };
+    const setImg = (sel, val) => { const el = document.querySelector(sel); if (el && val) el.src = val; };
+
+    if (site.hero_eyebrow != null) setText('.hero .eyebrow', site.hero_eyebrow);
+    if (site.hero_title_1 || site.hero_title_2) {
+      setHTML('.hero__title', `${site.hero_title_1 || ''}<br><em>${site.hero_title_2 || ''}</em>`);
+    }
+    if (site.hero_text != null) setText('.hero__text', site.hero_text);
+    if (site.hero_image) setImg('.hero__image img', site.hero_image);
+    if (site.hero_badge_price || site.hero_badge_text) {
+      setHTML('.hero__badge', `<strong>${site.hero_badge_price || ''}</strong>${site.hero_badge_text || ''}`);
+    }
+    if (site.about_image) setImg('.about__img img', site.about_image);
+    if (site.about_title_1 || site.about_title_2) {
+      const h = document.querySelector('.about__text h2');
+      if (h) h.innerHTML = `${site.about_title_1 || ''}<br>${site.about_title_2 || ''}`;
+    }
+    const paras = document.querySelectorAll('.about__text p');
+    if (paras[0] && site.about_text_1) paras[0].textContent = site.about_text_1;
+    if (paras[1] && site.about_text_2) paras[1].textContent = site.about_text_2;
+  } catch {}
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
   seedPetals();
   wireBurger();
@@ -700,6 +729,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateCartBadge();
   renderCart();
   document.querySelectorAll('.sort').forEach(enhanceSelect);
+  hydrateSiteContent();
   await loadProducts();
   renderPopular();
   renderCatalog();

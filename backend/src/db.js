@@ -148,6 +148,25 @@ safeAlter(`ALTER TABLE custom_templates ADD COLUMN archived_at TEXT`);
 safeAlter(`ALTER TABLE orders ADD COLUMN notified_at TEXT`);
 safeAlter(`ALTER TABLE sync_runs ADD COLUMN diff_json TEXT`);
 safeAlter(`ALTER TABLE sync_runs ADD COLUMN acknowledged_at TEXT`);
+safeAlter(`ALTER TABLE orders ADD COLUMN cancelled_at TEXT`);
+safeAlter(`ALTER TABLE orders ADD COLUMN cancel_reason TEXT`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS analytics_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT DEFAULT CURRENT_TIMESTAMP,
+    source TEXT,         -- 'site' | 'miniapp'
+    event TEXT,          -- 'pageview' | 'add_to_cart' | 'begin_checkout' | 'order_placed'
+    path TEXT,
+    session_id TEXT,
+    user_agent TEXT,
+    ip TEXT,
+    meta TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_analytics_ts ON analytics_events(ts);
+  CREATE INDEX IF NOT EXISTS idx_analytics_source_event ON analytics_events(source, event);
+  CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(session_id);
+`);
 
 /* Нормализация photo_url: было http(s)://domain/uploads/X → стало /uploads/X */
 try {

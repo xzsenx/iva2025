@@ -542,9 +542,9 @@ const app = (() => {
       existing.qty++;
     } else {
       cart.push({ key, id, size, qty: 1 });
-      trackEvent(id, "adds");
     }
     saveCart();
+    trackEvent("add_to_cart", { id, name: b ? b.name : "?", price: b ? b.price : 0 });
     return true;
   }
 
@@ -717,6 +717,7 @@ const app = (() => {
   /* ── Checkout ── */
   function showCheckout() {
     if (cart.length === 0) return;
+    trackEvent("begin_checkout", { total: cartTotal(), items_count: cart.length });
 
     // Дата по умолчанию — завтра
     const tomorrow = new Date();
@@ -798,6 +799,7 @@ const app = (() => {
         throw new Error(err.error || `HTTP ${resp.status}`);
       }
       const data = await resp.json();
+      trackEvent("order_placed", { order_id: data.id, total: order.total });
 
       /* Очищаем корзину до редиректа */
       cart = [];
@@ -906,8 +908,32 @@ const app = (() => {
     renderCart();
   }
 
+  /* ── Analytics beacon ── */
+  const _mSession = (() => {
+    try {
+      let s = localStorage.getItem("iva_sid");
+      if (!s) { s = Date.now().toString(36) + Math.random().toString(36).slice(2, 10); localStorage.setItem("iva_sid", s); }
+      return s;
+    } catch { return ""; }
+  })();
+  function trackEvent(event, meta) {
+    try {
+      const body = JSON.stringify({
+        source: "miniapp", event,
+        path: window.location.pathname + window.location.search,
+        session_id: _mSession, meta: meta || undefined,
+      });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(API_BASE + "/api/analytics/track", new Blob([body], { type: "application/json" }));
+      } else {
+        fetch(API_BASE + "/api/analytics/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true });
+      }
+    } catch {}
+  }
+
   /* ── Init ── */
   async function init() {
+    trackEvent("pageview");
     renderCategories();
     updateCartBadge();
     loadAppSettings();

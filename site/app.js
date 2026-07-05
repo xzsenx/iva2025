@@ -81,6 +81,7 @@ const addToCart = (product) => {
   updateCartBadge();
   renderCart();
   toast(`«${product.name || product.title}» добавлен в корзину`);
+  track('add_to_cart', { id: product.id, name: product.name || product.title, price: product.price });
 };
 
 const updateQty = (id, delta) => {
@@ -466,6 +467,7 @@ const renderCheckout = () => {
       total,
     };
 
+    track('begin_checkout', { total, items_count: cartNow.length });
     try {
       const r = await fetch(API_BASE + '/api/orders', {
         method: 'POST',
@@ -474,6 +476,7 @@ const renderCheckout = () => {
       });
       const data = await r.json();
       if (!r.ok || !data.confirmation_url) throw new Error(data.error || 'payment failed');
+      track('order_placed', { order_id: data.id, total });
       sessionStorage.setItem('iva_last_order', String(data.id));
       saveCart([]);
       location.href = data.confirmation_url;
@@ -721,7 +724,34 @@ const hydrateSiteContent = async () => {
   } catch {}
 };
 
+/* ===== Аналитика: beacon в /api/analytics/track ===== */
+const _sessionId = (() => {
+  try {
+    let s = localStorage.getItem('iva_sid');
+    if (!s) {
+      s = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem('iva_sid', s);
+    }
+    return s;
+  } catch { return ''; }
+})();
+const track = (event, meta) => {
+  try {
+    const body = JSON.stringify({
+      source: 'site', event,
+      path: location.pathname + location.search,
+      session_id: _sessionId, meta: meta || undefined,
+    });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/analytics/track', new Blob([body], { type: 'application/json' }));
+    } else {
+      fetch('/api/analytics/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true });
+    }
+  } catch {}
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
+  track('pageview');
   seedPetals();
   wireBurger();
   wireCart();

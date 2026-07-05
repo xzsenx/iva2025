@@ -10,6 +10,7 @@ import products from './routes/products.js';
 import orders from './routes/orders.js';
 import admin from './routes/admin.js';
 import settings from './routes/settings.js';
+import analytics from './routes/analytics.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +31,7 @@ app.use('/api/products', products);
 app.use('/api/orders', orders);
 app.use('/api/admin', admin);
 app.use('/api/app-settings', settings);
+app.use('/api/analytics', analytics);
 
 /* Загруженные фото (живут на persistent-волюме рядом с БД) */
 const UPLOAD_DIR = process.env.UPLOAD_DIR

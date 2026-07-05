@@ -334,6 +334,51 @@ r.get('/inventory-search', (req, res) => {
   res.json(db.prepare(sql).all(...params));
 });
 
+/* Клиенты — агрегация из orders по телефону */
+r.get('/customers', (req, res) => {
+  const rows = db.prepare(`
+    SELECT
+      customer_phone,
+      MAX(customer_name) AS name,
+      COUNT(*) AS orders_count,
+      SUM(CASE WHEN payment_status='succeeded' OR status='paid' THEN total_price ELSE 0 END) AS revenue,
+      MIN(created_at) AS first_order_at,
+      MAX(created_at) AS last_order_at,
+      MAX(delivery_type) AS last_delivery_type,
+      MAX(customer_address) AS last_address
+    FROM orders
+    WHERE customer_phone IS NOT NULL AND customer_phone != ''
+    GROUP BY customer_phone
+    ORDER BY revenue DESC, orders_count DESC
+    LIMIT 500
+  `).all();
+  res.json(rows);
+});
+
+/* Заказы клиента */
+r.get('/customers/:phone/orders', (req, res) => {
+  const phone = req.params.phone;
+  const rows = db.prepare(`
+    SELECT * FROM orders WHERE customer_phone = ? ORDER BY id DESC
+  `).all(phone);
+  res.json(rows.map(o => ({ ...o, items: JSON.parse(o.items_json || '[]') })));
+});
+
+/* Отмена заказа */
+r.post('/orders/:id/cancel', async (req, res) => {
+  const id = +req.params.id;
+  const reason = String(req.body?.reason || '').slice(0, 500);
+  const order = db.prepare(`SELECT * FROM orders WHERE id=?`).get(id);
+  if (!order) return res.status(404).json({ error: 'not found' });
+  db.prepare(`
+    UPDATE orders
+    SET status='cancelled', cancelled_at=datetime('now'), cancel_reason=?
+    WHERE id=?
+  `).run(reason, id);
+  /* TODO: тут можно дёрнуть ЮKassa refund если payment_status=succeeded — пока просто помечаем */
+  res.json({ ok: true });
+});
+
 /* Аналитика — цифры для дашборда */
 r.get('/analytics', (req, res) => {
   const now = new Date();
@@ -388,6 +433,37 @@ r.get('/analytics', (req, res) => {
     .slice(0, 8)
     .map(([name, qty]) => ({ name, qty }));
 
+  /* Трафик site/miniapp (за 7 дней) */
+  const traffic = {};
+  for (const src of ['site', 'miniapp']) {
+    const views = db.prepare(`
+      SELECT COUNT(*) AS c FROM analytics_events
+      WHERE source=? AND event='pageview' AND ts >= ?
+    `).get(src, start7d).c;
+    const unique = db.prepare(`
+      SELECT COUNT(DISTINCT session_id) AS c FROM analytics_events
+      WHERE source=? AND event='pageview' AND ts >= ? AND session_id != ''
+    `).get(src, start7d).c;
+    const carts = db.prepare(`
+      SELECT COUNT(*) AS c FROM analytics_events
+      WHERE source=? AND event='add_to_cart' AND ts >= ?
+    `).get(src, start7d).c;
+    const checkouts = db.prepare(`
+      SELECT COUNT(*) AS c FROM analytics_events
+      WHERE source=? AND event='begin_checkout' AND ts >= ?
+    `).get(src, start7d).c;
+    const orders = db.prepare(`
+      SELECT COUNT(*) AS c FROM analytics_events
+      WHERE source=? AND event='order_placed' AND ts >= ?
+    `).get(src, start7d).c;
+    const topPages = db.prepare(`
+      SELECT path, COUNT(*) AS views FROM analytics_events
+      WHERE source=? AND event='pageview' AND ts >= ?
+      GROUP BY path ORDER BY views DESC LIMIT 8
+    `).all(src, start7d);
+    traffic[src] = { views, unique, carts, checkouts, orders, top_pages: topPages };
+  }
+
   /* Черновики (unpublished drafts) — сколько ждут ручного оформления */
   const draftsSpec = db.prepare(`
     SELECT COUNT(*) AS c FROM catalog_overrides
@@ -408,6 +484,7 @@ r.get('/analytics', (req, res) => {
     by_day: byDay.map(d => ({ ...d, revenue: Number(d.revenue) || 0 })),
     top_products: topProducts,
     drafts: { specs: draftsSpec, bouquets: draftsBouquet },
+    traffic,
   });
 });
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Собрать букет — ИВА</title>
-  <meta name="description" content="Закажите авторскую сборку букета от студии ИВА в Белгороде. Расскажите о поводе — мы соберём индивидуально.">
+  <meta name="description" content="Соберите букет сами: выберите цветы, упаковку и ленту. Или оставьте заявку — флорист соберёт по вашему описанию.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -44,156 +44,171 @@
   <main>
     <section class="section section--sm">
       <div class="container">
-        <div style="margin-bottom:48px;max-width:640px">
+        <div style="margin-bottom:32px;max-width:640px">
           <span class="eyebrow">Собрать букет</span>
-          <h1 style="font-size:clamp(40px,5vw,64px);margin-bottom:16px">Расскажите — <em>соберём</em></h1>
-          <p style="font-size:17px">Опишите повод, стиль или конкретные цветы. Флорист позвонит, уточнит детали и предложит варианты в вашем бюджете.</p>
+          <h1 style="font-size:clamp(36px,5vw,56px);margin-bottom:12px">Выбирайте — <em>соберём</em></h1>
+          <p style="font-size:16px">Добавляйте цветы, выберите упаковку и ленту. Или переходите к заявке — флорист соберёт по описанию.</p>
         </div>
 
-        <div class="builder-grid">
-          <form class="form builder-form" id="builderForm" novalidate>
+        <!-- Табы -->
+        <div class="build-tabs">
+          <button type="button" class="build-tab active" data-tab="pick">Собрать самому</button>
+          <button type="button" class="build-tab" data-tab="request">Оставить заявку</button>
+        </div>
 
-            <div class="builder-section">
-              <div class="builder-section__title">1. Пожелания</div>
+        <!-- ================ ВКЛАДКА: Собрать самому ================ -->
+        <div id="tab-pick" class="build-tabpanel active">
+          <div class="build-grid">
+            <div class="build-main">
+              <input class="input build-search" id="stemSearch" placeholder="🔍 Поиск цветка..." autocomplete="off">
+              <div class="build-cats" id="stemCats"></div>
+              <div id="stemGrid" class="build-stems">
+                <div class="loading">Загружаем цветы...</div>
+              </div>
 
-              <label class="field">
-                <span class="field__label">Повод</span>
-                <div class="chips" id="occChips" role="radiogroup">
-                  <button type="button" class="chip" data-val="Просто так">Просто так</button>
-                  <button type="button" class="chip" data-val="День рождения">День рождения</button>
-                  <button type="button" class="chip" data-val="Годовщина">Годовщина</button>
-                  <button type="button" class="chip" data-val="Свидание">Свидание</button>
-                  <button type="button" class="chip" data-val="Извинения">Извинения</button>
-                  <button type="button" class="chip" data-val="Свадьба">Свадьба</button>
-                  <button type="button" class="chip" data-val="Похороны">Похороны</button>
-                </div>
-                <input type="hidden" name="occasion">
-              </label>
+              <div id="wrapsBlock" style="display:none">
+                <h3 class="build-section-title">Упаковка</h3>
+                <div class="build-wraps" id="wrapGrid"></div>
+              </div>
 
-              <label class="field">
-                <span class="field__label">Стиль</span>
-                <div class="chips" id="styleChips" role="radiogroup">
-                  <button type="button" class="chip" data-val="Нежный">Нежный</button>
-                  <button type="button" class="chip" data-val="Яркий">Яркий</button>
-                  <button type="button" class="chip" data-val="Пионовидный">Пионовидный</button>
-                  <button type="button" class="chip" data-val="Полевой">Полевой</button>
-                  <button type="button" class="chip" data-val="Минимализм">Минимализм</button>
-                  <button type="button" class="chip" data-val="Эко / натуральный">Эко</button>
-                  <button type="button" class="chip" data-val="Не важно">Не важно</button>
-                </div>
-                <input type="hidden" name="style">
-              </label>
+              <div id="ribbonsBlock" style="display:none">
+                <h3 class="build-section-title">Лента</h3>
+                <div class="build-wraps" id="ribbonGrid"></div>
+              </div>
 
-              <label class="field">
-                <span class="field__label">Любимые цвета</span>
-                <div class="chips" id="colorChips" role="group">
-                  <button type="button" class="chip" data-val="Белый">Белый</button>
-                  <button type="button" class="chip" data-val="Розовый">Розовый</button>
-                  <button type="button" class="chip" data-val="Красный">Красный</button>
-                  <button type="button" class="chip" data-val="Персиковый">Персиковый</button>
-                  <button type="button" class="chip" data-val="Пудровый">Пудровый</button>
-                  <button type="button" class="chip" data-val="Сиреневый">Сиреневый</button>
-                  <button type="button" class="chip" data-val="Жёлтый">Жёлтый</button>
-                  <button type="button" class="chip" data-val="Микс">Микс</button>
-                </div>
-                <input type="hidden" name="colors">
-              </label>
-
-              <label class="field">
-                <span class="field__label">Опишите желаемый букет *</span>
-                <textarea class="textarea" name="description" required placeholder="Например: букет для мамы, любит розы, спокойные тона, размер средний" rows="4"></textarea>
-                <span class="field__error">Опишите пожелания</span>
-              </label>
+              <h3 class="build-section-title">Записка получателю (необязательно)</h3>
+              <textarea class="textarea" id="stemNote" rows="3" placeholder="Например: С Днём Рождения, любимая!"></textarea>
             </div>
 
-            <div class="builder-section">
-              <div class="builder-section__title">2. Бюджет</div>
-              <label class="field">
-                <span class="field__label">На какую сумму собираем?</span>
-                <div class="budget-slider">
-                  <input type="range" name="budget" min="1500" max="15000" step="500" value="4000" id="budgetRange">
-                  <div class="budget-val" id="budgetVal">4 000 ₽</div>
+            <aside class="build-side">
+              <h3 style="font-family:'Cormorant Garamond',serif;font-size:26px;margin-bottom:14px">Ваш букет</h3>
+              <div id="composition" class="build-composition">
+                <div class="build-empty">Пока пусто — добавьте цветы</div>
+              </div>
+              <div class="build-summary" id="buildSummary" style="display:none">
+                <div class="build-summary__row">
+                  <span>Цветы</span><b id="sumStems">0 ₽</b>
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--cream-dim);margin-top:6px">
-                  <span>1 500 ₽</span><span>15 000 ₽</span>
+                <div class="build-summary__row" id="sumWrapRow" style="display:none">
+                  <span id="sumWrapName">Упаковка</span><b id="sumWrap">0 ₽</b>
                 </div>
-              </label>
-            </div>
-
-            <div class="builder-section">
-              <div class="builder-section__title">3. Контакты и доставка</div>
-
-              <label class="field">
-                <span class="field__label">Ваше имя *</span>
-                <input class="input" name="name" type="text" required placeholder="Анна">
-                <span class="field__error">Введите имя</span>
-              </label>
-
-              <label class="field">
-                <span class="field__label">Телефон *</span>
-                <input class="input" name="phone" type="tel" required placeholder="+7 (___) ___-__-__">
-                <span class="field__error">Введите номер</span>
-              </label>
-
-              <label class="field">
-                <span class="field__label">Как получить?</span>
-                <div class="chips" id="delChips" role="radiogroup">
-                  <button type="button" class="chip active" data-val="delivery">Доставка</button>
-                  <button type="button" class="chip" data-val="pickup">Самовывоз</button>
+                <div class="build-summary__row" id="sumRibbonRow" style="display:none">
+                  <span id="sumRibbonName">Лента</span><b id="sumRibbon">0 ₽</b>
                 </div>
-                <input type="hidden" name="delivery" value="delivery">
-              </label>
+                <div class="build-summary__total">
+                  <span>Итого</span><b id="sumTotal">0 ₽</b>
+                </div>
+                <button class="btn btn--primary btn--block" id="addBuildToCart">Добавить в корзину</button>
+                <p style="font-size:12px;color:var(--cream-dim);text-align:center;margin-top:10px">
+                  Флорист перезвонит для подтверждения перед сборкой
+                </p>
+              </div>
+            </aside>
+          </div>
+        </div>
 
-              <label class="field" id="addressField">
-                <span class="field__label">Адрес доставки</span>
-                <input class="input" name="address" type="text" placeholder="ул. Есенина, 9, кв. 5">
-              </label>
+        <!-- ================ ВКЛАДКА: Заявка ================ -->
+        <div id="tab-request" class="build-tabpanel">
+          <div class="builder-grid">
+            <form class="form builder-form" id="builderForm" novalidate>
 
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="builder-section">
+                <div class="builder-section__title">1. Пожелания</div>
+
                 <label class="field">
-                  <span class="field__label">Дата</span>
-                  <input class="input" name="date" type="date">
+                  <span class="field__label">Повод</span>
+                  <div class="chips" id="occChips" role="radiogroup">
+                    <button type="button" class="chip" data-val="Просто так">Просто так</button>
+                    <button type="button" class="chip" data-val="День рождения">День рождения</button>
+                    <button type="button" class="chip" data-val="Годовщина">Годовщина</button>
+                    <button type="button" class="chip" data-val="Свидание">Свидание</button>
+                    <button type="button" class="chip" data-val="Извинения">Извинения</button>
+                    <button type="button" class="chip" data-val="Свадьба">Свадьба</button>
+                    <button type="button" class="chip" data-val="Похороны">Похороны</button>
+                  </div>
+                  <input type="hidden" name="occasion">
                 </label>
+
                 <label class="field">
-                  <span class="field__label">Время</span>
-                  <select class="input" name="time">
-                    <option value="">— в любое —</option>
-                    <option value="09-12">09:00 — 12:00</option>
-                    <option value="12-15">12:00 — 15:00</option>
-                    <option value="15-18">15:00 — 18:00</option>
-                    <option value="18-21">18:00 — 21:00</option>
-                  </select>
+                  <span class="field__label">Стиль</span>
+                  <div class="chips" id="styleChips" role="radiogroup">
+                    <button type="button" class="chip" data-val="Нежный">Нежный</button>
+                    <button type="button" class="chip" data-val="Яркий">Яркий</button>
+                    <button type="button" class="chip" data-val="Пионовидный">Пионовидный</button>
+                    <button type="button" class="chip" data-val="Полевой">Полевой</button>
+                    <button type="button" class="chip" data-val="Минимализм">Минимализм</button>
+                    <button type="button" class="chip" data-val="Эко / натуральный">Эко</button>
+                    <button type="button" class="chip" data-val="Не важно">Не важно</button>
+                  </div>
+                  <input type="hidden" name="style">
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Любимые цвета</span>
+                  <div class="chips" id="colorChips" role="group">
+                    <button type="button" class="chip" data-val="Белый">Белый</button>
+                    <button type="button" class="chip" data-val="Розовый">Розовый</button>
+                    <button type="button" class="chip" data-val="Красный">Красный</button>
+                    <button type="button" class="chip" data-val="Персиковый">Персиковый</button>
+                    <button type="button" class="chip" data-val="Пудровый">Пудровый</button>
+                    <button type="button" class="chip" data-val="Сиреневый">Сиреневый</button>
+                    <button type="button" class="chip" data-val="Жёлтый">Жёлтый</button>
+                    <button type="button" class="chip" data-val="Микс">Микс</button>
+                  </div>
+                  <input type="hidden" name="colors">
+                </label>
+
+                <label class="field">
+                  <span class="field__label">Опишите желаемый букет *</span>
+                  <textarea class="textarea" name="description" required placeholder="Например: букет для мамы, любит розы, спокойные тона, средний размер" rows="4"></textarea>
                 </label>
               </div>
 
-              <label class="field">
-                <span class="field__label">Комментарий (необязательно)</span>
-                <textarea class="textarea" name="comment" rows="2" placeholder="Открытка, ФИО получателя, домофон..."></textarea>
-              </label>
-            </div>
+              <div class="builder-section">
+                <div class="builder-section__title">2. Бюджет</div>
+                <label class="field">
+                  <span class="field__label">На какую сумму собираем?</span>
+                  <div class="budget-slider">
+                    <input type="range" name="budget" min="1500" max="15000" step="500" value="4000" id="budgetRange">
+                    <div class="budget-val" id="budgetVal">4 000 ₽</div>
+                  </div>
+                </label>
+              </div>
 
-            <button type="submit" class="btn btn--primary btn--block" id="submitBtn">Отправить заявку</button>
+              <div class="builder-section">
+                <div class="builder-section__title">3. Контакты</div>
+                <label class="field">
+                  <span class="field__label">Имя *</span>
+                  <input class="input" name="name" type="text" required placeholder="Анна">
+                </label>
+                <label class="field">
+                  <span class="field__label">Телефон *</span>
+                  <input class="input" name="phone" type="tel" required placeholder="+7 (___) ___-__-__">
+                </label>
+                <label class="field">
+                  <span class="field__label">Комментарий</span>
+                  <textarea class="textarea" name="comment" rows="2" placeholder="Адрес, дата, домофон..."></textarea>
+                </label>
+              </div>
 
-            <p style="font-size:12px;color:var(--cream-dim);text-align:center;margin-top:14px">
-              Заявка не обязывает к оплате. Флорист перезвонит для уточнения деталей и итоговой цены.
-            </p>
-          </form>
+              <button type="submit" class="btn btn--primary btn--block" id="submitBtn">Отправить заявку</button>
+              <p style="font-size:12px;color:var(--cream-dim);text-align:center;margin-top:14px">
+                Заявка не обязывает к оплате. Флорист перезвонит для уточнения деталей.
+              </p>
+            </form>
 
-          <aside class="builder-side">
-            <h3 style="font-family:'Cormorant Garamond',serif;font-size:28px;margin-bottom:16px">Как это работает</h3>
-            <ol class="builder-steps">
-              <li><b>Заявка</b><br>Заполните форму — что и когда нужно</li>
-              <li><b>Звонок</b><br>Флорист свяжется через 15 минут в рабочее время</li>
-              <li><b>Согласование</b><br>Пришлём фото собранного букета до отправки</li>
-              <li><b>Доставка</b><br>Курьером по Белгороду за 30 минут</li>
-            </ol>
-
-            <div class="builder-note">
-              <div style="font-size:20px;margin-bottom:8px">💐</div>
-              <div style="font-size:14px;color:var(--cream)">Собираем букеты вручную от <b>1 500 ₽</b>. Всегда свежие цветы прямо с оптовой базы.</div>
-            </div>
-          </aside>
+            <aside class="builder-side">
+              <h3 style="font-family:'Cormorant Garamond',serif;font-size:26px;margin-bottom:16px">Как это работает</h3>
+              <ol class="builder-steps">
+                <li><b>Заявка</b><br>Заполните форму — что и когда нужно</li>
+                <li><b>Звонок</b><br>Флорист свяжется в течение 15 минут</li>
+                <li><b>Согласование</b><br>Пришлём фото букета до отправки</li>
+                <li><b>Доставка</b><br>Курьером по Белгороду за 30 минут</li>
+              </ol>
+            </aside>
+          </div>
         </div>
+
       </div>
     </section>
   </main>
@@ -264,7 +279,17 @@
   <div class="petals" id="petals"></div>
 
   <script>
-    /* Chip выбор — single для occasion/style/delivery, multi для colors */
+    /* ==================== Табы ==================== */
+    document.querySelectorAll('.build-tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.build-tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.build-tabpanel').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+      });
+    });
+
+    /* ==================== ЗАЯВКА ==================== */
     function wireChipsSingle(rootSel, hiddenName) {
       const root = document.querySelector(rootSel);
       const hidden = document.querySelector(`[name="${hiddenName}"]`);
@@ -273,9 +298,6 @@
           root.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
           c.classList.add('active');
           if (hidden) hidden.value = c.dataset.val;
-          if (hiddenName === 'delivery') {
-            document.getElementById('addressField').style.display = c.dataset.val === 'pickup' ? 'none' : '';
-          }
         });
       });
     }
@@ -291,47 +313,232 @@
     }
     wireChipsSingle('#occChips', 'occasion');
     wireChipsSingle('#styleChips', 'style');
-    wireChipsSingle('#delChips', 'delivery');
     wireChipsMulti('#colorChips', 'colors');
 
-    /* Budget slider */
     const bRange = document.getElementById('budgetRange');
     const bVal = document.getElementById('budgetVal');
     const money = n => Number(n).toLocaleString('ru-RU') + ' ₽';
     bRange.addEventListener('input', () => bVal.textContent = money(bRange.value));
     bVal.textContent = money(bRange.value);
 
-    /* Дата по умолчанию — завтра */
-    const dateInp = document.querySelector('[name="date"]');
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-    dateInp.value = tomorrow.toISOString().slice(0, 10);
-
-    /* Submit */
-    const form = document.getElementById('builderForm');
-    form.addEventListener('submit', async (e) => {
+    document.getElementById('builderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const form = e.target;
       const btn = document.getElementById('submitBtn');
-      const fd = new FormData(form);
-      const body = Object.fromEntries(fd.entries());
+      const body = Object.fromEntries(new FormData(form).entries());
       if (!body.name || !body.phone || !body.description) {
-        alert('Заполните имя, телефон и описание букета'); return;
+        alert('Заполните имя, телефон и описание'); return;
       }
       btn.disabled = true; btn.textContent = 'Отправляем...';
       try {
         const r = await fetch('/api/orders/request', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || 'Ошибка отправки');
-        sessionStorage.setItem('iva_request_ok', '1');
         window.location.href = 'success.html?type=request';
       } catch (err) {
         btn.disabled = false; btn.textContent = 'Отправить заявку';
         alert('Ошибка: ' + err.message);
       }
     });
+
+    /* ==================== СОБРАТЬ САМОМУ ==================== */
+    const state = {
+      stems: [], wraps: [], ribbons: [],
+      selectedStems: {}, // { id: {product, qty} }
+      wrapId: null, ribbonId: null,
+      activeCat: 'Все', query: '',
+    };
+
+    async function loadCatalog() {
+      const grab = (url) => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []);
+      const [stems, wraps, ribbons] = await Promise.all([
+        grab('/api/products/stems'),
+        grab('/api/products/wraps'),
+        grab('/api/products/ribbons'),
+      ]);
+      state.stems = stems || [];
+      state.wraps = wraps || [];
+      state.ribbons = ribbons || [];
+      renderCats();
+      renderStems();
+      renderWrapsRibbons();
+    }
+
+    function stemMatches(s) {
+      if (state.activeCat !== 'Все' && s.category !== state.activeCat) return false;
+      if (state.query && !s.title.toLowerCase().includes(state.query.toLowerCase())) return false;
+      return true;
+    }
+
+    function renderCats() {
+      const cats = ['Все', ...new Set(state.stems.map(s => s.category).filter(Boolean))];
+      document.getElementById('stemCats').innerHTML = cats.map(c =>
+        `<button type="button" class="chip ${c === state.activeCat ? 'active' : ''}" data-cat="${c}">${c}</button>`
+      ).join('');
+      document.querySelectorAll('#stemCats .chip').forEach(b => {
+        b.addEventListener('click', () => { state.activeCat = b.dataset.cat; renderCats(); renderStems(); });
+      });
+    }
+
+    function renderStems() {
+      const filtered = state.stems.filter(stemMatches);
+      const grid = document.getElementById('stemGrid');
+      if (!filtered.length) {
+        grid.innerHTML = '<div class="build-empty">Ничего не найдено</div>';
+        return;
+      }
+      grid.innerHTML = filtered.map(s => {
+        const qty = state.selectedStems[s.id]?.qty || 0;
+        return `
+          <div class="build-stem ${qty > 0 ? 'selected' : ''}" data-id="${s.id}">
+            <div class="build-stem__name">${escapeHtml(s.title)}</div>
+            <div class="build-stem__price">${money(s.price)}</div>
+            <div class="build-stem__ctrl">
+              ${qty > 0 ? `
+                <button type="button" class="qbtn js-minus" data-id="${s.id}">−</button>
+                <span class="qval">${qty}</span>
+                <button type="button" class="qbtn js-plus" data-id="${s.id}">+</button>
+              ` : `
+                <button type="button" class="qbtn qbtn--add js-plus" data-id="${s.id}">+ Добавить</button>
+              `}
+            </div>
+          </div>`;
+      }).join('');
+      grid.querySelectorAll('.js-plus').forEach(b => b.addEventListener('click', () => changeStem(b.dataset.id, +1)));
+      grid.querySelectorAll('.js-minus').forEach(b => b.addEventListener('click', () => changeStem(b.dataset.id, -1)));
+    }
+
+    function renderWrapsRibbons() {
+      const wrapBlock = document.getElementById('wrapsBlock');
+      if (state.wraps.length) {
+        wrapBlock.style.display = '';
+        document.getElementById('wrapGrid').innerHTML = state.wraps.map(w => `
+          <button type="button" class="build-wrap ${state.wrapId === w.id ? 'selected' : ''}" data-id="${w.id}">
+            <div class="build-wrap__name">${escapeHtml(w.title)}</div>
+            <div class="build-wrap__price">+ ${money(w.price)}</div>
+          </button>`).join('');
+        document.querySelectorAll('#wrapGrid .build-wrap').forEach(b => {
+          b.addEventListener('click', () => {
+            state.wrapId = state.wrapId === b.dataset.id ? null : b.dataset.id;
+            renderWrapsRibbons();
+            renderComposition();
+          });
+        });
+      }
+      const ribBlock = document.getElementById('ribbonsBlock');
+      if (state.ribbons.length) {
+        ribBlock.style.display = '';
+        document.getElementById('ribbonGrid').innerHTML = state.ribbons.map(w => `
+          <button type="button" class="build-wrap ${state.ribbonId === w.id ? 'selected' : ''}" data-id="${w.id}">
+            <div class="build-wrap__name">${escapeHtml(w.title)}</div>
+            <div class="build-wrap__price">+ ${money(w.price)}</div>
+          </button>`).join('');
+        document.querySelectorAll('#ribbonGrid .build-wrap').forEach(b => {
+          b.addEventListener('click', () => {
+            state.ribbonId = state.ribbonId === b.dataset.id ? null : b.dataset.id;
+            renderWrapsRibbons();
+            renderComposition();
+          });
+        });
+      }
+    }
+
+    function changeStem(id, delta) {
+      const s = state.stems.find(x => x.id === id);
+      if (!s) return;
+      const cur = state.selectedStems[id]?.qty || 0;
+      const next = Math.max(0, cur + delta);
+      if (next === 0) delete state.selectedStems[id];
+      else state.selectedStems[id] = { product: s, qty: next };
+      renderStems();
+      renderComposition();
+    }
+
+    function renderComposition() {
+      const comp = document.getElementById('composition');
+      const summary = document.getElementById('buildSummary');
+      const entries = Object.values(state.selectedStems);
+      if (!entries.length) {
+        comp.innerHTML = '<div class="build-empty">Пока пусто — добавьте цветы</div>';
+        summary.style.display = 'none';
+        return;
+      }
+      comp.innerHTML = entries.map(({ product, qty }) => `
+        <div class="build-comp-row">
+          <div class="build-comp-row__name">${escapeHtml(product.title)}</div>
+          <div class="build-comp-row__ctrl">
+            <button type="button" class="qbtn qbtn--sm js-cminus" data-id="${product.id}">−</button>
+            <span class="qval">${qty}</span>
+            <button type="button" class="qbtn qbtn--sm js-cplus" data-id="${product.id}">+</button>
+          </div>
+          <div class="build-comp-row__sum">${money(product.price * qty)}</div>
+        </div>`).join('');
+      comp.querySelectorAll('.js-cplus').forEach(b => b.addEventListener('click', () => changeStem(b.dataset.id, +1)));
+      comp.querySelectorAll('.js-cminus').forEach(b => b.addEventListener('click', () => changeStem(b.dataset.id, -1)));
+
+      const stemsSum = entries.reduce((s, e) => s + e.product.price * e.qty, 0);
+      const wrap = state.wrapId ? state.wraps.find(w => w.id === state.wrapId) : null;
+      const rib = state.ribbonId ? state.ribbons.find(w => w.id === state.ribbonId) : null;
+      const total = stemsSum + (wrap?.price || 0) + (rib?.price || 0);
+      summary.style.display = '';
+      document.getElementById('sumStems').textContent = money(stemsSum);
+      document.getElementById('sumWrapRow').style.display = wrap ? '' : 'none';
+      if (wrap) { document.getElementById('sumWrapName').textContent = wrap.title; document.getElementById('sumWrap').textContent = money(wrap.price); }
+      document.getElementById('sumRibbonRow').style.display = rib ? '' : 'none';
+      if (rib) { document.getElementById('sumRibbonName').textContent = rib.title; document.getElementById('sumRibbon').textContent = money(rib.price); }
+      document.getElementById('sumTotal').textContent = money(total);
+    }
+
+    document.getElementById('addBuildToCart').addEventListener('click', () => {
+      const entries = Object.values(state.selectedStems);
+      if (!entries.length) { alert('Добавьте хотя бы один цветок'); return; }
+      const wrap = state.wrapId ? state.wraps.find(w => w.id === state.wrapId) : null;
+      const rib = state.ribbonId ? state.ribbons.find(w => w.id === state.ribbonId) : null;
+      const note = document.getElementById('stemNote').value.trim();
+      const stemsSum = entries.reduce((s, e) => s + e.product.price * e.qty, 0);
+      const total = stemsSum + (wrap?.price || 0) + (rib?.price || 0);
+      const itemsList = entries.map(e => ({ id: e.product.id, title: e.product.title, price: e.product.price, qty: e.qty }));
+      if (wrap) itemsList.push({ id: wrap.id, title: 'Упаковка: ' + wrap.title, price: wrap.price, qty: 1 });
+      if (rib) itemsList.push({ id: rib.id, title: 'Лента: ' + rib.title, price: rib.price, qty: 1 });
+
+      /* уникальный id для позиции корзины (каждая сборка отдельная) */
+      const cartId = 'custom:' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+      const name = 'Свой букет · ' + entries.map(e => `${e.product.title} ×${e.qty}`).slice(0, 2).join(', ') + (entries.length > 2 ? ` +${entries.length - 2}` : '');
+
+      /* используем cartsystem из site/app.js — там доступна window.__ivaAddCustom (см. дальше) */
+      const cart = JSON.parse(localStorage.getItem('iva_cart') || '[]');
+      cart.push({
+        id: cartId,
+        name: name.slice(0, 100),
+        price: total,
+        img: null,
+        qty: 1,
+        custom: {
+          price: total,
+          items: itemsList,
+          wrap: wrap ? { id: wrap.id, title: wrap.title, price: wrap.price } : null,
+          ribbon: rib ? { id: rib.id, title: rib.title, price: rib.price } : null,
+          note: note || null,
+        },
+      });
+      localStorage.setItem('iva_cart', JSON.stringify(cart));
+
+      /* Обновляем бэдж и открываем корзину */
+      const badge = document.getElementById('cartCount');
+      const n = cart.reduce((s, i) => s + (i.qty || 1), 0);
+      if (badge) { badge.textContent = n; badge.classList.toggle('visible', n > 0); }
+      /* дергаем cartBtn — там свой рендер */
+      document.getElementById('cartBtn').click();
+    });
+
+    function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    /* Поиск и загрузка */
+    document.getElementById('stemSearch').addEventListener('input', e => { state.query = e.target.value; renderStems(); });
+    loadCatalog();
   </script>
   <script src="app.js"></script>
 </body>

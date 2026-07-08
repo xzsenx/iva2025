@@ -463,7 +463,7 @@ const renderCheckout = () => {
       date: form.date.value,
       time: form.time.value,
       comment: form.comment.value.trim(),
-      items: cartNow.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
+      items: cartNow.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty, ...(i.custom ? { custom: i.custom } : {}) })),
       total,
     };
 

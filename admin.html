@@ -2016,6 +2016,17 @@ function renderOrderCard(o) {
         ${o.posiflora_order_id ? `<div style="color:var(--cream-dim)">Posiflora</div><div style="font-family:monospace;font-size:11px;color:#9ec999">${escapeHtml(o.posiflora_order_id)}</div>` : ''}
         ${isCancelled && o.cancel_reason ? `<div style="color:var(--cream-dim)">Причина</div><div style="color:#e8a0a0">${escapeHtml(o.cancel_reason)}</div>` : ''}
       </div>
+      ${o.is_gift ? `
+        <div style="background:rgba(201,164,160,.08);border:1px solid rgba(201,164,160,.25);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--pink);font-weight:700;letter-spacing:1px;margin-bottom:6px">🎁 ЗАКАЗ ДРУГОМУ ЧЕЛОВЕКУ</div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px">
+            ${o.recipient_name ? `<div style="color:var(--cream-dim)">Получатель</div><div>${escapeHtml(o.recipient_name)}</div>` : ''}
+            ${o.recipient_phone ? `<div style="color:var(--cream-dim)">Тел.</div><div><a href="tel:${escapeHtml(o.recipient_phone)}" style="color:var(--cream)">${escapeHtml(o.recipient_phone)}</a></div>` : ''}
+            ${o.ask_recipient_address ? `<div style="color:var(--cream-dim)">Адрес</div><div style="color:#e8b478">📍 Уточнить у получателя</div>` : ''}
+            ${o.is_surprise ? `<div style="color:var(--cream-dim)">Режим</div><div style="color:#e8b478">🤫 Сюрприз (не раскрывать заказчика)</div>` : ''}
+            ${o.card_message ? `<div style="color:var(--cream-dim)">Открытка</div><div style="font-style:italic">${escapeHtml(o.card_message)}</div>` : ''}
+          </div>
+        </div>` : ''}
       <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:10px;font-size:13px">${itemsHtml}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px">
         <strong style="color:var(--pink);font-size:18px">${(o.total_price||0).toLocaleString('ru-RU')} ₽</strong>

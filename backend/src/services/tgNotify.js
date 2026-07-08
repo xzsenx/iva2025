@@ -48,6 +48,16 @@ function formatOrder(order) {
     .filter(Boolean)
     .join(' ');
 
+  const giftLines = order.is_gift ? [
+    '',
+    `🎁 <b>Заказ другому</b>`,
+    order.recipient_name ? `Получатель: ${escapeHtml(order.recipient_name)}` : null,
+    order.recipient_phone ? `Тел. получателя: ${escapeHtml(order.recipient_phone)}` : null,
+    order.ask_recipient_address ? `📍 <b>Уточнить адрес у получателя</b>` : null,
+    order.is_surprise ? `🤫 Сюрприз — не раскрывать заказчика` : null,
+    order.card_message ? `📝 Открытка: <i>${escapeHtml(order.card_message)}</i>` : null,
+  ].filter(Boolean) : [];
+
   return [
     `🌸 <b>Новый заказ #${order.id}</b>`,
     '',
@@ -55,6 +65,7 @@ function formatOrder(order) {
     `📱 ${escapeHtml(order.customer_phone || '')}`,
     `${delivery}`,
     dateTime ? `📅 ${escapeHtml(dateTime)}` : null,
+    ...giftLines,
     '',
     `<b>Состав:</b>`,
     itemsLines || '— пусто —',

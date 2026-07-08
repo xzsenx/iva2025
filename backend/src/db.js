@@ -150,6 +150,12 @@ safeAlter(`ALTER TABLE sync_runs ADD COLUMN diff_json TEXT`);
 safeAlter(`ALTER TABLE sync_runs ADD COLUMN acknowledged_at TEXT`);
 safeAlter(`ALTER TABLE orders ADD COLUMN cancelled_at TEXT`);
 safeAlter(`ALTER TABLE orders ADD COLUMN cancel_reason TEXT`);
+safeAlter(`ALTER TABLE orders ADD COLUMN is_gift INTEGER DEFAULT 0`);
+safeAlter(`ALTER TABLE orders ADD COLUMN recipient_name TEXT`);
+safeAlter(`ALTER TABLE orders ADD COLUMN recipient_phone TEXT`);
+safeAlter(`ALTER TABLE orders ADD COLUMN card_message TEXT`);
+safeAlter(`ALTER TABLE orders ADD COLUMN is_surprise INTEGER DEFAULT 0`);
+safeAlter(`ALTER TABLE orders ADD COLUMN ask_recipient_address INTEGER DEFAULT 0`);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS analytics_events (

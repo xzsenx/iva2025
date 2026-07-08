@@ -36,19 +36,35 @@ const r = Router();
 
 /** POST /api/orders — создать заказ + платёж в ЮKassa, вернуть confirmation_url */
 r.post('/', async (req, res) => {
-  const { name, phone, address, delivery, date, time, comment, items, total, email } = req.body || {};
+  const { name, phone, address, delivery, date, time, comment, items, total, email, gift } = req.body || {};
   if (!name || !phone || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'name, phone, items required' });
   }
   const totalNum = Number(total) || items.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0);
 
+  /* Обработка gift-заказа: если получатель уточняет адрес — храним пометку */
+  const g = gift || {};
+  const isGift = g.enabled ? 1 : 0;
+  const askAddr = g.ask_recipient_address ? 1 : 0;
+  const finalAddress = (isGift && askAddr) ? 'Уточним у получателя' : (address || '');
+
   /* 1. Сохраняем заказ локально (со статусом pending) */
   const info = db.prepare(`
     INSERT INTO orders
-      (customer_name, customer_phone, customer_address, delivery_type, delivery_date, delivery_time, comment, total_price, items_json, status, payment_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')
-  `).run(name, phone, address || '', delivery || 'delivery', date || '', time || '',
-         comment || '', totalNum, JSON.stringify(items));
+      (customer_name, customer_phone, customer_address, delivery_type, delivery_date, delivery_time, comment, total_price, items_json, status, payment_status,
+       is_gift, recipient_name, recipient_phone, card_message, is_surprise, ask_recipient_address)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending',
+       ?, ?, ?, ?, ?, ?)
+  `).run(
+    name, phone, finalAddress, delivery || 'delivery', date || '', time || '',
+    comment || '', totalNum, JSON.stringify(items),
+    isGift,
+    isGift ? (g.recipient_name || '') : null,
+    isGift ? (g.recipient_phone || '') : null,
+    isGift ? (g.card_message || '') : null,
+    isGift && g.is_surprise ? 1 : 0,
+    askAddr,
+  );
   const orderId = info.lastInsertRowid;
 
   /* 2. Создаём платёж в ЮKassa */

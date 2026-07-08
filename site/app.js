@@ -381,6 +381,55 @@ const renderCheckout = () => {
           <input class="input" name="address" type="text" placeholder="ул. Попова 23, кв. 5">
         </label>
 
+        <div class="field toggle-row">
+          <label class="toggle-lbl">
+            <input type="checkbox" name="is_gift" id="chkGift">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-text">
+              <b>Заказ другому человеку</b>
+              <small>Букет получит не заказчик</small>
+            </span>
+          </label>
+        </div>
+
+        <div id="giftBlock" class="gift-block" style="display:none">
+          <label class="field">
+            <span class="field__label">Имя получателя</span>
+            <input class="input" name="recipient_name" type="text" placeholder="Мария">
+          </label>
+          <label class="field">
+            <span class="field__label">Телефон получателя</span>
+            <input class="input" name="recipient_phone" type="tel" placeholder="+7 (___) ___-__-__">
+          </label>
+
+          <div class="field toggle-row">
+            <label class="toggle-lbl">
+              <input type="checkbox" name="ask_recipient_address" id="chkAskAddr">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span class="toggle-text">
+                <b>Уточнить адрес у получателя</b>
+                <small>Курьер созвонится и заберёт адрес</small>
+              </span>
+            </label>
+          </div>
+
+          <div class="field toggle-row">
+            <label class="toggle-lbl">
+              <input type="checkbox" name="is_surprise" id="chkSurprise">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span class="toggle-text">
+                <b>Сюрприз</b>
+                <small>Не раскрывать имя заказчика получателю</small>
+              </span>
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field__label">Текст открытки</span>
+            <textarea class="textarea" name="card_message" placeholder="С Днём Рождения, любимая!" rows="3"></textarea>
+          </label>
+        </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <label class="field">
             <span class="field__label">Дата</span>
@@ -420,17 +469,25 @@ const renderCheckout = () => {
   `;
 
   const radios = root.querySelectorAll('[data-radio]');
-  const syncRadios = () => {
+  const syncUI = () => {
     radios.forEach(r => {
       const chip = r.parentElement.querySelector('.chip');
       chip.classList.toggle('active', r.checked);
     });
     const addr = root.querySelector('#addrField');
     const isDelivery = root.querySelector('[value="delivery"]').checked;
-    if (addr) addr.style.display = isDelivery ? 'flex' : 'none';
+    const isGift = root.querySelector('#chkGift')?.checked;
+    const askAddr = root.querySelector('#chkAskAddr')?.checked;
+    /* Адрес виден: доставка + (не подарок ИЛИ не «уточним у получателя») */
+    const showAddr = isDelivery && !(isGift && askAddr);
+    if (addr) addr.style.display = showAddr ? 'flex' : 'none';
+    /* Gift-блок */
+    root.querySelector('#giftBlock').style.display = isGift ? 'block' : 'none';
   };
-  radios.forEach(r => r.addEventListener('change', syncRadios));
-  syncRadios();
+  radios.forEach(r => r.addEventListener('change', syncUI));
+  root.querySelector('#chkGift')?.addEventListener('change', syncUI);
+  root.querySelector('#chkAskAddr')?.addEventListener('change', syncUI);
+  syncUI();
 
   root.querySelector('#checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -454,6 +511,26 @@ const renderCheckout = () => {
 
     const cartNow = loadCart();
     const total = cartNow.reduce((s, i) => s + i.qty * i.price, 0);
+    const isGift = form.querySelector('#chkGift')?.checked;
+    const askAddr = form.querySelector('#chkAskAddr')?.checked;
+    /* Валидация: если подарок и не «уточним у получателя» — нужен телефон получателя */
+    if (isGift && !askAddr) {
+      const rp = form.querySelector('[name="recipient_phone"]');
+      if (rp && !rp.value.trim()) {
+        rp.closest('.field').classList.add('is-error');
+        toast('Введите телефон получателя');
+        btn.disabled = false; btn.textContent = 'Перейти к оплате';
+        return;
+      }
+    }
+    const gift = isGift ? {
+      enabled: true,
+      recipient_name: form.recipient_name.value.trim(),
+      recipient_phone: form.recipient_phone.value.trim(),
+      ask_recipient_address: askAddr,
+      is_surprise: form.querySelector('#chkSurprise')?.checked || false,
+      card_message: form.card_message.value.trim(),
+    } : undefined;
     const payload = {
       name: form.name.value.trim(),
       phone: form.phone.value.trim(),
@@ -465,6 +542,7 @@ const renderCheckout = () => {
       comment: form.comment.value.trim(),
       items: cartNow.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty, ...(i.custom ? { custom: i.custom } : {}) })),
       total,
+      gift,
     };
 
     track('begin_checkout', { total, items_count: cartNow.length });

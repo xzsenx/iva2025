@@ -101,6 +101,35 @@ r.post('/', async (req, res) => {
   }
 });
 
+/** Заявка на сборку букета (без оплаты) — с формы builder.html
+    Сохраняем как заказ со статусом new_request, шлём уведомление в TG. */
+r.post('/request', async (req, res) => {
+  const { name, phone, address, delivery, date, time, budget, description, occasion, style, colors, comment } = req.body || {};
+  if (!name || !phone || !description) {
+    return res.status(400).json({ error: 'name/phone/description required' });
+  }
+  const items = [{
+    name: 'Собрать букет — заявка',
+    qty: 1,
+    price: Number(budget) || 0,
+    request: { budget, description, occasion, style, colors },
+  }];
+  const info = db.prepare(`
+    INSERT INTO orders
+      (customer_name, customer_phone, customer_address, delivery_type, delivery_date, delivery_time, comment, total_price, items_json, status, payment_status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'new_request', 'no_payment')
+  `).run(
+    name, phone, address || '', delivery || 'delivery',
+    date || '', time || '',
+    [description, occasion && `Повод: ${occasion}`, style && `Стиль: ${style}`, colors && `Цвета: ${colors}`, comment].filter(Boolean).join('\n'),
+    Number(budget) || 0,
+    JSON.stringify(items),
+  );
+  const orderId = info.lastInsertRowid;
+  notifyOrderSafely(orderId);
+  res.json({ ok: true, id: orderId });
+});
+
 /** Webhook от ЮKassa — приходит после оплаты */
 r.post('/webhook', async (req, res) => {
   const event = req.body;

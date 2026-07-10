@@ -1276,3 +1276,117 @@ p  { color: var(--cream-dim); }
   }
   .petal { display: none; }
 }
+
+/* ============================================================
+   Motion & Polish — микровзаимодействия, reveal, entrance
+   ============================================================ */
+
+::selection { background: var(--pink); color: #fff; }
+
+/* Тонкий фирменный скроллбар */
+html { scrollbar-width: thin; scrollbar-color: rgba(201,164,160,.45) transparent; }
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: rgba(201,164,160,.35); border-radius: 5px; border: 2px solid var(--bg-dark); }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,164,160,.6); }
+
+/* Шапка: плавное уплотнение при скролле */
+.site-header { transition: background .35s ease, box-shadow .35s ease; }
+.site-header.scrolled {
+  background: rgba(47, 62, 59, .92);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+}
+.logo__img { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+.logo:hover .logo__img { transform: scale(1.04) rotate(-1.5deg); }
+
+/* Nav: подчёркивание растёт из центра */
+.nav a::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: var(--pink);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+}
+.nav a:hover::before { transform: scaleX(1); }
+.nav a.active::before { display: none; }
+
+/* Primary-кнопка: пробегающий блик */
+.btn--primary { position: relative; overflow: hidden; }
+.btn--primary::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -80%;
+  width: 50%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,.28), transparent);
+  transform: skewX(-20deg);
+  transition: left .6s ease;
+  pointer-events: none;
+}
+.btn--primary:hover::after { left: 130%; }
+.btn:active { transform: translateY(0) scale(.97); }
+
+/* Бейдж корзины: пружинка при добавлении */
+@keyframes badge-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.45); }
+  100% { transform: scale(1); }
+}
+.cart-btn__count.bump { animation: badge-bump .4s cubic-bezier(.34,1.56,.64,1); }
+
+/* Заголовки секций: веточка-разделитель */
+.section-title::after {
+  content: '';
+  display: block;
+  width: 56px; height: 1px;
+  margin: 18px auto 0;
+  background: linear-gradient(90deg, transparent, var(--pink), transparent);
+  position: relative;
+}
+
+/* Карточки: тёплый градиент поверх фото на ховере */
+.card__media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(47,62,59,.35));
+  opacity: 0;
+  transition: opacity .4s ease;
+  pointer-events: none;
+}
+.card:hover .card__media::after { opacity: 1; }
+
+/* Футер: ссылки едут вправо */
+.footer-col ul a { display: inline-block; transition: transform .25s ease, color .25s ease; }
+.footer-col ul a:hover { transform: translateX(4px); }
+
+/* Hero badge: лёгкое покачивание */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes badge-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .hero__badge { animation: badge-float 5s ease-in-out infinite; }
+
+  /* Hero: каскадное появление при загрузке */
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(22px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero .eyebrow     { animation: rise-in .6s cubic-bezier(.2,.7,.3,1) both; }
+  .hero__title       { animation: rise-in .7s cubic-bezier(.2,.7,.3,1) .08s both; }
+  .hero__text        { animation: rise-in .7s cubic-bezier(.2,.7,.3,1) .16s both; }
+  .hero__cta         { animation: rise-in .7s cubic-bezier(.2,.7,.3,1) .24s both; }
+  .hero__image       { animation: rise-in .9s cubic-bezier(.2,.7,.3,1) .12s both; }
+
+  /* Reveal при скролле */
+  [data-rv] {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity .7s cubic-bezier(.2,.7,.3,1), transform .7s cubic-bezier(.2,.7,.3,1);
+    transition-delay: var(--rvd, 0s);
+  }
+  [data-rv].rv-in { opacity: 1; transform: translateY(0); }
+}

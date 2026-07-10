@@ -61,8 +61,14 @@ const updateCartBadge = () => {
   const n = cartCount();
   const el = document.getElementById('cartCount');
   if (!el) return;
+  const prev = Number(el.textContent) || 0;
   el.textContent = n;
   el.classList.toggle('visible', n > 0);
+  if (n > prev) {
+    el.classList.remove('bump');
+    void el.offsetWidth; /* рестарт анимации */
+    el.classList.add('bump');
+  }
 };
 
 const addToCart = (product) => {
@@ -687,6 +693,71 @@ const wireCart = () => {
   });
 };
 
+/* ── Motion: reveal при скролле + счётчики + шапка ── */
+const REVEAL_SEL = '.card, .stat, .section-title, .section-sub, .about__img, .about__text, .about__feature, .footer-col, .review, .contact-row, .build-stem';
+
+let revealIO = null;
+let revealIOAlive = false; /* IO шлёт initial-entries сразу после observe — если тишина, он сломан */
+
+const animateStat = (el) => {
+  const raw = el.textContent.trim();
+  const m = raw.match(/^([\d.,]+)(.*)$/);
+  if (!m) return;
+  const target = parseFloat(m[1].replace(',', '.'));
+  const suffix = m[2] || '';
+  const decimals = m[1].includes('.') || m[1].includes(',') ? 1 : 0;
+  const dur = 1200;
+  const t0 = performance.now();
+  const tick = (t) => {
+    const p = Math.min(1, (t - t0) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = (target * eased).toFixed(decimals) + suffix;
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+};
+
+const revealScan = () => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!revealIO) {
+    revealIO = new IntersectionObserver((entries) => {
+      revealIOAlive = true;
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        e.target.classList.add('rv-in');
+        const num = e.target.querySelector?.('.stat__num');
+        if (num && !num.dataset.counted) {
+          num.dataset.counted = '1';
+          animateStat(num);
+        }
+        revealIO.unobserve(e.target);
+      }
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+  }
+  document.querySelectorAll(REVEAL_SEL).forEach((el) => {
+    if (el.dataset.rv !== undefined) return;
+    /* Не прячем то, что уже в кадре при загрузке — без мигания */
+    const idx = [...el.parentElement.children].indexOf(el);
+    el.dataset.rv = '';
+    el.style.setProperty('--rvd', Math.min(idx * 70, 420) + 'ms');
+    revealIO.observe(el);
+  });
+  /* Страховка: IO не отозвался за 1.2с → показываем всё, включая счётчики */
+  setTimeout(() => {
+    if (revealIOAlive) return;
+    document.querySelectorAll('[data-rv]:not(.rv-in)').forEach((el) => el.classList.add('rv-in'));
+    document.querySelectorAll('.stat__num:not([data-counted])').forEach((el) => { el.dataset.counted = '1'; });
+  }, 1200);
+};
+
+const wireHeaderScroll = () => {
+  const header = document.querySelector('.site-header');
+  if (!header) return;
+  const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 12);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+};
+
 /* ── Boot ── */
 const loadProducts = async () => {
   const tryFetch = async (path) => {
@@ -853,4 +924,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderProduct();
   renderCheckout();
   renderSuccess();
+  wireHeaderScroll();
+  revealScan();
 });

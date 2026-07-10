@@ -119,7 +119,7 @@ p  { color: var(--cream-dim); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 0;
+  padding: 2px 0;
   gap: 24px;
 }
 .logo {
@@ -129,8 +129,8 @@ p  { color: var(--cream-dim); }
   color: var(--cream);
 }
 .logo__icon { color: var(--pink); flex-shrink: 0; }
-.logo__img { height: 72px; width: auto; display: block; flex-shrink: 0; }
-.logo__img--sm { height: 56px; }
+.logo__img { height: 88px; width: auto; display: block; flex-shrink: 0; }
+.logo__img--sm { height: 68px; }
 .logo__text {
   font-family: var(--font-serif);
   font-size: 26px;

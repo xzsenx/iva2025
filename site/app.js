@@ -376,11 +376,6 @@ const renderCheckout = () => {
           </div>
         </div>
 
-        <label class="field" id="addrField">
-          <span class="field__label">Адрес</span>
-          <input class="input" name="address" type="text" placeholder="ул. Попова 23, кв. 5">
-        </label>
-
         <div class="field toggle-row">
           <label class="toggle-lbl">
             <input type="checkbox" name="is_gift" id="chkGift">
@@ -392,7 +387,16 @@ const renderCheckout = () => {
           </label>
         </div>
 
+        <label class="field" id="addrField">
+          <span class="field__label" id="addrLabel">Адрес доставки</span>
+          <input class="input" name="address" type="text" placeholder="ул. Попова 23, кв. 5">
+        </label>
+
         <div id="giftBlock" class="gift-block" style="display:none">
+          <div class="gift-block__head">
+            <span class="gift-block__title">Для получателя</span>
+            <span class="gift-block__sub">Кому и что доставить</span>
+          </div>
           <label class="field">
             <span class="field__label">Имя получателя</span>
             <input class="input" name="recipient_name" type="text" placeholder="Мария">
@@ -419,7 +423,7 @@ const renderCheckout = () => {
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
               <span class="toggle-text">
                 <b>Сюрприз</b>
-                <small>Не раскрывать имя заказчика получателю</small>
+                <small>Не раскрывать заказчика получателю</small>
               </span>
             </label>
           </div>
@@ -475,12 +479,17 @@ const renderCheckout = () => {
       chip.classList.toggle('active', r.checked);
     });
     const addr = root.querySelector('#addrField');
+    const addrLabel = root.querySelector('#addrLabel');
+    const addrInput = root.querySelector('[name="address"]');
     const isDelivery = root.querySelector('[value="delivery"]').checked;
     const isGift = root.querySelector('#chkGift')?.checked;
     const askAddr = root.querySelector('#chkAskAddr')?.checked;
     /* Адрес виден: доставка + (не подарок ИЛИ не «уточним у получателя») */
     const showAddr = isDelivery && !(isGift && askAddr);
     if (addr) addr.style.display = showAddr ? 'flex' : 'none';
+    /* Смена подписи: «Адрес доставки» → «Адрес получателя» когда подарок */
+    if (addrLabel) addrLabel.textContent = isGift ? 'Адрес получателя' : 'Адрес доставки';
+    if (addrInput) addrInput.placeholder = isGift ? 'Куда доставить букет' : 'ул. Попова 23, кв. 5';
     /* Gift-блок */
     root.querySelector('#giftBlock').style.display = isGift ? 'block' : 'none';
   };

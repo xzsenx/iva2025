@@ -2,12 +2,22 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#2f4a3a">
   <title>ИВА — Цветочная студия в Белгороде</title>
   <meta name="description" content="Авторские букеты, доставка по Белгороду в день заказа. Минимализм, эстетика, премиальные цветы.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ИВА — Цветочная студия в Белгороде">
+  <meta property="og:description" content="Авторские букеты, доставка в день заказа. Минимализм и премиальные цветы.">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=1200&q=80&fm=webp">
+  <meta name="twitter:card" content="summary_large_image">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+  <link rel="preload" as="image" href="https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=900&q=80&fm=webp" fetchpriority="high">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -70,7 +80,7 @@
             </div>
           </div>
           <div class="hero__image">
-            <img src="https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=900&q=80" alt="Букет ИВА">
+            <img src="https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=900&q=80&fm=webp" alt="Букет ИВА" width="720" height="900" fetchpriority="high" decoding="async">
             <div class="hero__badge">
               <strong>от 1 800 ₽</strong>
               Доставка от 30 минут
@@ -108,7 +118,7 @@
       <div class="container">
         <div class="about">
           <div class="about__img">
-            <img src="https://images.unsplash.com/photo-1563241527-3004b7be0ffd?w=900&q=80" alt="Студия ИВА">
+            <img src="https://images.unsplash.com/photo-1563241527-3004b7be0ffd?w=900&q=80&fm=webp" alt="Студия ИВА" width="720" height="720" loading="lazy" decoding="async">
           </div>
           <div class="about__text">
             <span class="eyebrow">О студии</span>
@@ -240,6 +250,6 @@
   <!-- Petals -->
   <div class="petals" id="petals"></div>
 
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import cron from 'node-cron';
 import path from 'node:path';
@@ -17,7 +18,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 // За HTTPS-прокси Railway — без этого req.protocol = http и absolute-URL ломались
 app.set('trust proxy', 1);
+app.use(compression());
 app.use(express.json({ limit: '1mb' }));
+
+/* Кеш-заголовки для статики:
+   HTML — no-cache (браузер всегда сверяется, чтоб деплой сразу видел клиент)
+   CSS/JS/картинки — 1 час с revalidate (нет хешей в именах — короче нельзя) */
+function staticCacheHeaders(res, filePath) {
+  if (filePath.endsWith('.html')) {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  } else if (/\.(css|js|png|jpe?g|webp|avif|svg|ico|woff2?)$/i.test(filePath)) {
+    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+  }
+}
 
 const origins = (process.env.CORS_ORIGINS || '*').split(',').map(s => s.trim());
 app.use(cors({
@@ -55,8 +68,8 @@ const SITE_DIR = process.env.SITE_DIR || path.join(__dirname, '..', '..', 'site'
 /* TG mini-app (iva2025 root: index.html, app.js, data.js, style.css, admin.*) — под /app */
 const APP_DIR = process.env.APP_DIR || path.join(__dirname, '..', '..');
 
-app.use('/app', express.static(APP_DIR, { extensions: ['html'] }));
-app.use(express.static(SITE_DIR, { extensions: ['html'] }));
+app.use('/app', express.static(APP_DIR, { extensions: ['html'], setHeaders: staticCacheHeaders }));
+app.use(express.static(SITE_DIR, { extensions: ['html'], setHeaders: staticCacheHeaders }));
 
 const PORT = Number(process.env.PORT) || 3001;
 const server = app.listen(PORT, '0.0.0.0', () => {

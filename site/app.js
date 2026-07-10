@@ -176,7 +176,7 @@ const productCard = (p) => {
     <article class="card">
       <a href="product.html?id=${idEnc}" class="card__media" aria-label="${name}">
         ${badge}
-        <img src="${img}" alt="${name}" loading="lazy" onerror="this.src='${PLACEHOLDER_IMG}'">
+        <img src="${img}" alt="${name}" loading="lazy" decoding="async" width="600" height="600" onerror="this.src='${PLACEHOLDER_IMG}'">
       </a>
       <div class="card__body">
         <div class="card__cat">${cat}</div>
@@ -287,7 +287,7 @@ const renderProduct = () => {
   const img = p.img || PLACEHOLDER_IMG;
   root.innerHTML = `
     <div class="product-detail">
-      <div class="product-detail__img"><img src="${img}" alt="${name}" onerror="this.src='${PLACEHOLDER_IMG}'"></div>
+      <div class="product-detail__img"><img src="${img}" alt="${name}" width="720" height="720" fetchpriority="high" decoding="async" onerror="this.src='${PLACEHOLDER_IMG}'"></div>
       <div>
         ${badge}
         <div class="product-detail__cat">${CATEGORIES[p.category] || ''}</div>

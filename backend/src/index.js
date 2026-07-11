@@ -22,13 +22,15 @@ app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 
 /* Кеш-заголовки для статики:
-   HTML — no-cache (браузер всегда сверяется, чтоб деплой сразу видел клиент)
-   CSS/JS/картинки — 1 час с revalidate (нет хешей в именах — короче нельзя) */
+   HTML/CSS/JS — no-cache: браузер ЕТаг-сверяется на каждый запрос
+   (важно т.к. в именах нет хешей — иначе клиенты залипают на старой версии
+   после деплоя до истечения TTL).
+   Картинки/шрифты — 1 день (редко меняются). */
 function staticCacheHeaders(res, filePath) {
-  if (filePath.endsWith('.html')) {
+  if (/\.(html|css|js)$/i.test(filePath)) {
     res.setHeader('Cache-Control', 'no-cache, must-revalidate');
-  } else if (/\.(css|js|png|jpe?g|webp|avif|svg|ico|woff2?)$/i.test(filePath)) {
-    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+  } else if (/\.(png|jpe?g|webp|avif|svg|ico|woff2?)$/i.test(filePath)) {
+    res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
   }
 }
 

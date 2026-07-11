@@ -59,7 +59,7 @@
         <div id="tab-pick" class="build-tabpanel active">
           <div class="build-grid">
             <div class="build-main">
-              <input class="input build-search" id="stemSearch" placeholder="🔍 Поиск цветка..." autocomplete="off">
+              <input class="input build-search" id="stemSearch" placeholder="Поиск цветка" autocomplete="off">
               <div class="build-cats" id="stemCats"></div>
               <div id="stemGrid" class="build-stems">
                 <div class="loading">Загружаем цветы...</div>
@@ -243,7 +243,7 @@
           <ul>
             <li><a href="tel:+79300890989">+7 (930) 089-09-89</a></li>
             <li>Белгород, ул. Есенина, 9 к3</li>
-            <li>9:00 — 21:00</li>
+            <li>10:00 — 21:00</li>
           </ul>
         </div>
         <div class="footer-col">
@@ -277,6 +277,8 @@
   <div class="petals" id="petals"></div>
 
   <script>
+  /* IIFE: изолируем от app.js — одинаковые const ломали его загрузку */
+  (() => {
     /* ==================== Табы ==================== */
     document.querySelectorAll('.build-tab').forEach(t => {
       t.addEventListener('click', () => {
@@ -390,18 +392,25 @@
       }
       grid.innerHTML = filtered.map(s => {
         const qty = state.selectedStems[s.id]?.qty || 0;
+        const img = s.img || s.image || null;
+        const initial = escapeHtml((s.title || '?').trim().slice(0, 1).toUpperCase());
         return `
           <div class="build-stem ${qty > 0 ? 'selected' : ''}" data-id="${s.id}">
-            <div class="build-stem__name">${escapeHtml(s.title)}</div>
-            <div class="build-stem__price">${money(s.price)}</div>
-            <div class="build-stem__ctrl">
-              ${qty > 0 ? `
-                <button type="button" class="qbtn js-minus" data-id="${s.id}">−</button>
-                <span class="qval">${qty}</span>
-                <button type="button" class="qbtn js-plus" data-id="${s.id}">+</button>
-              ` : `
-                <button type="button" class="qbtn qbtn--add js-plus" data-id="${s.id}">+ Добавить</button>
-              `}
+            <div class="build-stem__media">
+              ${img ? `<img src="${escapeHtml(img)}" alt="${escapeHtml(s.title)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'build-stem__ph',textContent:'${initial}'}))">` : `<span class="build-stem__ph">${initial}</span>`}
+            </div>
+            <div class="build-stem__body">
+              <div class="build-stem__name">${escapeHtml(s.title)}</div>
+              <div class="build-stem__price">${money(s.price)}</div>
+              <div class="build-stem__ctrl">
+                ${qty > 0 ? `
+                  <button type="button" class="qbtn js-minus" data-id="${s.id}">−</button>
+                  <span class="qval">${qty}</span>
+                  <button type="button" class="qbtn js-plus" data-id="${s.id}">+</button>
+                ` : `
+                  <button type="button" class="qbtn qbtn--add js-plus" data-id="${s.id}">+ Добавить</button>
+                `}
+              </div>
             </div>
           </div>`;
       }).join('');
@@ -507,7 +516,7 @@
       const name = 'Свой букет · ' + entries.map(e => `${e.product.title} ×${e.qty}`).slice(0, 2).join(', ') + (entries.length > 2 ? ` +${entries.length - 2}` : '');
 
       /* используем cartsystem из site/app.js — там доступна window.__ivaAddCustom (см. дальше) */
-      const cart = JSON.parse(localStorage.getItem('iva_cart') || '[]');
+      const cart = JSON.parse(localStorage.getItem('iva_cart_v1') || '[]');
       cart.push({
         id: cartId,
         name: name.slice(0, 100),
@@ -522,14 +531,23 @@
           note: note || null,
         },
       });
-      localStorage.setItem('iva_cart', JSON.stringify(cart));
+      localStorage.setItem('iva_cart_v1', JSON.stringify(cart));
 
       /* Обновляем бэдж и открываем корзину */
       const badge = document.getElementById('cartCount');
       const n = cart.reduce((s, i) => s + (i.qty || 1), 0);
       if (badge) { badge.textContent = n; badge.classList.toggle('visible', n > 0); }
-      /* дергаем cartBtn — там свой рендер */
+      /* дергаем cartBtn — там свой рендер, чтобы «Оформить заказ» вёл на checkout */
       document.getElementById('cartBtn').click();
+
+      /* Сбрасываем сборку — иначе цветы висят выбранными, юзер путается */
+      state.selectedStems = {};
+      state.wrapId = null;
+      state.ribbonId = null;
+      document.getElementById('stemNote').value = '';
+      renderStems();
+      renderWrapsRibbons();
+      renderComposition();
     });
 
     function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -537,6 +555,7 @@
     /* Поиск и загрузка */
     document.getElementById('stemSearch').addEventListener('input', e => { state.query = e.target.value; renderStems(); });
     loadCatalog();
+  })();
   </script>
   <script src="app.js" defer></script>
 </body>

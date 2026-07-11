@@ -1221,12 +1221,18 @@ function renderCard(d) {
   if (currentTab === 'showcase') sub = (d.price || d.true_sale_amount || d.sale_amount || 0) + ' ₽ · ' + (d.on_window_at||'').slice(0,10);
   else if (currentTab === 'templates') sub = (d.min_price||0) + '–' + (d.max_price||0) + ' ₽ · ' + (d.status||'');
   else {
-    // Posiflora не отдаёт qty в API → показываем число если есть, иначе только категорию + цену
-    if (d.available != null && d.available > 0) {
-      subHTML = `${escapeHtml(d.category_title || '')} · <span style="color:#9ec999;font-weight:700">${d.available} шт</span> · до ${d.price_max||0} ₽`;
+    /* Единообразно показываем остаток: >0 — зелёным, 0 — красным «нет», null — серым «—» */
+    const cat = escapeHtml(d.category_title || '');
+    const price = `до ${d.price_max||0} ₽`;
+    let stockChip;
+    if (d.available == null) {
+      stockChip = `<span style="color:var(--cream-faint)">нет данных</span>`;
+    } else if (+d.available <= 0) {
+      stockChip = `<span style="color:#e8a0a0;font-weight:700">закончились</span>`;
     } else {
-      sub = `${d.category_title || ''} · до ${d.price_max||0} ₽`;
+      stockChip = `<span style="color:#9ec999;font-weight:700">${d.available} шт</span>`;
     }
+    subHTML = `${cat} · ${stockChip} · ${price}`;
   }
   const badge = ov && ov.badge ? '<span class="card__badge">' + ov.badge + '</span>' : '';
   const isHidden = ov && ov.hidden;

@@ -135,14 +135,17 @@ r.get('/stems', (req, res) => {
     img: null,
     /* Сколько штук на складе — фронт лимитит + в UI показывает */
     stock: it.available == null ? null : Math.floor(Number(it.available)),
-  }, ov.get(it.id))).filter(p => !p.hidden);
+  }, ov.get(it.id)))
+    /* Скрытые вручную + автоархив: пропали со склада → не показываем публично.
+       Оверрайд (фото, название) не удаляется — вернётся сам когда придёт поставка. */
+    .filter(p => !p.hidden && !(typeof p.stock === 'number' && p.stock <= 0));
   res.json(out);
 });
 
 // Упаковка — коробки/кашпо, подарочные пакеты
 r.get('/wraps', (req, res) => {
   const items = db.prepare(`
-    SELECT id, title, category_title, price_min, price_max
+    SELECT id, title, category_title, price_min, price_max, available
     FROM posiflora_inventory
     WHERE category_title IN ('коробки/кашпо','Пакеты подарочные')
     ORDER BY price_max
@@ -155,14 +158,16 @@ r.get('/wraps', (req, res) => {
     price: it.price_max || it.price_min || 0,
     category: it.category_title,
     img: null,
-  }, ov.get(it.id))).filter(p => !p.hidden);
+    stock: it.available == null ? null : Math.floor(Number(it.available)),
+  }, ov.get(it.id)))
+    .filter(p => !p.hidden && !(typeof p.stock === 'number' && p.stock <= 0));
   res.json(out);
 });
 
 // Ленты
 r.get('/ribbons', (req, res) => {
   const items = db.prepare(`
-    SELECT id, title, category_title, price_min, price_max
+    SELECT id, title, category_title, price_min, price_max, available
     FROM posiflora_inventory
     WHERE category_title = 'Лента' OR (title LIKE '%лент%' AND category_title != 'Цветы')
     ORDER BY price_max
@@ -175,7 +180,9 @@ r.get('/ribbons', (req, res) => {
     price: it.price_max || it.price_min || 0,
     category: it.category_title,
     img: null,
-  }, ov.get(it.id))).filter(p => !p.hidden);
+    stock: it.available == null ? null : Math.floor(Number(it.available)),
+  }, ov.get(it.id)))
+    .filter(p => !p.hidden && !(typeof p.stock === 'number' && p.stock <= 0));
   res.json(out);
 });
 

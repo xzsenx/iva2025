@@ -426,7 +426,8 @@ const renderCheckout = () => {
 
         <label class="field" id="addrField">
           <span class="field__label" id="addrLabel">Адрес доставки</span>
-          <input class="input" name="address" type="text" placeholder="ул. Попова 23, кв. 5">
+          <input class="input" name="address" type="text" placeholder="ул. Есенина, 9к3, кв. 12" autocomplete="street-address">
+          <span class="field__hint" id="addrHint">Доставляем по Белгороду · улица, дом, квартира</span>
         </label>
 
         <div id="pickupAddr" class="field field-note" style="display:none">
@@ -589,6 +590,31 @@ const renderCheckout = () => {
     if (phone.value.replace(/\D/g, '').length < 10) {
       phone.closest('.field').classList.add('is-error'); valid = false;
     }
+
+    /* Адрес: требуем если доставка и НЕ «уточним у получателя»; проверяем формат */
+    const isGiftV = form.querySelector('#chkGift')?.checked;
+    const askAddrV = form.querySelector('#chkAskAddr')?.checked;
+    const isDeliveryV = form.querySelector('[value="delivery"]').checked;
+    const addrEl = form.querySelector('[name="address"]');
+    if (isDeliveryV && !(isGiftV && askAddrV)) {
+      const raw = (addrEl?.value || '').trim();
+      /* Отфильтровываем «Белгород» из ввода — доставляем только по нему */
+      const norm = raw.replace(/^г\.?\s*/i, '').replace(/белгород,?\s*/i, '').trim();
+      const otherCity = /(москв|санкт|петербург|курск|воронеж|харьков|ростов|краснод|казан)/i.test(raw);
+      const short = norm.replace(/\s+/g, '').length < 6;
+      const noDigit = !/\d/.test(norm);
+      if (!raw || short || otherCity || noDigit) {
+        addrEl.closest('.field').classList.add('is-error');
+        toast(otherCity
+          ? 'Доставляем только по Белгороду'
+          : 'Укажите улицу, дом и квартиру');
+        valid = false;
+      } else if (norm !== raw) {
+        /* Пользователь сам написал «Белгород, …» — нормализуем перед отправкой */
+        addrEl.value = norm;
+      }
+    }
+
     if (!valid) return;
 
     const btn = root.querySelector('#payBtn');

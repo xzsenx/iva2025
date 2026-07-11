@@ -736,6 +736,8 @@
       <option value="hidden_first">Сначала скрытые</option>
     </select>
     <select class="input" id="visibility" style="max-width:200px">
+      <option value="in_stock" selected>В наличии</option>
+      <option value="archived">Архив (закончились)</option>
       <option value="all">Все</option>
       <option value="visible">Только показываемые</option>
       <option value="hidden">Только скрытые</option>
@@ -1181,9 +1183,13 @@ function render() {
 
   let filtered = lastData.slice();
   if (q) filtered = filtered.filter(d => (d.title || '').toLowerCase().includes(q));
-  if (vis === 'hidden')  filtered = filtered.filter(d => d._override && d._override.hidden);
-  if (vis === 'visible') filtered = filtered.filter(d => !d._override || !d._override.hidden);
-  if (vis === 'no_photo') filtered = filtered.filter(d => !d._override || !d._override.photo_url);
+  /* Архив по остаткам актуален только для inventory-вкладок */
+  const stockAware = currentTab === 'stems' || currentTab === 'addons';
+  if (stockAware && vis === 'in_stock') filtered = filtered.filter(d => d.available == null || +d.available > 0);
+  else if (stockAware && vis === 'archived') filtered = filtered.filter(d => d.available != null && +d.available <= 0);
+  else if (vis === 'hidden')  filtered = filtered.filter(d => d._override && d._override.hidden);
+  else if (vis === 'visible') filtered = filtered.filter(d => !d._override || !d._override.hidden);
+  else if (vis === 'no_photo') filtered = filtered.filter(d => !d._override || !d._override.photo_url);
 
   if (sort === 'title') filtered.sort((a,b) => (a.title||'').localeCompare(b.title||'', 'ru'));
   else if (sort === 'price_asc') filtered.sort((a,b) => getPrice(a) - getPrice(b));

@@ -496,7 +496,7 @@ const renderCheckout = () => {
           </label>
         </div>
         <div id="askTimeNote" class="field-note" style="display:none;padding:12px 14px;background:var(--pink-dim);border-radius:var(--radius-sm);color:var(--cream);font-size:13px;margin-bottom:14px">
-          Флорист свяжется с получателем и согласует удобные адрес и время доставки
+          Флорист свяжется с получателем и уточнит адрес и время доставки
         </div>
 
         <label class="field">

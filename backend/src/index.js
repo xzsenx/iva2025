@@ -34,6 +34,40 @@ function staticCacheHeaders(res, filePath) {
   }
 }
 
+/* Версия сборки — меняется при каждом рестарте сервера (т.е. при каждом деплое).
+   Дописываем ?v=VERSION к style.css и app.js в HTML → браузер видит новый URL
+   и сразу подтягивает свежий файл, минуя любой свой кеш. */
+const BUILD_VERSION = String(Date.now());
+
+/* Middleware перехватывает ответ и штампует версию на CSS/JS-ссылках */
+function stampVersionMiddleware(rootDir) {
+  return (req, res, next) => {
+    /* Отвечаем только на / и *.html из статики */
+    if (req.method !== 'GET') return next();
+    const url = req.path;
+    const isHtml = url === '/' || url.endsWith('/') || url.endsWith('.html') || !path.extname(url);
+    if (!isHtml) return next();
+    const relPath = url === '/' || url.endsWith('/') ? 'index.html'
+                  : url.endsWith('.html') ? url.slice(1)
+                  : url.slice(1) + '.html';
+    const full = path.join(rootDir, relPath);
+    fs.readFile(full, 'utf8', (err, html) => {
+      if (err) return next();
+      const stamped = html.replace(
+        /(href|src)=["']([^"']+\.(?:css|js))(\?[^"']*)?["']/g,
+        (m, attr, file, existing) => {
+          if (/^https?:/.test(file)) return m;
+          const sep = existing ? existing[0] === '?' ? '&' : '?' : '?';
+          return `${attr}="${file}${existing || ''}${sep}v=${BUILD_VERSION}"`;
+        }
+      );
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(stamped);
+    });
+  };
+}
+
 const origins = (process.env.CORS_ORIGINS || '*').split(',').map(s => s.trim());
 app.use(cors({
   origin: origins.includes('*') ? true : origins,
@@ -70,7 +104,10 @@ const SITE_DIR = process.env.SITE_DIR || path.join(__dirname, '..', '..', 'site'
 /* TG mini-app (iva2025 root: index.html, app.js, data.js, style.css, admin.*) — под /app */
 const APP_DIR = process.env.APP_DIR || path.join(__dirname, '..', '..');
 
+/* HTML сначала пропускаем через штамп версии, всё остальное — статика */
+app.use('/app', stampVersionMiddleware(APP_DIR));
 app.use('/app', express.static(APP_DIR, { extensions: ['html'], setHeaders: staticCacheHeaders }));
+app.use(stampVersionMiddleware(SITE_DIR));
 app.use(express.static(SITE_DIR, { extensions: ['html'], setHeaders: staticCacheHeaders }));
 
 const PORT = Number(process.env.PORT) || 3001;

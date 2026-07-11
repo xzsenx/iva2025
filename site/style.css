@@ -348,6 +348,77 @@ p  { color: var(--cream-dim); }
   line-height: 1.4;
 }
 
+/* ── Быстрая навигация по каталогу (под hero) ── */
+.quick-cats {
+  padding: 8px 0 24px;
+}
+.quick-cats__scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
+}
+.quick-cats__scroll::-webkit-scrollbar { display: none; }
+.quick-cat {
+  flex: 0 0 auto;
+  padding: 10px 18px;
+  border-radius: 100px;
+  background: var(--bg-card);
+  color: var(--cream);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: .3px;
+  border: 1px solid rgba(237,230,218,.08);
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.quick-cat:hover { border-color: var(--pink); color: var(--cream); }
+.quick-cat--accent {
+  background: var(--pink-dim);
+  border-color: var(--pink);
+  color: var(--pink-light);
+}
+.quick-cat--accent:hover { background: var(--pink); color: #fff; }
+
+/* ── Тонкая полоска соц-пруфа (без больших цифр) ── */
+.proof-strip {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px;
+  background: var(--bg-card);
+  border: 1px solid rgba(237,230,218,.06);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+.proof-strip__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+.proof-strip__item + .proof-strip__item {
+  border-left: 1px solid rgba(237,230,218,.08);
+  padding-left: 12px;
+}
+.proof-strip__item b {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--cream);
+  letter-spacing: -.2px;
+  font-variant-numeric: tabular-nums;
+}
+.proof-strip__item span {
+  font-size: 11px;
+  color: var(--cream-dim);
+  letter-spacing: .5px;
+}
+
 /* ── Product cards ── */
 .grid {
   display: grid;
@@ -1468,6 +1539,15 @@ p  { color: var(--cream-dim); }
   .stat__num { font-size: 26px; margin-bottom: 4px; }
   .stat__unit { font-size: 13px; }
   .stat__label { font-size: 10px; letter-spacing: .8px; }
+
+  /* Мобильные штрихи новой главной */
+  .quick-cats { padding: 4px 0 20px; }
+  .quick-cats__scroll { padding: 4px 14px 4px 14px; margin: 0 -14px; gap: 8px; }
+  .quick-cat { padding: 9px 14px; font-size: 12.5px; }
+  .proof-strip { padding: 14px 12px; gap: 6px; border-radius: 14px; }
+  .proof-strip__item + .proof-strip__item { padding-left: 8px; }
+  .proof-strip__item b { font-size: 15px; }
+  .proof-strip__item span { font-size: 10px; letter-spacing: .3px; }
 
   /* Секции и типографика */
   .about__features { grid-template-columns: 1fr; gap: 16px; }

@@ -1379,22 +1379,98 @@ p  { color: var(--cream-dim); }
     border-top: 1px solid rgba(237,230,218,.06);
   }
   .nav.open a { padding: 14px 0; font-size: 16px; }
-  .hero { padding: 64px 0; }
-  .stats { margin-top: 0; padding: 28px 20px; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+
+  /* Шапка компактнее на телефоне: лого поменьше — сжимаем «полоску» */
+  .site-header__inner { padding: 8px 0; gap: 12px; }
+  .logo__img { height: 52px; }
+  .logo__img--sm { height: 64px; }
+  .cart-btn { width: 40px; height: 40px; }
+
+  /* Hero */
+  .hero { padding: 24px 0 48px; }
+  .hero__grid { gap: 28px; }
+  .hero__title { font-size: clamp(34px, 9vw, 44px); margin-bottom: 16px; }
+  .hero__text { font-size: 15px; margin-bottom: 24px; }
+  .hero__image { aspect-ratio: 4/4.6; }
+  .hero__badge { padding: 10px 14px; font-size: 12px; bottom: 16px; left: 16px; }
+  .hero__badge strong { font-size: 18px; }
+
+  /* Stats — плитка 2×N с тонкими разделителями */
+  .stats { margin-top: 0; padding: 24px 18px; grid-template-columns: repeat(2, 1fr); gap: 20px 16px; border-radius: 20px; }
   .stat + .stat { border-left: none; padding-left: 0; }
-  .stat + .stat:nth-child(odd) { border-top: 1px solid rgba(237,230,218,.08); padding-top: 20px; }
-  .stat__num { font-size: 32px; }
+  .stat:nth-child(even) { border-left: 1px solid rgba(237,230,218,.08); padding-left: 16px; }
+  .stat:nth-child(n+3) { border-top: 1px solid rgba(237,230,218,.08); padding-top: 20px; }
+  .stat__num { font-size: 28px; margin-bottom: 4px; }
+  .stat__unit { font-size: 14px; }
+  .stat__label { font-size: 10.5px; letter-spacing: .8px; }
+
+  /* Секции про студию + фичи */
   .about__features { grid-template-columns: 1fr; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-  .card__body { padding: 16px; }
-  .card__title { font-size: 18px; }
-  .product-detail__title { font-size: 36px; }
-  .contact-info { padding: 28px; }
+  h2 { font-size: clamp(28px, 6vw, 36px); }
+  .section-title { margin-bottom: 12px; }
+  .section-sub { margin-bottom: 32px; font-size: 14px; }
+
+  /* Карточки каталога — 2 в ряд, без «оверскейла» */
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .card__body { padding: 14px; gap: 8px; }
+  .card__title { font-size: 15px; }
+  .card__cat { font-size: 10px; letter-spacing: 1.5px; }
+  .card__price { font-size: 20px; }
+  .card__price small { font-size: 12px; }
+  .card__btn { width: 34px; height: 34px; }
+  .card__badge { top: 8px; left: 8px; font-size: 9px; padding: 4px 8px; }
+  .card__stock { font-size: 11px; }
+
+  /* Продукт */
+  .product-detail__title { font-size: 32px; }
+
+  /* Кнопки */
+  .btn { padding: 14px 22px; font-size: 13px; }
+  .btn--lg { padding: 16px 28px; font-size: 14px; }
+  .hero__cta { flex-direction: column; align-items: stretch; }
+  .hero__cta .btn { width: 100%; }
+
+  /* Формы, чипы, сортировка */
   .filters { gap: 6px; }
-  .chip { padding: 8px 14px; font-size: 12px; }
+  .chip { padding: 8px 12px; font-size: 12px; }
   .sort { margin-left: 0; width: 100%; margin-top: 8px; }
-  .section { padding: 56px 0; }
+
+  /* Билдер */
+  .build-tabs { max-width: 100%; }
+  .build-search { max-width: 100%; }
+  .build-stems { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .build-stem__body { padding: 10px; }
+  .build-stem__name { font-size: 13px; min-height: 32px; }
+  .build-stem__price { font-size: 12px; }
+  .qbtn { width: 30px; height: 30px; font-size: 15px; }
+  .qbtn--add { padding: 0 12px; font-size: 12px; }
+  .build-section-title { font-size: 18px; }
+
+  /* Корзина / чекаут */
+  .drawer { width: 100vw; }
+  .drawer__body { padding: 16px; }
+  .drawer__foot { padding: 16px; }
+  .cart-row { grid-template-columns: 64px 1fr auto; gap: 10px; padding: 12px 0; }
+  .cart-row__img { width: 64px; height: 64px; border-radius: 10px; }
+  .cart-row__name { font-size: 15px; }
+  .cart-total__sum { font-size: 24px; }
+  .checkout-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+  .contact-info { padding: 20px; }
+
+  /* Общее */
+  .section { padding: 48px 0; }
   .container { padding: 0 16px; }
+  .stem-toast { font-size: 12px; padding: 10px 14px; }
+  .site-footer { padding: 40px 0 24px; }
+}
+
+/* Совсем узкий экран — iPhone SE и т.п. */
+@media (max-width: 380px) {
+  .stats { padding: 20px 14px; gap: 16px 12px; }
+  .stat__num { font-size: 24px; }
+  .grid { gap: 10px; }
+  .card__title { font-size: 14px; }
+  .hero__title { font-size: 30px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

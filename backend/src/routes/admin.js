@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import sharp from 'sharp';
 import heicConvert from 'heic-convert';
-import { generateBouquetNames } from '../services/nameGen.js';
+import { generateBouquetNames, normalizeFlowerName } from '../services/nameGen.js';
 
 const r = Router();
 
@@ -522,6 +522,17 @@ r.post('/sync/:id/ack', (req, res) => {
    Принимает либо items: [{title, qty}], либо source/sourceId/id для подтягивания состава из БД. */
 r.post('/generate-name', async (req, res) => {
   try {
+    const { mode } = req.body || {};
+
+    /* Режим 'normalize' — расшифровка сокращённого названия цветка от поставщика.
+       Юзается на вкладке «Цветы» в админке; названия букетов НЕ генерим. */
+    if (mode === 'normalize') {
+      const raw = req.body?.items?.[0]?.title;
+      if (!raw) return res.status(400).json({ error: 'empty title' });
+      const names = await normalizeFlowerName(raw);
+      return res.json({ names });
+    }
+
     let items = req.body?.items;
     if (!Array.isArray(items) || !items.length) {
       const { source, sourceId } = req.body || {};

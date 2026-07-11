@@ -910,7 +910,41 @@ p  { color: var(--cream-dim); }
   font-size: 13px; font-weight: 600;
 }
 .qbtn--add:hover { background: var(--pink); filter: brightness(1.05); }
+.qbtn[disabled], .qbtn.is-disabled {
+  opacity: .35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 .qval { min-width: 20px; text-align: center; font-weight: 600; color: var(--cream); font-size: 14px; }
+
+/* Остатки на складе на карточке цветка */
+.build-stem__stock {
+  font-size: 11px;
+  color: var(--cream-dim);
+  letter-spacing: .3px;
+  margin: -2px 0 4px;
+}
+.build-stem__stock b { color: var(--cream); font-weight: 600; }
+.build-stem__stock--out { color: var(--danger); font-weight: 600; }
+.build-stem.is-out { opacity: .55; }
+.build-stem.is-out .build-stem__media { filter: grayscale(.6); }
+
+/* Тонкий тост в конструкторе — «больше нет на складе» */
+.stem-toast {
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: rgba(201,164,160,.14);
+  border: 1px solid rgba(201,164,160,.35);
+  border-radius: 12px;
+  color: var(--cream);
+  font-size: 13px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.stem-toast.show { opacity: 1; transform: translateY(0); }
 
 .build-section-title {
   font-family: var(--font-serif);

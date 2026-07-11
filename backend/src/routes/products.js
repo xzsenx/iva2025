@@ -120,7 +120,7 @@ r.get('/showcase', (req, res) => {
 // Стебли — для конструктора (категории Цветы/Зелень/Сухоцветы)
 r.get('/stems', (req, res) => {
   const items = db.prepare(`
-    SELECT id, title, category_title, price_min, price_max
+    SELECT id, title, category_title, price_min, price_max, available
     FROM posiflora_inventory
     WHERE category_title IN ('Цветы','Зелень','Сухоцветы')
     ORDER BY category_title, title
@@ -133,6 +133,8 @@ r.get('/stems', (req, res) => {
     price: it.price_max || it.price_min || 0,
     category: it.category_title,
     img: null,
+    /* Сколько штук на складе — фронт лимитит + в UI показывает */
+    stock: it.available == null ? null : Math.floor(Number(it.available)),
   }, ov.get(it.id))).filter(p => !p.hidden);
   res.json(out);
 });

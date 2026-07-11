@@ -64,6 +64,7 @@
               <div id="stemGrid" class="build-stems">
                 <div class="loading">Загружаем цветы...</div>
               </div>
+              <div id="stemToast" class="stem-toast" role="status" aria-live="polite"></div>
 
               <div id="wrapsBlock" style="display:none">
                 <h3 class="build-section-title">Упаковка</h3>
@@ -393,9 +394,27 @@
       state.ribbons = ribbons || [];
       renderCats();
       hydrateEditFromCart();
+      /* Обрезка по остаткам: если в state больше, чем на складе — сжимаем.
+         Даже без edit-mode это защита от stale-localStorage. */
+      let clamped = false;
+      for (const key of Object.keys(state.selectedStems)) {
+        const st = state.stems.find(x => x.id === key);
+        if (!st) { delete state.selectedStems[key]; clamped = true; continue; }
+        if (typeof st.stock === 'number') {
+          if (st.stock === 0) { delete state.selectedStems[key]; clamped = true; continue; }
+          if (state.selectedStems[key].qty > st.stock) {
+            state.selectedStems[key].qty = st.stock;
+            clamped = true;
+          }
+        }
+      }
       renderStems();
       renderWrapsRibbons();
       renderComposition();
+      if (clamped) {
+        const el = document.getElementById('stemToast');
+        if (el) { el.textContent = 'Часть цветов подрезана — на складе осталось меньше'; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3500); }
+      }
     }
 
     function stemMatches(s) {
@@ -425,19 +444,30 @@
         const qty = state.selectedStems[s.id]?.qty || 0;
         const img = s.img || s.image || null;
         const initial = escapeHtml((s.title || '?').trim().slice(0, 1).toUpperCase());
+        const stock = (typeof s.stock === 'number') ? s.stock : null;
+        const soldOut = stock === 0;
+        const maxed = stock != null && qty >= stock;
+        const stockLine = stock == null
+          ? ''
+          : soldOut
+            ? `<div class="build-stem__stock build-stem__stock--out">Нет в наличии</div>`
+            : `<div class="build-stem__stock">В наличии: <b>${stock}</b> шт</div>`;
         return `
-          <div class="build-stem ${qty > 0 ? 'selected' : ''}" data-id="${s.id}">
+          <div class="build-stem ${qty > 0 ? 'selected' : ''} ${soldOut ? 'is-out' : ''}" data-id="${s.id}">
             <div class="build-stem__media">
               ${img ? `<img src="${escapeHtml(img)}" alt="${escapeHtml(s.title)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'build-stem__ph',textContent:'${initial}'}))">` : `<span class="build-stem__ph">${initial}</span>`}
             </div>
             <div class="build-stem__body">
               <div class="build-stem__name">${escapeHtml(s.title)}</div>
               <div class="build-stem__price">${money(s.price)}</div>
+              ${stockLine}
               <div class="build-stem__ctrl">
-                ${qty > 0 ? `
+                ${soldOut ? `
+                  <button type="button" class="qbtn qbtn--add" disabled>Нет в наличии</button>
+                ` : qty > 0 ? `
                   <button type="button" class="qbtn js-minus" data-id="${s.id}">−</button>
                   <span class="qval">${qty}</span>
-                  <button type="button" class="qbtn js-plus" data-id="${s.id}">+</button>
+                  <button type="button" class="qbtn js-plus ${maxed ? 'is-disabled' : ''}" data-id="${s.id}" ${maxed ? 'disabled aria-label="Больше нет на складе"' : ''}>+</button>
                 ` : `
                   <button type="button" class="qbtn qbtn--add js-plus" data-id="${s.id}">+ Добавить</button>
                 `}
@@ -488,7 +518,19 @@
       const s = state.stems.find(x => x.id === id);
       if (!s) return;
       const cur = state.selectedStems[id]?.qty || 0;
-      const next = Math.max(0, cur + delta);
+      let next = Math.max(0, cur + delta);
+      /* Лимит по складу: если знаем сколько есть — не даём перебрать */
+      if (delta > 0 && typeof s.stock === 'number') {
+        if (s.stock === 0) return;
+        if (next > s.stock) {
+          next = s.stock;
+          if (cur >= s.stock) {
+            const el = document.getElementById('stemToast');
+            if (el) { el.textContent = `Больше нет на складе — ${s.stock} шт`; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2200); }
+            return;
+          }
+        }
+      }
       if (next === 0) delete state.selectedStems[id];
       else state.selectedStems[id] = { product: s, qty: next };
       renderStems();

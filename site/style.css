@@ -833,7 +833,7 @@ p  { color: var(--cream-dim); }
 }
 .build-main { display: flex; flex-direction: column; gap: 16px; }
 .build-search {
-  max-width: 380px;
+  max-width: 340px;
   padding-left: 44px;
   border-radius: 100px;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EDE6DA' stroke-opacity='0.55' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><path d='m20 20-3.5-3.5'/></svg>");
@@ -849,8 +849,8 @@ p  { color: var(--cream-dim); }
 }
 .build-stems {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
 }
 .build-stem {
   background: var(--bg-card);
@@ -1273,6 +1273,7 @@ p  { color: var(--cream-dim); }
 @media (max-width: 1024px) {
   .hero__grid, .about, .product-detail, .contacts-grid, .builder-grid, .build-grid { grid-template-columns: 1fr; gap: 40px; }
   .builder-side, .build-side { position: static; }
+  .build-stems { grid-template-columns: repeat(2, 1fr); }
   .stats { grid-template-columns: repeat(3, 1fr); padding: 32px 28px; }
   .stat + .stat:nth-child(4) { border-left: none; padding-left: 0; }
   .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }

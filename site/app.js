@@ -694,7 +694,8 @@ const wireCart = () => {
 };
 
 /* ── Motion: reveal при скролле + счётчики + шапка ── */
-const REVEAL_SEL = '.card, .stat, .section-title, .section-sub, .about__img, .about__text, .about__feature, .footer-col, .review, .contact-row, .build-stem';
+/* Билдер намеренно исключён — цветы должны быть на месте, а не «прилетать» при скролле */
+const REVEAL_SEL = '.card, .stat, .section-title, .section-sub, .about__img, .about__text, .about__feature, .footer-col, .review, .contact-row';
 
 let revealIO = null;
 let revealIOAlive = false; /* IO шлёт initial-entries сразу после observe — если тишина, он сломан */

@@ -1365,22 +1365,68 @@ p  { color: var(--cream-dim); }
   .section { padding: 72px 0; }
 }
 
+/* ── Bottom tabbar (мобилка) ── */
+.tabbar { display: none; }
+
 @media (max-width: 720px) {
-  .nav { display: none; }
-  .burger { display: flex; }
-  .header__phone { display: none; }
-  .nav.open {
+  /* Bottom tab bar заменяет бургер + корзину в шапке */
+  .tabbar {
     display: flex;
-    position: absolute;
-    top: 100%;
-    left: 0; right: 0;
-    flex-direction: column;
-    background: var(--bg);
-    padding: 20px 16px;
-    gap: 2px;
-    border-top: 1px solid rgba(237,230,218,.06);
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 90;
+    background: rgba(47, 62, 59, .94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(237,230,218,.1);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+    box-shadow: 0 -8px 24px rgba(0,0,0,.25);
   }
-  .nav.open a { padding: 12px 0; font-size: 15px; }
+  .tabbar__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 4px;
+    background: transparent;
+    color: var(--cream-dim);
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color .2s;
+    font-family: inherit;
+  }
+  .tabbar__item svg { width: 22px; height: 22px; display: block; }
+  .tabbar__lbl { font-size: 10.5px; font-weight: 500; letter-spacing: .3px; }
+  .tabbar__item.is-active { color: var(--pink-light); }
+  .tabbar__item.is-active svg { stroke-width: 2.2; }
+  .tabbar__item:active { transform: scale(.94); }
+  .tabbar__ico { position: relative; display: inline-flex; }
+  .tabbar__badge {
+    position: absolute;
+    top: -6px; right: -9px;
+    min-width: 16px; height: 16px;
+    padding: 0 4px;
+    background: var(--pink);
+    color: #fff;
+    font-size: 9.5px;
+    font-weight: 700;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 2px rgba(47,62,59,.94);
+  }
+
+  /* Отступ снизу под tabbar (примерно 62px + safe-area) */
+  body { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Прячем бургер и корзину в шапке — их роль у tabbar */
+  .burger, .cart-btn { display: none !important; }
+
+  .nav { display: none; }
+  .header__phone { display: none; }
+  .nav.open { display: none; } /* оставлено на всякий, но бургера больше нет */
 
   /* Шапка — узкая полоска, компактный логотип */
   .site-header__inner { padding: 6px 0; gap: 8px; }

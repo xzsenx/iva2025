@@ -73,14 +73,20 @@ const cartTotal = () => loadCart().reduce((s, i) => s + i.qty * i.price, 0);
 const updateCartBadge = () => {
   const n = cartCount();
   const el = document.getElementById('cartCount');
-  if (!el) return;
-  const prev = Number(el.textContent) || 0;
-  el.textContent = n;
-  el.classList.toggle('visible', n > 0);
-  if (n > prev) {
-    el.classList.remove('bump');
-    void el.offsetWidth; /* рестарт анимации */
-    el.classList.add('bump');
+  const tb = document.getElementById('tabbarCartBadge');
+  const prev = el ? (Number(el.textContent) || 0) : 0;
+  if (el) {
+    el.textContent = n;
+    el.classList.toggle('visible', n > 0);
+    if (n > prev) {
+      el.classList.remove('bump');
+      void el.offsetWidth;
+      el.classList.add('bump');
+    }
+  }
+  if (tb) {
+    tb.textContent = n;
+    tb.style.display = n > 0 ? 'flex' : 'none';
   }
 };
 
@@ -781,6 +787,37 @@ const wireBurger = () => {
   burger?.addEventListener('click', () => nav.classList.toggle('open'));
 };
 
+/* Мобильный tabbar: 4 таба снизу — Главная, Каталог, Собрать, Корзина.
+   Заменяет бургер + плавающую корзину в шапке на телефоне. */
+const injectTabbar = () => {
+  if (document.querySelector('.tabbar')) return;
+  const path = location.pathname.replace(/\/$/, '') || '/';
+  const isCur = (p) => {
+    if (p === 'index.html') return path === '/' || path.endsWith('/index.html');
+    return path.endsWith('/' + p);
+  };
+  const tab = (href, name, iconSvg, isBtn = false, extra = '') => `
+    <${isBtn ? 'button type="button"' : `a href="${href}"`} class="tabbar__item ${isCur(href) ? 'is-active' : ''}" ${isBtn ? `id="tabbarCart"` : ''}>
+      <span class="tabbar__ico">${iconSvg}${extra}</span>
+      <span class="tabbar__lbl">${name}</span>
+    </${isBtn ? 'button' : 'a'}>
+  `;
+  const iHome = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>`;
+  const iCatalog = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`;
+  const iBuild = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-8"/><circle cx="12" cy="7" r="3"/><circle cx="7" cy="12" r="2.5"/><circle cx="17" cy="12" r="2.5"/><path d="M12 14l-5-2M12 14l5-2"/></svg>`;
+  const iCart = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>`;
+  const cartBadge = `<span class="tabbar__badge" id="tabbarCartBadge" style="display:none">0</span>`;
+
+  const html = `<nav class="tabbar" role="navigation" aria-label="Основное меню">
+    ${tab('index.html', 'Главная', iHome)}
+    ${tab('catalog.html', 'Каталог', iCatalog)}
+    ${tab('builder.html', 'Собрать', iBuild)}
+    ${tab('#cart', 'Корзина', iCart, true, cartBadge)}
+  </nav>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.getElementById('tabbarCart')?.addEventListener('click', () => { renderCart(); openDrawer(); });
+};
+
 const wireCart = () => {
   document.getElementById('cartBtn')?.addEventListener('click', () => { renderCart(); openDrawer(); });
   document.getElementById('drawerClose')?.addEventListener('click', closeDrawer);
@@ -1024,4 +1061,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderSuccess();
   wireHeaderScroll();
   revealScan();
+  injectTabbar();
+  updateCartBadge();
 });

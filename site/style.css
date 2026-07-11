@@ -1459,6 +1459,7 @@ p  { color: var(--cream-dim); }
   .chip { padding: 7px 12px; font-size: 12px; }
   .sort { margin-left: 0; width: 100%; margin-top: 6px; }
   .input, .textarea, .select { font-size: 15px; padding: 12px 14px; min-height: 44px; }
+  .build-search { padding-left: 42px; background-position: 12px center; }
 
   /* Билдер */
   .build-tabs { max-width: 100%; }

@@ -53,6 +53,19 @@ const toast = (msg) => {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
 };
 
+/* Иконка «свой букет» — вместо фотки в корзине */
+const BOUQUET_SVG = `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M24 44v-14"/>
+  <path d="M24 44s-4-1-6-3M24 44s4-1 6-3"/>
+  <circle cx="18" cy="14" r="5"/>
+  <circle cx="30" cy="14" r="5"/>
+  <circle cx="24" cy="7" r="4"/>
+  <circle cx="14" cy="22" r="4"/>
+  <circle cx="34" cy="22" r="4"/>
+  <path d="M18 30l4-6M30 30l-4-6"/>
+  <path d="M24 30l-6-8M24 30l6-8"/>
+</svg>`;
+
 /* ── Cart ── */
 const cartCount = () => loadCart().reduce((s, i) => s + i.qty, 0);
 const cartTotal = () => loadCart().reduce((s, i) => s + i.qty * i.price, 0);
@@ -137,9 +150,17 @@ const renderCart = () => {
     foot.innerHTML = '';
     return;
   }
-  body.innerHTML = cart.map(i => `
-    <div class="cart-row">
-      <div class="cart-row__img"><img src="${i.img}" alt="${i.name}" loading="lazy" onerror="this.src='${PLACEHOLDER_IMG}'"></div>
+  body.innerHTML = cart.map(i => {
+    const isCustom = !!i.custom;
+    const media = isCustom
+      ? `<div class="cart-row__img cart-row__img--svg">${BOUQUET_SVG}</div>`
+      : `<div class="cart-row__img"><img src="${i.img}" alt="${i.name}" loading="lazy" onerror="this.src='${PLACEHOLDER_IMG}'"></div>`;
+    const editBtn = isCustom
+      ? `<button class="cart-row__edit" data-act="edit" data-id="${i.id}" type="button">Изменить</button>`
+      : '';
+    return `
+    <div class="cart-row ${isCustom ? 'cart-row--custom' : ''}">
+      ${media}
       <div>
         <div class="cart-row__name">${i.name}</div>
         <div class="cart-row__price">${money(i.price)}</div>
@@ -148,10 +169,11 @@ const renderCart = () => {
           <span>${i.qty}</span>
           <button data-act="inc" data-id="${i.id}" aria-label="Больше">+</button>
         </div>
+        ${editBtn}
       </div>
       <button class="cart-row__remove" data-act="rm" data-id="${i.id}" aria-label="Удалить">×</button>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   foot.innerHTML = `
     <div class="cart-total">
       <span class="cart-total__label">Итого</span>
@@ -165,6 +187,10 @@ const renderCart = () => {
       if (b.dataset.act === 'inc') updateQty(id, 1);
       else if (b.dataset.act === 'dec') updateQty(id, -1);
       else if (b.dataset.act === 'rm') removeFromCart(id);
+      else if (b.dataset.act === 'edit') {
+        sessionStorage.setItem('iva_edit_bouquet', id);
+        location.href = 'builder.html';
+      }
     });
   });
 };
@@ -336,16 +362,21 @@ const renderCheckout = () => {
       </div>`;
     return;
   }
-  const summary = cart.map(i => `
+  const summary = cart.map(i => {
+    const isCustom = !!i.custom;
+    const media = isCustom
+      ? `<div class="cart-row__img cart-row__img--svg" style="width:60px;height:60px">${BOUQUET_SVG}</div>`
+      : `<div class="cart-row__img" style="width:60px;height:60px"><img src="${i.img}" alt=""></div>`;
+    return `
     <div class="cart-row" style="grid-template-columns:60px 1fr auto">
-      <div class="cart-row__img" style="width:60px;height:60px"><img src="${i.img}" alt=""></div>
+      ${media}
       <div>
         <div class="cart-row__name" style="font-size:15px">${i.name}</div>
         <div style="font-size:13px;color:var(--cream-dim)">${i.qty} × ${money(i.price)}</div>
       </div>
-      <div style="font-weight:600;color:var(--pink-light)">${money(i.qty * i.price)}</div>
-    </div>
-  `).join('');
+      <div style="font-weight:500;color:var(--cream);font-variant-numeric:tabular-nums">${money(i.qty * i.price)}</div>
+    </div>`;
+  }).join('');
 
   root.innerHTML = `
     <div class="checkout-grid" style="display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:start">
@@ -382,7 +413,7 @@ const renderCheckout = () => {
           </div>
         </div>
 
-        <div class="field toggle-row">
+        <div class="field toggle-row" id="giftToggleRow">
           <label class="toggle-lbl">
             <input type="checkbox" name="is_gift" id="chkGift">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
@@ -397,6 +428,14 @@ const renderCheckout = () => {
           <span class="field__label" id="addrLabel">Адрес доставки</span>
           <input class="input" name="address" type="text" placeholder="ул. Попова 23, кв. 5">
         </label>
+
+        <div id="pickupAddr" class="field field-note" style="display:none">
+          <span class="field__label">Адрес самовывоза</span>
+          <div style="padding:14px 16px;background:var(--bg-card);border-radius:var(--radius-sm);color:var(--cream);font-size:14px;line-height:1.5">
+            Белгород, ул. Есенина, 9 к3<br>
+            <span style="color:var(--cream-dim);font-size:13px">10:00 — 21:00</span>
+          </div>
+        </div>
 
         <div id="giftBlock" class="gift-block" style="display:none">
           <div class="gift-block__head">
@@ -440,20 +479,23 @@ const renderCheckout = () => {
           </label>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="dt-grid" id="dtGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <label class="field">
-            <span class="field__label">Дата</span>
+            <span class="field__label" id="dateLabel">Дата</span>
             <input class="input" name="date" type="date" required>
           </label>
-          <label class="field">
+          <label class="field" id="timeField">
             <span class="field__label">Время</span>
             <select class="input" name="time">
-              <option value="09-12">09:00 — 12:00</option>
-              <option value="12-15">12:00 — 15:00</option>
-              <option value="15-18">15:00 — 18:00</option>
-              <option value="18-21">18:00 — 21:00</option>
+              <option value="10-13">10:00 — 13:00</option>
+              <option value="13-16">13:00 — 16:00</option>
+              <option value="16-19">16:00 — 19:00</option>
+              <option value="19-21">19:00 — 21:00</option>
             </select>
           </label>
+        </div>
+        <div id="askTimeNote" class="field-note" style="display:none;padding:12px 14px;background:var(--pink-dim);border-radius:var(--radius-sm);color:var(--cream);font-size:13px;margin-bottom:14px">
+          Флорист свяжется с получателем и согласует удобные адрес и время доставки
         </div>
 
         <label class="field">
@@ -479,29 +521,58 @@ const renderCheckout = () => {
   `;
 
   const radios = root.querySelectorAll('[data-radio]');
+  const chkGift = root.querySelector('#chkGift');
+  const chkAskAddr = root.querySelector('#chkAskAddr');
   const syncUI = () => {
     radios.forEach(r => {
       const chip = r.parentElement.querySelector('.chip');
       chip.classList.toggle('active', r.checked);
     });
+    const isDelivery = root.querySelector('[value="delivery"]').checked;
+    /* Самовывоз → «Заказ другому» невозможен: снимаем и прячем тумблер */
+    if (!isDelivery && chkGift?.checked) chkGift.checked = false;
+    const giftRow = root.querySelector('#giftToggleRow');
+    if (giftRow) giftRow.style.display = isDelivery ? '' : 'none';
+
+    const isGift = chkGift?.checked;
+    const askAddr = isGift && chkAskAddr?.checked;
+
+    /* Адрес доставки: показываем только когда доставка И (не подарок или не «уточним») */
     const addr = root.querySelector('#addrField');
     const addrLabel = root.querySelector('#addrLabel');
     const addrInput = root.querySelector('[name="address"]');
-    const isDelivery = root.querySelector('[value="delivery"]').checked;
-    const isGift = root.querySelector('#chkGift')?.checked;
-    const askAddr = root.querySelector('#chkAskAddr')?.checked;
-    /* Адрес виден: доставка + (не подарок ИЛИ не «уточним у получателя») */
-    const showAddr = isDelivery && !(isGift && askAddr);
+    const showAddr = isDelivery && !askAddr;
     if (addr) addr.style.display = showAddr ? 'flex' : 'none';
-    /* Смена подписи: «Адрес доставки» → «Адрес получателя» когда подарок */
     if (addrLabel) addrLabel.textContent = isGift ? 'Адрес получателя' : 'Адрес доставки';
     if (addrInput) addrInput.placeholder = isGift ? 'Куда доставить букет' : 'ул. Попова 23, кв. 5';
+
+    /* Плашка с адресом самовывоза */
+    const pickup = root.querySelector('#pickupAddr');
+    if (pickup) pickup.style.display = isDelivery ? 'none' : 'block';
+
     /* Gift-блок */
     root.querySelector('#giftBlock').style.display = isGift ? 'block' : 'none';
+
+    /* Время: если адрес уточняется у получателя — время тоже уточним у него */
+    const dtGrid = root.querySelector('#dtGrid');
+    const timeField = root.querySelector('#timeField');
+    const askNote = root.querySelector('#askTimeNote');
+    const dateLabel = root.querySelector('#dateLabel');
+    if (askAddr) {
+      if (timeField) timeField.style.display = 'none';
+      if (dtGrid) dtGrid.style.gridTemplateColumns = '1fr';
+      if (askNote) askNote.style.display = 'block';
+      if (dateLabel) dateLabel.textContent = 'Желаемая дата';
+    } else {
+      if (timeField) timeField.style.display = '';
+      if (dtGrid) dtGrid.style.gridTemplateColumns = '1fr 1fr';
+      if (askNote) askNote.style.display = 'none';
+      if (dateLabel) dateLabel.textContent = 'Дата';
+    }
   };
   radios.forEach(r => r.addEventListener('change', syncUI));
-  root.querySelector('#chkGift')?.addEventListener('change', syncUI);
-  root.querySelector('#chkAskAddr')?.addEventListener('change', syncUI);
+  chkGift?.addEventListener('change', syncUI);
+  chkAskAddr?.addEventListener('change', syncUI);
   syncUI();
 
   root.querySelector('#checkoutForm').addEventListener('submit', async (e) => {
@@ -553,7 +624,7 @@ const renderCheckout = () => {
       address: form.address?.value.trim() || '',
       delivery: form.delivery.value,
       date: form.date.value,
-      time: form.time.value,
+      time: (isGift && askAddr) ? '' : form.time.value,
       comment: form.comment.value.trim(),
       items: cartNow.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty, ...(i.custom ? { custom: i.custom } : {}) })),
       total,

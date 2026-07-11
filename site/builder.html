@@ -350,7 +350,36 @@
       selectedStems: {}, // { id: {product, qty} }
       wrapId: null, ribbonId: null,
       activeCat: 'Все', query: '',
+      editId: null, // id позиции корзины, если открыли на редактирование
     };
+
+    /* Если пришли из корзины «Изменить» — гидратим state из cart[editId] */
+    function hydrateEditFromCart() {
+      const eid = sessionStorage.getItem('iva_edit_bouquet');
+      if (!eid) return;
+      sessionStorage.removeItem('iva_edit_bouquet');
+      const cart = JSON.parse(localStorage.getItem('iva_cart_v1') || '[]');
+      const item = cart.find(x => x.id === eid);
+      if (!item?.custom) return;
+      state.editId = eid;
+      /* items содержит цветы + строки «Упаковка: X» / «Лента: X» — раскладываем */
+      for (const line of item.custom.items || []) {
+        if (line.title.startsWith('Упаковка:')) continue;
+        if (line.title.startsWith('Лента:')) continue;
+        const stem = state.stems.find(s => String(s.id) === String(line.id));
+        if (stem) state.selectedStems[stem.id] = { product: stem, qty: line.qty };
+      }
+      if (item.custom.wrap) state.wrapId = item.custom.wrap.id;
+      if (item.custom.ribbon) state.ribbonId = item.custom.ribbon.id;
+      if (item.custom.note) document.getElementById('stemNote').value = item.custom.note;
+      /* Переключаем UI на вкладку «Собрать самому» и меняем подпись кнопки */
+      document.querySelector('.build-tab[data-tab="pick"]')?.click();
+      const btn = document.getElementById('addBuildToCart');
+      if (btn) btn.textContent = 'Сохранить изменения';
+      /* Плашка-подсказка сверху сайдбара */
+      const side = document.querySelector('.build-side h3');
+      if (side) side.textContent = 'Редактируем букет';
+    }
 
     async function loadCatalog() {
       const grab = (url) => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []);
@@ -363,8 +392,10 @@
       state.wraps = wraps || [];
       state.ribbons = ribbons || [];
       renderCats();
+      hydrateEditFromCart();
       renderStems();
       renderWrapsRibbons();
+      renderComposition();
     }
 
     function stemMatches(s) {
@@ -515,10 +546,8 @@
       const cartId = 'custom:' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
       const name = 'Свой букет · ' + entries.map(e => `${e.product.title} ×${e.qty}`).slice(0, 2).join(', ') + (entries.length > 2 ? ` +${entries.length - 2}` : '');
 
-      /* используем cartsystem из site/app.js — там доступна window.__ivaAddCustom (см. дальше) */
-      const cart = JSON.parse(localStorage.getItem('iva_cart_v1') || '[]');
-      cart.push({
-        id: cartId,
+      const newItem = {
+        id: state.editId || cartId,
         name: name.slice(0, 100),
         price: total,
         img: null,
@@ -530,7 +559,16 @@
           ribbon: rib ? { id: rib.id, title: rib.title, price: rib.price } : null,
           note: note || null,
         },
-      });
+      };
+      const cart = JSON.parse(localStorage.getItem('iva_cart_v1') || '[]');
+      if (state.editId) {
+        /* Редактирование: заменяем существующую позицию, сохраняя её id и qty */
+        const idx = cart.findIndex(x => x.id === state.editId);
+        if (idx >= 0) { newItem.qty = cart[idx].qty || 1; cart[idx] = newItem; }
+        else cart.push(newItem);
+      } else {
+        cart.push(newItem);
+      }
       localStorage.setItem('iva_cart_v1', JSON.stringify(cart));
 
       /* Обновляем бэдж и открываем корзину */
@@ -544,7 +582,13 @@
       state.selectedStems = {};
       state.wrapId = null;
       state.ribbonId = null;
+      state.editId = null;
       document.getElementById('stemNote').value = '';
+      /* Возвращаем подписи к дефолтным */
+      const btn = document.getElementById('addBuildToCart');
+      if (btn) btn.textContent = 'Добавить в корзину';
+      const side = document.querySelector('.build-side h3');
+      if (side) side.textContent = 'Ваш букет';
       renderStems();
       renderWrapsRibbons();
       renderComposition();

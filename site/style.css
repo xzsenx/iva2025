@@ -799,14 +799,17 @@ p  { color: var(--cream-dim); }
 
 /* ── Build tabs ── */
 .build-tabs {
-  display: inline-flex;
+  display: flex;
   gap: 4px;
   padding: 4px;
   background: var(--bg-card);
   border-radius: 100px;
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 520px;
 }
 .build-tab {
+  flex: 1;
   border: none;
   background: transparent;
   color: var(--cream-dim);
@@ -833,7 +836,8 @@ p  { color: var(--cream-dim); }
 }
 .build-main { display: flex; flex-direction: column; gap: 16px; }
 .build-search {
-  max-width: 340px;
+  width: 100%;
+  max-width: 520px;
   padding-left: 44px;
   border-radius: 100px;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EDE6DA' stroke-opacity='0.55' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><path d='m20 20-3.5-3.5'/></svg>");

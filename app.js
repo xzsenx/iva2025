@@ -22,6 +22,7 @@ const app = (() => {
     checkout:    $("#screen-checkout"),
     thanks:      $("#screen-thanks"),
     constructor: $("#screen-constructor"),
+    order:       $("#screen-order"),
   };
 
   const els = {
@@ -870,11 +871,19 @@ const app = (() => {
       saveCart();
       els.checkoutForm.reset();
 
+      /* КРИТИЧНО: сохраняем id, чтобы после возврата в апку не потерять заказ.
+         Ключ переживает закрытие апки/перезапуск Telegram. */
+      try { localStorage.setItem("iva_last_order", String(data.id)); } catch {}
+
       if (!data.confirmation_url) {
-        showScreen("thanks");
+        showOrderStatus(data.id);
         return false;
       }
-      /* Редирект на оплату */
+      /* Показываем внутренний экран статуса ДО открытия платежа —
+         пока юзер оплачивает в браузере, мини-апа пуллит статус.
+         Когда он вернётся в апку, увидит актуальное состояние. */
+      showOrderStatus(data.id);
+      /* Редирект на оплату (в системный браузер) */
       if (tg && tg.openLink) {
         tg.openLink(data.confirmation_url);
       } else {
@@ -893,6 +902,167 @@ const app = (() => {
   /* ── Show Catalog ── */
   function showCatalog() {
     showScreen("catalog");
+  }
+
+  /* ── Экран статуса заказа ── */
+  const ORDER_STEPS = [
+    { key: 'paid',         label: 'Оплачен',  icon: '💳' },
+    { key: 'assembling',   label: 'Собираем', icon: '🌸' },
+    { key: 'assembled',    label: 'Собран',   icon: '🎁' },
+    { key: 'in_delivery',  label: 'В пути',   icon: '🚚' },
+    { key: 'delivered',    label: 'Доставлен',icon: '💚' },
+  ];
+  const STEP_INDEX = { pending:-1, paid:0, assembling:1, assembled:2, in_delivery:3, delivered:4 };
+  let _orderPollTimer = null;
+  let _orderCurrentId = null;
+
+  function stopOrderPolling() {
+    if (_orderPollTimer) { clearTimeout(_orderPollTimer); _orderPollTimer = null; }
+  }
+
+  function renderOrderStatus(data, id) {
+    const body = document.getElementById('orderStatusBody');
+    if (!body) return;
+    const paid = data.payment_status === 'succeeded' || STEP_INDEX[data.status] >= 0;
+    const cancelled = data.status === 'cancelled' || data.payment_status === 'canceled';
+    const currentIdx = cancelled ? -1 : (STEP_INDEX[data.status] ?? 0);
+    const money = (n) => (Number(n)||0).toLocaleString('ru-RU') + ' ₽';
+    const humanDate = (row) => {
+      if (!row?.delivery_date) return '';
+      try {
+        const [y,m,d] = row.delivery_date.split('-');
+        return (`${d}.${m} · ${row.delivery_time || ''}`).trim();
+      } catch { return row.delivery_date + ' ' + (row.delivery_time || ''); }
+    };
+    const timeline = ORDER_STEPS.map((s, i) => `
+      <li class="tl__item ${i <= currentIdx ? 'is-done' : ''} ${i === currentIdx ? 'is-current' : ''}">
+        <span class="tl__dot">${i <= currentIdx ? '✓' : s.icon}</span>
+        <span class="tl__label">${s.label}</span>
+      </li>
+    `).join('');
+    const photo = data.photo_url
+      ? `<div class="order-photo"><img src="${data.photo_url}" alt=""></div>`
+      : (currentIdx >= 1
+          ? `<div class="order-photo order-photo--wait">🌷<span>Флорист собирает букет — фото появится тут</span></div>`
+          : '');
+    const florist = data.florist_phone
+      ? `<a class="order-contact" href="tel:${data.florist_phone.replace(/[^\d+]/g,'')}">
+          <span class="order-contact__label">Флорист · нужны правки?</span>
+          <span class="order-contact__value">${data.florist_phone}</span>
+        </a>` : '';
+    const isWaitingPay = !paid && !cancelled;
+    const headline = cancelled
+      ? { icon:'✕', title:'Платёж не прошёл', sub:'Заказ #' + id + ' не оплачен', color:'#c96a6a' }
+      : paid
+        ? { icon:'✓', title:'Заказ #' + id + ' оплачен', sub: data.customer_name ? 'Спасибо, ' + data.customer_name + '!' : 'Спасибо!', color:'#8fb08a' }
+        : { icon:'⏳', title:'Ждём оплату…', sub:'Как только пройдёт оплата, тут появится статус', color:'var(--cream-dim)' };
+    const payCta = isWaitingPay ? `
+      <div class="order-pay-cta">
+        <div class="order-pay-cta__text">Если окно оплаты закрылось —<br>откройте его снова</div>
+        <button class="order-pay-cta__btn" onclick="app.reopenPayment(${id})">Продолжить оплату</button>
+      </div>` : '';
+    body.innerHTML = `
+      <div class="order-hero">
+        <div class="order-hero__icon" style="color:${headline.color}">${headline.icon}</div>
+        <h1 class="order-hero__title">${headline.title}</h1>
+        <p class="order-hero__sub">${headline.sub}</p>
+      </div>
+      ${paid && !cancelled ? `<ul class="tl">${timeline}</ul>` : ''}
+      ${payCta}
+      ${photo}
+      <div class="order-info">
+        ${data.delivery_type === 'delivery'
+          ? `<div class="order-info__row"><span>Доставка</span><b>${data.delivery_address || 'по указанному адресу'}</b></div>`
+          : `<div class="order-info__row"><span>Способ</span><b>Самовывоз · ул. Есенина, 9 к3</b></div>`}
+        ${data.delivery_date ? `<div class="order-info__row"><span>Когда</span><b>${humanDate(data)}</b></div>` : ''}
+        ${data.total_price ? `<div class="order-info__row"><span>Сумма</span><b>${money(data.total_price)}</b></div>` : ''}
+        ${data.is_gift && data.recipient_name ? `<div class="order-info__row"><span>Получатель</span><b>${data.recipient_name}</b></div>` : ''}
+      </div>
+      ${florist}
+      <p class="order-hint">Можно закрыть апку — статус придёт SMS.<br>Заказ #${id} · ссылка на трек: <span style="color:var(--pink)">${location.origin}/success.html?id=${id}</span></p>
+    `;
+  }
+
+  async function fetchOrderTrack(id) {
+    const r = await fetch(API_BASE + `/api/orders/${id}/track`, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  /* Открыть экран статуса + запустить пуллинг */
+  function showOrderStatus(id, opts = {}) {
+    if (!id) return;
+    stopOrderPolling();
+    _orderCurrentId = String(id);
+    const cacheKey = 'iva_order_cache_' + id;
+    /* Кэш из localStorage — сразу что-то показать */
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch {}
+    if (cached) renderOrderStatus(cached, id);
+    else renderOrderStatus({ status:'pending', payment_status:'pending' }, id);
+    showScreen('order');
+    let tries = 0;
+    const poll = async () => {
+      tries++;
+      try {
+        const d = await fetchOrderTrack(id);
+        try { localStorage.setItem(cacheKey, JSON.stringify(d)); } catch {}
+        renderOrderStatus(d, id);
+        if (d.status === 'delivered' || d.status === 'cancelled' || d.payment_status === 'canceled') return;
+      } catch {}
+      const delay = tries < 10 ? 3000 : (tries < 30 ? 15000 : 60000);
+      _orderPollTimer = setTimeout(poll, delay);
+    };
+    poll();
+  }
+
+  /* Открыть Юкассу заново (если юзер закрыл окно оплаты). */
+  async function reopenPayment(id) {
+    try {
+      const d = await fetch(API_BASE + `/api/orders/${id}/status`, { cache: 'no-store' }).then(r => r.json());
+      if (d.payment_status === 'succeeded') { showOrderStatus(id); return; }
+      /* Ссылки на confirmation_url у нас нет в API — придётся создать новую платёжную сессию.
+         Пока — просто говорим юзеру связаться с флористом. TODO: /api/orders/:id/reopen-payment */
+      toast('Свяжитесь с флористом для повторной оплаты');
+    } catch (e) { toast('Не удалось проверить оплату'); }
+  }
+
+  /* Плашка на главной если есть незавершённый заказ */
+  function refreshOrderBadge() {
+    const catalog = document.getElementById('screen-catalog');
+    if (!catalog) return;
+    const old = catalog.querySelector('#orderBadge'); if (old) old.remove();
+    let lastId; try { lastId = localStorage.getItem('iva_last_order'); } catch {}
+    if (!lastId) return;
+    let cache = null; try { cache = JSON.parse(localStorage.getItem('iva_order_cache_' + lastId) || 'null'); } catch {}
+    /* Если заказ доставлен/отменён неделю назад — не показываем */
+    if (cache && (cache.status === 'delivered' || cache.status === 'cancelled' || cache.payment_status === 'canceled')) {
+      /* Плашка не нужна, но id оставим на случай если юзер захочет открыть */
+      return;
+    }
+    const STATUS_LABELS = { pending:'Ждём оплату', paid:'Оплачен', assembling:'Собираем', assembled:'Собран', in_delivery:'В пути', delivered:'Доставлен' };
+    const status = cache?.status || 'pending';
+    const label = STATUS_LABELS[status] || 'Заказ в работе';
+    const badge = document.createElement('div');
+    badge.id = 'orderBadge';
+    badge.className = 'order-badge';
+    badge.innerHTML = `
+      <div class="order-badge__icon">📦</div>
+      <div class="order-badge__body">
+        <div class="order-badge__title">Заказ #${lastId} · ${label}</div>
+        <div class="order-badge__sub">Открыть страницу заказа</div>
+      </div>
+      <div class="order-badge__arrow">›</div>
+    `;
+    badge.addEventListener('click', () => showOrderStatus(lastId));
+    /* Вставляем сверху каталога */
+    catalog.insertBefore(badge, catalog.firstChild);
+    /* Асинхронно обновим кэш из бэка — плашка обновится сама если юзер повторно вернётся */
+    fetchOrderTrack(lastId).then(d => {
+      localStorage.setItem('iva_order_cache_' + lastId, JSON.stringify(d));
+      const t = badge.querySelector('.order-badge__title');
+      if (t) t.textContent = `Заказ #${lastId} · ${STATUS_LABELS[d.status] || label}`;
+    }).catch(() => {});
   }
 
   /* ── App settings (promo + скидки) ── */
@@ -1005,14 +1175,37 @@ const app = (() => {
     /* Пинг бэкенда (warm-up для Render Free) */
     fetch(API_BASE + "/health").catch(() => {});
 
-    /* Если вернулись с ЮКасса — показываем "Спасибо" */
+    /* Если вернулись с ЮКасса — открываем экран заказа с последним id */
     const urlParams = new URLSearchParams(window.location.search);
+    let lastOrderId; try { lastOrderId = localStorage.getItem("iva_last_order"); } catch {}
     if (urlParams.has("payment") || document.referrer.includes("yookassa.ru")) {
       cart = [];
       saveCart();
-      showScreen("thanks");
-      /* Убираем параметр из URL */
       window.history.replaceState({}, "", window.location.pathname);
+      if (lastOrderId) {
+        showOrderStatus(lastOrderId);
+      } else {
+        showScreen("thanks");
+      }
+    } else if (lastOrderId) {
+      /* Плашка «Мой заказ» на главной, если есть незавершённый */
+      refreshOrderBadge();
+    }
+
+    /* При возврате в апку (Telegram: viewportChanged / браузер: visibilitychange) —
+       если открыт экран заказа, обновить статус немедленно (может юзер оплатил). */
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      if (currentScreenName() === 'order' && _orderCurrentId) {
+        fetchOrderTrack(_orderCurrentId).then(d => {
+          try { localStorage.setItem('iva_order_cache_' + _orderCurrentId, JSON.stringify(d)); } catch {}
+          renderOrderStatus(d, _orderCurrentId);
+        }).catch(() => {});
+      }
+      refreshOrderBadge();
+    });
+    if (tg && tg.onEvent) {
+      try { tg.onEvent('viewportChanged', () => refreshOrderBadge()); } catch {}
     }
 
     /* Загружаем товары с GitHub Pages, потом перерисовываем */
@@ -1392,5 +1585,7 @@ const app = (() => {
     constructorSetStemSort,
     applyPromocodeForm,
     clearPromocode,
+    showOrderStatus,
+    reopenPayment,
   };
 })();

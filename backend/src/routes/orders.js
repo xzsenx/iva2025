@@ -34,9 +34,12 @@ async function pushToPosifloraSafely(orderId) {
 
 const r = Router();
 
+/* Разрешённые статусы заказа по потоку (paid → ... → delivered). */
+export const ORDER_STATUSES = ['pending', 'paid', 'assembling', 'assembled', 'in_delivery', 'delivered', 'cancelled', 'new_request'];
+
 /** POST /api/orders — создать заказ + платёж в ЮKassa, вернуть confirmation_url */
 r.post('/', async (req, res) => {
-  const { name, phone, address, delivery, date, time, comment, items, total, email, gift } = req.body || {};
+  const { name, phone, address, delivery, date, time, comment, items, total, email, gift, return_url_template } = req.body || {};
   if (!name || !phone || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'name, phone, items required' });
   }
@@ -91,12 +94,21 @@ r.post('/', async (req, res) => {
       }));
     }
 
+    /* Клиент присылает шаблон вида "https://host/success.html?id={ORDER_ID}"
+       (сайт) или "https://host/app/success.html?id={ORDER_ID}" (мини-апп) —
+       чтобы после оплаты Юкасса вернула юзера на нужную страницу с известным id. */
+    let returnUrl;
+    if (return_url_template && /^https?:\/\//.test(return_url_template)) {
+      returnUrl = return_url_template.replace(/\{ORDER_ID\}/g, String(orderId));
+    }
+
     const payment = await createPayment({
       amount: totalNum,
       description: `Заказ #${orderId} — IVA`,
       items: receiptItems,
       phone,
       email,
+      returnUrl,
       metadata: { order_id: String(orderId) },
     });
 
@@ -185,7 +197,7 @@ r.post('/notify-test', async (req, res) => {
 
 /** Получить актуальный статус заказа (для polling после редиректа) */
 r.get('/:id/status', async (req, res) => {
-  const row = db.prepare(`SELECT id, status, payment_status, yookassa_id FROM orders WHERE id = ?`).get(req.params.id);
+  const row = db.prepare(`SELECT id, status, payment_status, yookassa_id, photo_url FROM orders WHERE id = ?`).get(req.params.id);
   if (!row) return res.status(404).json({ error: 'not found' });
   /* Подтягиваем актуальный статус из ЮKassa */
   if (row.yookassa_id && row.payment_status !== 'succeeded') {
@@ -203,6 +215,65 @@ r.get('/:id/status', async (req, res) => {
     } catch {}
   }
   res.json(row);
+});
+
+/** Публичный трекинг заказа — по id, без auth. Возвращает минимум для страницы статуса. */
+r.get('/:id/track', async (req, res) => {
+  const row = db.prepare(`
+    SELECT id, created_at, status, payment_status, yookassa_id, photo_url,
+           customer_name, delivery_type, delivery_date, delivery_time,
+           customer_address, total_price, is_gift, recipient_name, status_updated_at
+    FROM orders WHERE id = ?
+  `).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'not found' });
+
+  /* Пуллинг из ЮKassa если платёж ещё не подтверждён */
+  if (row.yookassa_id && row.payment_status !== 'succeeded' && row.payment_status !== 'canceled') {
+    try {
+      const p = await getPayment(row.yookassa_id);
+      if (p.status !== row.payment_status) {
+        const newStatus = p.status === 'succeeded' ? 'paid' : row.status;
+        db.prepare(`UPDATE orders SET payment_status = ?, status = ? WHERE id = ?`)
+          .run(p.status, newStatus, row.id);
+        row.payment_status = p.status;
+        row.status = newStatus;
+        if (p.status === 'succeeded') {
+          pushToPosifloraSafely(row.id);
+          notifyOrderSafely(row.id);
+        }
+      }
+    } catch {}
+  }
+
+  let floristPhone = '+7 (930) 089-09-89';
+  try {
+    const s = db.prepare(`SELECT value FROM app_settings WHERE key = 'contacts'`).get();
+    const c = s ? JSON.parse(s.value) : {};
+    if (c.florist_phone) floristPhone = c.florist_phone;
+  } catch {}
+
+  /* Маскируем адрес чтобы случайно попавший в чужие руки id не сливал точный адрес.
+     Показываем только первую строку до цифр. Для gift без адреса — заглушка. */
+  const addr = row.customer_address || '';
+  const maskedAddr = addr.replace(/(\d+[а-я]?)/gi, '••').slice(0, 80);
+
+  res.json({
+    id: row.id,
+    created_at: row.created_at,
+    status: row.status,
+    payment_status: row.payment_status,
+    status_updated_at: row.status_updated_at,
+    photo_url: row.photo_url,
+    customer_name: row.customer_name,
+    delivery_type: row.delivery_type,
+    delivery_date: row.delivery_date,
+    delivery_time: row.delivery_time,
+    delivery_address: maskedAddr,
+    total_price: row.total_price,
+    is_gift: !!row.is_gift,
+    recipient_name: row.recipient_name,
+    florist_phone: floristPhone,
+  });
 });
 
 /* Ручная отправка заказа в Posiflora (если webhook не сработал / для тестов) */

@@ -35,6 +35,9 @@ const DEFAULTS = {
     about_text_1: 'ИВА — это не просто магазин цветов. Это студия, где каждый букет собирается вручную, с вниманием к настроению того, кому он предназначен.',
     about_text_2: 'Работаем с премиальными поставщиками, отбираем цветы по утрам, собираем композиции в день доставки.',
   },
+  contacts: {
+    florist_phone: '+7 (930) 089-09-89',
+  },
 };
 
 function readAll() {
@@ -74,6 +77,7 @@ r.put('/', (req, res) => {
   if (body.promo) writeKey('promo', body.promo);
   if (body.discount) writeKey('discount', body.discount);
   if (body.site) writeKey('site', body.site);
+  if (body.contacts) writeKey('contacts', body.contacts);
   if (body.notifications) {
     /* токен === '***' значит фронт прислал маску — оставляем старый */
     const cur = (() => {

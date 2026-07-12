@@ -130,16 +130,69 @@
         </div>
       </div>
 
+      <div class="field toggle-row" id="giftToggleRow">
+        <label class="toggle-lbl">
+          <input type="checkbox" name="is_gift" id="chkGift">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-text">
+            <b>Заказ другому человеку</b>
+            <small>Букет получит не заказчик</small>
+          </span>
+        </label>
+      </div>
+
       <label class="field" id="addressField">
-        <span class="field__label">Адрес</span>
+        <span class="field__label" id="addressLabel">Адрес</span>
         <input type="text" name="address" placeholder="ул. Попова 23, кв. 5">
       </label>
 
+      <div id="giftBlock" class="gift-block" style="display:none">
+        <div class="gift-block__head">
+          <span class="gift-block__title">Для получателя</span>
+          <span class="gift-block__sub">Кому и что доставить</span>
+        </div>
+        <label class="field">
+          <span class="field__label">Имя получателя</span>
+          <input type="text" name="recipient_name" placeholder="Мария">
+        </label>
+        <label class="field">
+          <span class="field__label">Телефон получателя</span>
+          <input type="tel" name="recipient_phone" placeholder="+7 (___) ___-__-__">
+        </label>
+
+        <div class="field toggle-row">
+          <label class="toggle-lbl">
+            <input type="checkbox" name="ask_recipient_address" id="chkAskAddr">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-text">
+              <b>Уточнить адрес у получателя</b>
+              <small>Курьер созвонится и заберёт адрес</small>
+            </span>
+          </label>
+        </div>
+
+        <div class="field toggle-row">
+          <label class="toggle-lbl">
+            <input type="checkbox" name="is_surprise" id="chkSurprise">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-text">
+              <b>Сюрприз</b>
+              <small>Не раскрывать заказчика получателю</small>
+            </span>
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field__label">Текст открытки</span>
+          <textarea name="card_message" rows="3" placeholder="С Днём Рождения, любимая!"></textarea>
+        </label>
+      </div>
+
       <label class="field">
-        <span class="field__label">Дата</span>
+        <span class="field__label" id="dateLabel">Дата</span>
         <input type="date" name="date" required>
       </label>
-      <label class="field">
+      <label class="field" id="timeField">
         <span class="field__label">Время</span>
         <select name="time">
           <option value="09-12">09:00 — 12:00</option>
@@ -148,6 +201,9 @@
           <option value="18-21">18:00 — 21:00</option>
         </select>
       </label>
+      <div id="askTimeNote" class="gift-note" style="display:none">
+        Флорист свяжется с получателем и уточнит адрес и время доставки
+      </div>
 
       <label class="field">
         <span class="field__label">Комментарий</span>

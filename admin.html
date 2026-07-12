@@ -2010,12 +2010,42 @@ function renderOrderCard(o) {
   const delivery = o.delivery_type === 'delivery' ? '🚚 ' + escapeHtml(o.customer_address || '') : '🏪 Самовывоз';
   const status = String(o.status || '').toLowerCase();
   const pay = String(o.payment_status || '').toLowerCase();
-  const isPaid = pay === 'succeeded' || status === 'paid';
+  const isPaid = pay === 'succeeded' || ['paid','assembling','assembled','in_delivery','delivered'].includes(status);
   const isCancelled = status === 'cancelled';
-  const statusColor = isCancelled ? '#7a3a3a' : (isPaid ? '#3a6b40' : 'rgba(255,255,255,.08)');
-  const statusText = isCancelled ? 'ОТМЕНЁН' : (isPaid ? 'ОПЛАЧЕН' : (o.payment_status || o.status || 'создан'));
+  const STATUS_LABELS = { paid:'ОПЛАЧЕН', assembling:'СОБИРАЕМ', assembled:'СОБРАН', in_delivery:'В ПУТИ', delivered:'ДОСТАВЛЕН' };
+  const STATUS_COLORS = { paid:'#3a6b40', assembling:'#4a5b9a', assembled:'#5a4a9a', in_delivery:'#9a6b3a', delivered:'#2f4a3a' };
+  const statusColor = isCancelled ? '#7a3a3a' : (STATUS_COLORS[status] || (isPaid ? '#3a6b40' : 'rgba(255,255,255,.08)'));
+  const statusText = isCancelled ? 'ОТМЕНЁН' : (STATUS_LABELS[status] || (isPaid ? 'ОПЛАЧЕН' : (o.payment_status || o.status || 'создан')));
   const cancelBtn = isCancelled ? '' :
     `<button class="btn js-order-cancel" data-id="${o.id}" style="background:#5a2929;color:#fff;padding:6px 12px;font-size:12px">Отменить</button>`;
+
+  /* Панель управления флориста: смена статуса + фото + копия ссылки */
+  const flowSteps = ['paid','assembling','assembled','in_delivery','delivered'];
+  const statusBtns = isCancelled ? '' : `
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+      ${flowSteps.map(s => `
+        <button class="btn js-order-status ${s===status?'is-active':''}" data-id="${o.id}" data-status="${s}"
+          style="padding:6px 10px;font-size:11px;font-weight:600;letter-spacing:.5px;
+                 background:${s===status?STATUS_COLORS[s]:'rgba(255,255,255,.06)'};
+                 color:${s===status?'#fff':'var(--cream-dim)'};
+                 border:1px solid ${s===status?STATUS_COLORS[s]:'rgba(255,255,255,.08)'}">
+          ${STATUS_LABELS[s]}
+        </button>
+      `).join('')}
+    </div>`;
+  const photoBlock = isCancelled ? '' : `
+    <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+      ${o.photo_url
+        ? `<img src="${o.photo_url}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.1)">`
+        : `<div style="width:72px;height:72px;background:rgba(255,255,255,.04);border-radius:10px;display:grid;place-items:center;color:var(--cream-dim);font-size:24px;border:1px dashed rgba(255,255,255,.12)">📷</div>`}
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <label class="btn" style="padding:6px 10px;font-size:11px;cursor:pointer;background:rgba(255,255,255,.06)">
+          ${o.photo_url ? 'Заменить фото' : 'Загрузить фото букета'}
+          <input type="file" accept="image/*" class="js-order-photo" data-id="${o.id}" style="display:none">
+        </label>
+        <button class="btn js-order-link" data-id="${o.id}" style="padding:6px 10px;font-size:11px;background:rgba(255,255,255,.06);color:var(--cream-dim)">Скопировать ссылку на трек</button>
+      </div>
+    </div>`;
   return `
     <div style="background:var(--bg-card);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:18px;margin-bottom:12px;${isCancelled?'opacity:.5':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
@@ -2046,6 +2076,8 @@ function renderOrderCard(o) {
           </div>
         </div>` : ''}
       <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:10px;font-size:13px">${itemsHtml}</div>
+      ${photoBlock}
+      ${statusBtns}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px">
         <strong style="color:var(--pink);font-size:18px">${(o.total_price||0).toLocaleString('ru-RU')} ₽</strong>
         ${cancelBtn}
@@ -2065,23 +2097,67 @@ async function renderOrders() {
     }
     $('#content').innerHTML = '<div style="padding:0 22px 60px;max-width:900px">' + orders.map(renderOrderCard).join('') + '</div>';
     $('#counter').textContent = orders.length + ' заказ(ов)';
-    document.querySelectorAll('.js-order-cancel').forEach(b => {
-      b.addEventListener('click', async () => {
-        const id = b.dataset.id;
-        const reason = prompt('Причина отмены (можно оставить пустым):', '');
-        if (reason === null) return;
-        try {
-          await api('POST', '/api/admin/orders/' + id + '/cancel', { reason });
-          toast('Заказ отменён');
-          renderOrders();
-        } catch (e) {
-          toast('Ошибка: ' + e.message);
-        }
-      });
-    });
+    wireOrderCardActions();
   } catch (e) {
     $('#content').innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>';
   }
+}
+
+/* Обработчики кнопок на карточке заказа. Вызывается и из renderOrders, и из карточки клиента */
+function wireOrderCardActions(onChanged) {
+  const refresh = onChanged || renderOrders;
+  document.querySelectorAll('.js-order-cancel').forEach(b => {
+    b.addEventListener('click', async () => {
+      const id = b.dataset.id;
+      const reason = prompt('Причина отмены (можно оставить пустым):', '');
+      if (reason === null) return;
+      try {
+        await api('POST', '/api/admin/orders/' + id + '/cancel', { reason });
+        toast('Заказ отменён');
+        refresh();
+      } catch (e) { toast('Ошибка: ' + e.message); }
+    });
+  });
+  document.querySelectorAll('.js-order-status').forEach(b => {
+    b.addEventListener('click', async () => {
+      const id = b.dataset.id;
+      const status = b.dataset.status;
+      try {
+        await api('POST', '/api/admin/orders/' + id + '/status', { status });
+        toast('Статус: ' + status);
+        refresh();
+      } catch (e) { toast('Ошибка: ' + e.message); }
+    });
+  });
+  document.querySelectorAll('.js-order-photo').forEach(inp => {
+    inp.addEventListener('change', async () => {
+      const id = inp.dataset.id;
+      const file = inp.files?.[0];
+      if (!file) return;
+      const fd = new FormData(); fd.append('file', file);
+      try {
+        toast('Загрузка фото…');
+        const res = await fetch(API + '/api/admin/upload', {
+          method: 'POST', headers: { Authorization: 'Basic ' + getAuth() }, body: fd,
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        await api('POST', '/api/admin/orders/' + id + '/photo', { photo_url: data.url });
+        toast('Фото прикреплено ✓');
+        refresh();
+      } catch (e) { toast('Ошибка: ' + e.message); }
+    });
+  });
+  document.querySelectorAll('.js-order-link').forEach(b => {
+    b.addEventListener('click', async () => {
+      const id = b.dataset.id;
+      const link = location.origin + '/success.html?id=' + id;
+      try {
+        await navigator.clipboard.writeText(link);
+        toast('Ссылка скопирована');
+      } catch { prompt('Скопируйте ссылку вручную:', link); }
+    });
+  });
 }
 
 async function renderCustomers() {
@@ -2146,18 +2222,7 @@ async function renderCustomers() {
         const orders = await api('GET', '/api/admin/customers/' + encodeURIComponent(phone) + '/orders');
         box.innerHTML = `<h3 style="margin:0 0 12px;font-family:'Cormorant Garamond',serif;font-size:22px">Заказы: ${escapeHtml(phone)}</h3>`
           + orders.map(renderOrderCard).join('');
-        box.querySelectorAll('.js-order-cancel').forEach(b => {
-          b.addEventListener('click', async () => {
-            const id = b.dataset.id;
-            const reason = prompt('Причина отмены:', '');
-            if (reason === null) return;
-            try {
-              await api('POST', '/api/admin/orders/' + id + '/cancel', { reason });
-              toast('Заказ отменён');
-              tr.click(); // рефреш
-            } catch (e) { toast('Ошибка: ' + e.message); }
-          });
-        });
+        wireOrderCardActions(() => tr.click());
         box.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (e) {
         box.innerHTML = '<div class="loading">Ошибка: ' + e.message + '</div>';
@@ -2284,6 +2349,17 @@ function drawMiniappSettings() {
       </div>
 
       <div class="ms-card">
+        <h3>Контакты</h3>
+        <div class="ms-row">
+          <label>Телефон флориста (для клиентов на странице статуса)</label>
+          <input class="input" id="msFloristPhone" value="${escapeHtml(s.contacts?.florist_phone||'')}" placeholder="+7 (930) 089-09-89">
+        </div>
+        <p style="font-size:12px;color:var(--cream-dim);margin:0">
+          Появится на странице «Заказ #N» — клиент сможет позвонить для правок или уточнений.
+        </p>
+      </div>
+
+      <div class="ms-card">
         <h3>Telegram-уведомления</h3>
         <label class="ms-toggle" style="margin-bottom:14px">
           <input type="checkbox" id="msTgEnabled" ${s.notifications?.tg_enabled !== false ? 'checked' : ''}>
@@ -2380,6 +2456,9 @@ function drawMiniappSettings() {
         tg_enabled: $('#msTgEnabled').checked,
         tg_chat_id: $('#msTgChat').value.trim(),
         tg_bot_token: $('#msTgToken').value.trim(),
+      },
+      contacts: {
+        florist_phone: $('#msFloristPhone').value.trim() || '+7 (930) 089-09-89',
       },
     };
     try {

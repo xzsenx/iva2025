@@ -364,6 +364,31 @@ r.get('/customers/:phone/orders', (req, res) => {
   res.json(rows.map(o => ({ ...o, items: JSON.parse(o.items_json || '[]') })));
 });
 
+/* Смена статуса заказа флористом */
+const ORDER_STATUS_SET = new Set(['paid', 'assembling', 'assembled', 'in_delivery', 'delivered']);
+r.post('/orders/:id/status', (req, res) => {
+  const id = +req.params.id;
+  const status = String(req.body?.status || '');
+  if (!ORDER_STATUS_SET.has(status)) {
+    return res.status(400).json({ error: 'bad status', allowed: [...ORDER_STATUS_SET] });
+  }
+  const order = db.prepare(`SELECT id FROM orders WHERE id=?`).get(id);
+  if (!order) return res.status(404).json({ error: 'not found' });
+  db.prepare(`UPDATE orders SET status=?, status_updated_at=datetime('now') WHERE id=?`)
+    .run(status, id);
+  res.json({ ok: true, id, status });
+});
+
+/* Прикрепить фото букета к заказу (URL из /api/admin/upload) */
+r.post('/orders/:id/photo', (req, res) => {
+  const id = +req.params.id;
+  const photo_url = String(req.body?.photo_url || '').trim() || null;
+  const order = db.prepare(`SELECT id FROM orders WHERE id=?`).get(id);
+  if (!order) return res.status(404).json({ error: 'not found' });
+  db.prepare(`UPDATE orders SET photo_url=? WHERE id=?`).run(photo_url, id);
+  res.json({ ok: true, id, photo_url });
+});
+
 /* Отмена заказа */
 r.post('/orders/:id/cancel', async (req, res) => {
   const id = +req.params.id;

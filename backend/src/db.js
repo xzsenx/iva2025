@@ -156,6 +156,8 @@ safeAlter(`ALTER TABLE orders ADD COLUMN recipient_phone TEXT`);
 safeAlter(`ALTER TABLE orders ADD COLUMN card_message TEXT`);
 safeAlter(`ALTER TABLE orders ADD COLUMN is_surprise INTEGER DEFAULT 0`);
 safeAlter(`ALTER TABLE orders ADD COLUMN ask_recipient_address INTEGER DEFAULT 0`);
+safeAlter(`ALTER TABLE orders ADD COLUMN photo_url TEXT`);
+safeAlter(`ALTER TABLE orders ADD COLUMN status_updated_at TEXT`);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS analytics_events (

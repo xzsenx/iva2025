@@ -731,18 +731,63 @@ const app = (() => {
       <span class="checkout-total__sum">${formatPrice(cartTotal())}</span>
     `;
 
-    // Toggle address field
-    els.checkoutForm.querySelectorAll('[name="delivery"]').forEach((r) => {
-      r.addEventListener("change", toggleAddress);
-    });
-    toggleAddress();
+    // Первичная привязка — только раз за жизнь формы
+    if (!els.checkoutForm.dataset.wired) {
+      els.checkoutForm.querySelectorAll('[name="delivery"]').forEach((r) => {
+        r.addEventListener("change", syncCheckoutUI);
+      });
+      const chkGift = els.checkoutForm.querySelector('#chkGift');
+      const chkAskAddr = els.checkoutForm.querySelector('#chkAskAddr');
+      chkGift?.addEventListener('change', syncCheckoutUI);
+      chkAskAddr?.addEventListener('change', syncCheckoutUI);
+      els.checkoutForm.dataset.wired = '1';
+    }
+    syncCheckoutUI();
 
     showScreen("checkout");
   }
 
-  function toggleAddress() {
-    const val = els.checkoutForm.querySelector('[name="delivery"]:checked').value;
-    els.addressField.style.display = val === "delivery" ? "flex" : "none";
+  /* Синхронизация состояния формы: доставка/самовывоз + gift-тумблеры. */
+  function syncCheckoutUI() {
+    const form = els.checkoutForm;
+    const delivery = form.querySelector('[name="delivery"]:checked').value;
+    const isDelivery = delivery === 'delivery';
+    const chkGift = form.querySelector('#chkGift');
+    const chkAskAddr = form.querySelector('#chkAskAddr');
+    /* Самовывоз → gift не имеет смысла: снимаем и прячем тумблер */
+    if (!isDelivery && chkGift?.checked) chkGift.checked = false;
+    const giftRow = form.querySelector('#giftToggleRow');
+    if (giftRow) giftRow.style.display = isDelivery ? '' : 'none';
+
+    const isGift = !!chkGift?.checked;
+    const askAddr = isGift && !!chkAskAddr?.checked;
+
+    /* Адрес доставки: только если доставка И (не подарок или адрес известен) */
+    const addrField = els.addressField;
+    const addrLabel = form.querySelector('#addressLabel');
+    const addrInput = form.querySelector('[name="address"]');
+    const showAddr = isDelivery && !askAddr;
+    if (addrField) addrField.style.display = showAddr ? 'flex' : 'none';
+    if (addrLabel) addrLabel.textContent = isGift ? 'Адрес получателя' : 'Адрес';
+    if (addrInput) addrInput.placeholder = isGift ? 'Куда доставить букет' : 'ул. Попова 23, кв. 5';
+
+    /* Gift-блок */
+    const giftBlock = form.querySelector('#giftBlock');
+    if (giftBlock) giftBlock.style.display = isGift ? 'flex' : 'none';
+
+    /* Время: если адрес уточняется у получателя — время тоже уточним у него */
+    const timeField = form.querySelector('#timeField');
+    const askNote = form.querySelector('#askTimeNote');
+    const dateLabel = form.querySelector('#dateLabel');
+    if (askAddr) {
+      if (timeField) timeField.style.display = 'none';
+      if (askNote) askNote.style.display = 'block';
+      if (dateLabel) dateLabel.textContent = 'Желаемая дата';
+    } else {
+      if (timeField) timeField.style.display = '';
+      if (askNote) askNote.style.display = 'none';
+      if (dateLabel) dateLabel.textContent = 'Дата';
+    }
   }
 
   /* ── Submit Order ── */
@@ -771,6 +816,22 @@ const app = (() => {
       };
     });
 
+    const isGift = !!els.checkoutForm.querySelector('#chkGift')?.checked;
+    const askAddr = isGift && !!els.checkoutForm.querySelector('#chkAskAddr')?.checked;
+    /* Если подарок и адрес не «уточним у получателя» — телефон получателя обязателен */
+    if (isGift && !askAddr && !String(fd.get('recipient_phone') || '').trim()) {
+      toast('Введите телефон получателя');
+      return false;
+    }
+    const gift = isGift ? {
+      enabled: true,
+      recipient_name: String(fd.get('recipient_name') || '').trim(),
+      recipient_phone: String(fd.get('recipient_phone') || '').trim(),
+      ask_recipient_address: askAddr,
+      is_surprise: !!els.checkoutForm.querySelector('#chkSurprise')?.checked,
+      card_message: String(fd.get('card_message') || '').trim(),
+    } : undefined;
+
     const order = {
       items,
       total: cartTotal(),
@@ -779,8 +840,11 @@ const app = (() => {
       delivery: fd.get("delivery"),
       address: fd.get("address") || "",
       date: fd.get("date"),
-      time: fd.get("time"),
+      time: askAddr ? "" : fd.get("time"),
       comment: fd.get("comment") || "",
+      gift,
+      /* Юкасса вернёт юзера сюда после оплаты (в системный браузер) */
+      return_url_template: location.origin + "/success.html?id={ORDER_ID}",
     };
 
     const submitBtn = els.checkoutForm.querySelector('[type="submit"]');

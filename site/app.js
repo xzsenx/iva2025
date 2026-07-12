@@ -664,6 +664,8 @@ const renderCheckout = () => {
     };
 
     track('begin_checkout', { total, items_count: cartNow.length });
+    /* Юкасса вернёт юзера сюда после оплаты, id вшит в query — переживает закрытие браузера. */
+    payload.return_url_template = location.origin + '/success.html?id={ORDER_ID}';
     try {
       const r = await fetch(API_BASE + '/api/orders', {
         method: 'POST',
@@ -673,6 +675,8 @@ const renderCheckout = () => {
       const data = await r.json();
       if (!r.ok || !data.confirmation_url) throw new Error(data.error || 'payment failed');
       track('order_placed', { order_id: data.id, total });
+      /* localStorage дублирует id — если юзер вернётся вручную без query, всё равно найдём */
+      try { localStorage.setItem('iva_last_order', String(data.id)); } catch {}
       sessionStorage.setItem('iva_last_order', String(data.id));
       saveCart([]);
       location.href = data.confirmation_url;
@@ -685,63 +689,129 @@ const renderCheckout = () => {
   });
 };
 
-/* ── Success page (polling) ── */
+/* ── Success / status page (polling) ── */
+const ORDER_STEPS = [
+  { key: 'paid',         label: 'Оплачен',  icon: '💳' },
+  { key: 'assembling',   label: 'Собираем', icon: '🌸' },
+  { key: 'assembled',    label: 'Собран',   icon: '🎁' },
+  { key: 'in_delivery',  label: 'В пути',   icon: '🚚' },
+  { key: 'delivered',    label: 'Доставлен',icon: '💚' },
+];
+const STEP_INDEX = { pending:-1, paid:0, assembling:1, assembled:2, in_delivery:3, delivered:4 };
+
 const renderSuccess = () => {
   const root = document.getElementById('successRoot');
   if (!root) return;
   const url = new URL(location.href);
-  const orderId = url.searchParams.get('orderId') || sessionStorage.getItem('iva_last_order');
+  /* id | orderId — оба варианта поддерживаем; fallback на localStorage/sessionStorage */
+  let orderId = url.searchParams.get('id') || url.searchParams.get('orderId');
   if (!orderId) {
-    root.innerHTML = `<div class="empty"><div class="empty__title">Заказ не найден</div><a class="btn btn--ghost" href="catalog.html" style="margin-top:16px">К каталогу</a></div>`;
+    try { orderId = localStorage.getItem('iva_last_order'); } catch {}
+    if (!orderId) orderId = sessionStorage.getItem('iva_last_order');
+  }
+  if (!orderId) {
+    root.innerHTML = `<div class="order-empty"><h1>Заказ не найден</h1><p>Проверьте ссылку из письма или SMS. Если только что оплатили — обновите страницу через минуту.</p><a class="btn btn--ghost" href="catalog.html">К каталогу</a></div>`;
     return;
   }
 
-  const showState = (state) => {
-    if (state === 'pending') {
-      root.innerHTML = `
-        <div class="empty">
-          <div class="empty__icon" style="font-size:48px">⏳</div>
-          <div class="empty__title">Проверяем оплату...</div>
-          <p>Это займёт несколько секунд</p>
-        </div>`;
-    } else if (state === 'paid') {
-      root.innerHTML = `
-        <div class="empty">
-          <div class="empty__icon" style="color:var(--accent);font-size:64px">✓</div>
-          <div class="empty__title">Заказ #${orderId} оплачен!</div>
-          <p>Менеджер свяжется в ближайшее время для подтверждения деталей.</p>
-          <a class="btn btn--primary" href="index.html" style="margin-top:24px">На главную</a>
-        </div>`;
-    } else if (state === 'canceled') {
-      root.innerHTML = `
-        <div class="empty">
-          <div class="empty__icon" style="color:var(--danger);font-size:64px">✕</div>
-          <div class="empty__title">Платёж отменён</div>
-          <p>Заказ #${orderId} не оплачен. Можно попробовать ещё раз.</p>
-          <a class="btn btn--primary" href="checkout.html" style="margin-top:24px">К оформлению</a>
-        </div>`;
-    } else {
-      root.innerHTML = `
-        <div class="empty">
-          <div class="empty__title">Заказ #${orderId}</div>
-          <p>Статус: ${state}</p>
-          <a class="btn btn--ghost" href="index.html" style="margin-top:24px">На главную</a>
-        </div>`;
-    }
+  /* Кэш последних данных заказа — чтобы после F5 сразу показать что-то, а не «загрузка». */
+  const cacheKey = 'iva_order_cache_' + orderId;
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch {}
+
+  const humanDate = (row) => {
+    if (!row?.delivery_date) return '';
+    try {
+      const [y,m,d] = row.delivery_date.split('-');
+      return `${d}.${m} · ${row.delivery_time || ''}`.trim();
+    } catch { return row.delivery_date + ' ' + (row.delivery_time || ''); }
+  };
+  const money = (n) => (Number(n)||0).toLocaleString('ru-RU') + ' ₽';
+
+  const render = (data) => {
+    const paid = data.payment_status === 'succeeded' || STEP_INDEX[data.status] >= 0;
+    const cancelled = data.status === 'cancelled' || data.payment_status === 'canceled';
+    const currentIdx = cancelled ? -1 : (STEP_INDEX[data.status] ?? 0);
+
+    const timeline = ORDER_STEPS.map((s, i) => `
+      <li class="tl__item ${i <= currentIdx ? 'is-done' : ''} ${i === currentIdx ? 'is-current' : ''}">
+        <span class="tl__dot">${i <= currentIdx ? '✓' : s.icon}</span>
+        <span class="tl__label">${s.label}</span>
+      </li>
+    `).join('');
+
+    const photo = data.photo_url
+      ? `<div class="order-photo"><img src="${data.photo_url}" alt="Ваш букет" loading="lazy"></div>`
+      : (currentIdx >= 1
+          ? `<div class="order-photo order-photo--wait">🌷<span>Флорист собирает букет — фото появится тут</span></div>`
+          : '');
+
+    const florist = data.florist_phone
+      ? `<a class="order-contact" href="tel:${data.florist_phone.replace(/[^\d+]/g,'')}">
+          <span class="order-contact__label">Флорист · нужны правки?</span>
+          <span class="order-contact__value">${data.florist_phone}</span>
+        </a>` : '';
+
+    const headline = cancelled
+      ? { icon:'✕', title:'Платёж не прошёл', sub:'Заказ #' + orderId + ' не оплачен. Попробуйте ещё раз.', color:'var(--danger,#c96a6a)' }
+      : paid
+        ? { icon:'✓', title:'Заказ #' + orderId + ' оплачен', sub:data.customer_name ? 'Спасибо, ' + data.customer_name + '!' : 'Спасибо за заказ!', color:'var(--accent,#8fb08a)' }
+        : { icon:'⏳', title:'Проверяем оплату…', sub:'Это займёт несколько секунд', color:'var(--cream-dim,#a89f95)' };
+
+    root.innerHTML = `
+      <div class="order-status">
+        <div class="order-hero">
+          <div class="order-hero__icon" style="color:${headline.color}">${headline.icon}</div>
+          <h1 class="order-hero__title">${headline.title}</h1>
+          <p class="order-hero__sub">${headline.sub}</p>
+        </div>
+
+        ${paid && !cancelled ? `
+        <ul class="tl">${timeline}</ul>
+        ` : ''}
+
+        ${photo}
+
+        <div class="order-info">
+          ${data.delivery_type === 'delivery' ? `
+            <div class="order-info__row"><span>Доставка</span><b>${data.delivery_address || 'по указанному адресу'}</b></div>
+          ` : `<div class="order-info__row"><span>Способ</span><b>Самовывоз · ул. Есенина, 9 к3</b></div>`}
+          ${data.delivery_date ? `<div class="order-info__row"><span>Когда</span><b>${humanDate(data)}</b></div>` : ''}
+          ${data.total_price ? `<div class="order-info__row"><span>Сумма</span><b>${money(data.total_price)}</b></div>` : ''}
+          ${data.is_gift && data.recipient_name ? `<div class="order-info__row"><span>Получатель</span><b>${data.recipient_name}</b></div>` : ''}
+        </div>
+
+        ${florist}
+
+        <div class="order-cta">
+          <a class="btn btn--ghost" href="catalog.html">К каталогу</a>
+          <a class="btn btn--primary" href="index.html">На главную</a>
+        </div>
+
+        <p class="order-hint">Эту страницу можно закрыть — статус придёт в SMS. Ссылку можно сохранить, чтобы следить за букетом.</p>
+      </div>
+    `;
   };
 
-  showState('pending');
+  /* Если есть кэш — сразу нарисуем, потом обновим по сети */
+  if (cached) render(cached);
+  else render({ status:'pending', payment_status:'pending' });
+
   let tries = 0;
   const poll = async () => {
     tries++;
     try {
-      const r = await fetch(`${API_BASE}/api/orders/${orderId}/status`);
-      const d = await r.json();
-      if (d.payment_status === 'succeeded' || d.status === 'paid') return showState('paid');
-      if (d.payment_status === 'canceled') return showState('canceled');
+      const r = await fetch(`${API_BASE}/api/orders/${orderId}/track`, { cache: 'no-store' });
+      if (r.ok) {
+        const d = await r.json();
+        try { localStorage.setItem(cacheKey, JSON.stringify(d)); } catch {}
+        render(d);
+        /* Пока не доставлен и не отменён — пуллим дальше, но всё реже */
+        if (d.status === 'delivered' || d.status === 'cancelled' || d.payment_status === 'canceled') return;
+      }
     } catch {}
-    if (tries < 20) setTimeout(poll, 2000);
-    else showState('pending');
+    const delay = tries < 10 ? 3000 : (tries < 30 ? 15000 : 60000);
+    setTimeout(poll, delay);
   };
   poll();
 };

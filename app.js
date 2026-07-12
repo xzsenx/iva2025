@@ -1055,8 +1055,15 @@ const app = (() => {
       <div class="order-badge__arrow">›</div>
     `;
     badge.addEventListener('click', () => showOrderStatus(lastId));
-    /* Вставляем сверху каталога */
-    catalog.insertBefore(badge, catalog.firstChild);
+    /* Вставляем ПОСЛЕ хедера (иначе на iPhone плашка уезжает под Dynamic Island / TG bar) */
+    const header = catalog.querySelector('.header');
+    if (header && header.nextSibling) {
+      catalog.insertBefore(badge, header.nextSibling);
+    } else if (header) {
+      catalog.appendChild(badge);
+    } else {
+      catalog.insertBefore(badge, catalog.firstChild);
+    }
     /* Асинхронно обновим кэш из бэка — плашка обновится сама если юзер повторно вернётся */
     fetchOrderTrack(lastId).then(d => {
       localStorage.setItem('iva_order_cache_' + lastId, JSON.stringify(d));

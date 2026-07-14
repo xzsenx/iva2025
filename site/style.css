@@ -1790,7 +1790,9 @@ html { scrollbar-width: thin; scrollbar-color: rgba(201,164,160,.45) transparent
   [data-rv].rv-in { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== Order status page ===== */
+/* ===== Order status page =====
+   SYNC: этот блок (.order-*, .tl, .tl__*) дублируется в /style.css (мини-апа).
+   При правках синхронизируй оба. */
 .order-empty { text-align: center; padding: 60px 20px; }
 .order-empty h1 { font-family: var(--font-serif); font-size: 32px; margin-bottom: 12px; }
 .order-empty p { color: var(--cream-dim); margin-bottom: 20px; }

@@ -690,6 +690,8 @@ const renderCheckout = () => {
 };
 
 /* ── Success / status page (polling) ── */
+/* SYNC: этот блок (ORDER_STEPS + renderSuccess + poll) дублируется в
+   /app.js (мини-апа) — showOrderStatus. При правках синхронизируй оба. */
 const ORDER_STEPS = [
   { key: 'paid',         label: 'Оплачен',  icon: '💳' },
   { key: 'assembling',   label: 'Собираем', icon: '🌸' },

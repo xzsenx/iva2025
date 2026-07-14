@@ -1705,7 +1705,9 @@ html.is-tg .checkout-form {
   margin-top: 4px;
 }
 
-/* ── Экран статуса заказа ── */
+/* ── Экран статуса заказа ──
+   SYNC: этот блок (.order-*, .tl, .tl__*) дублируется в /site/style.css.
+   При правках синхронизируй оба. */
 .order-hero { text-align: center; margin: 12px 0 28px; }
 .order-hero__icon { font-size: 64px; line-height: 1; margin-bottom: 12px; animation: orderPop .6s cubic-bezier(.34,1.56,.64,1) both; }
 @keyframes orderPop { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }

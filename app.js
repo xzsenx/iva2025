@@ -905,6 +905,8 @@ const app = (() => {
   }
 
   /* ── Экран статуса заказа ── */
+  /* SYNC: этот блок (ORDER_STEPS + showOrderStatus + poll + refreshOrderBadge)
+     дублируется в /site/app.js — renderSuccess. При правках синхронизируй оба. */
   const ORDER_STEPS = [
     { key: 'paid',         label: 'Оплачен',  icon: '💳' },
     { key: 'assembling',   label: 'Собираем', icon: '🌸' },

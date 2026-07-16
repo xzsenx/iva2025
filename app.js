@@ -605,7 +605,36 @@ const app = (() => {
   /* ── Cart Screen ── */
   function renderCart() {
     if (cart.length === 0) {
-      els.cartBody.innerHTML = `
+      /* После оформления юзер часто идёт в корзину — покажем плашку заказа тут тоже */
+      let orderBadge = '';
+      try {
+        const lastId = localStorage.getItem('iva_last_order');
+        if (lastId) {
+          const cache = JSON.parse(localStorage.getItem('iva_order_cache_' + lastId) || 'null');
+          const skip = cache?.status === 'cancelled' || cache?.payment_status === 'canceled';
+          let deliveredExpired = false;
+          if (cache?.status === 'delivered') {
+            const upd = cache.status_updated_at;
+            const doneAt = upd ? new Date(upd.replace(' ', 'T') + 'Z').getTime() : 0;
+            deliveredExpired = !doneAt || (Date.now() - doneAt) > 24 * 3600_000;
+          }
+          if (!skip && !deliveredExpired) {
+            const STATUS_LABELS = { pending:'Ждём оплату', paid:'Оплачен', assembling:'Собираем', assembled:'Собран', in_delivery:'В пути', delivered:'Доставлен' };
+            const status = cache?.status || 'pending';
+            const label = STATUS_LABELS[status] || 'Заказ в работе';
+            orderBadge = `
+              <div class="order-badge" onclick="app.showOrderStatus('${lastId}')" style="margin:0 0 20px;cursor:pointer">
+                <div class="order-badge__icon">📦</div>
+                <div class="order-badge__body">
+                  <div class="order-badge__title">Заказ #${lastId} · ${label}</div>
+                  <div class="order-badge__sub">Открыть страницу заказа</div>
+                </div>
+                <div class="order-badge__arrow">›</div>
+              </div>`;
+          }
+        }
+      } catch {}
+      els.cartBody.innerHTML = orderBadge + `
         <div class="cart-empty">
           <div class="cart-empty__icon">
             <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -844,6 +873,8 @@ const app = (() => {
       time: askAddr ? "" : fd.get("time"),
       comment: fd.get("comment") || "",
       gift,
+      /* TG user_id — чтобы бот мог пуш-нотификации о смене статуса слать */
+      tg_user_id: tg?.initDataUnsafe?.user?.id || null,
       /* Юкасса вернёт юзера сюда после оплаты (в системный браузер) */
       return_url_template: location.origin + "/success.html?id={ORDER_ID}",
     };
@@ -1037,10 +1068,12 @@ const app = (() => {
     let lastId; try { lastId = localStorage.getItem('iva_last_order'); } catch {}
     if (!lastId) return;
     let cache = null; try { cache = JSON.parse(localStorage.getItem('iva_order_cache_' + lastId) || 'null'); } catch {}
-    /* Если заказ доставлен/отменён неделю назад — не показываем */
-    if (cache && (cache.status === 'delivered' || cache.status === 'cancelled' || cache.payment_status === 'canceled')) {
-      /* Плашка не нужна, но id оставим на случай если юзер захочет открыть */
-      return;
+    if (cache?.status === 'cancelled' || cache?.payment_status === 'canceled') return;
+    /* Delivered держим ещё 24ч (клиенту приятно видеть галочку), потом убираем */
+    if (cache?.status === 'delivered') {
+      const upd = cache.status_updated_at;
+      const doneAt = upd ? new Date(upd.replace(' ', 'T') + 'Z').getTime() : 0;
+      if (!doneAt || (Date.now() - doneAt) > 24 * 3600_000) return;
     }
     const STATUS_LABELS = { pending:'Ждём оплату', paid:'Оплачен', assembling:'Собираем', assembled:'Собран', in_delivery:'В пути', delivered:'Доставлен' };
     const status = cache?.status || 'pending';

@@ -366,7 +366,7 @@ r.get('/customers/:phone/orders', (req, res) => {
 
 /* Смена статуса заказа флористом */
 const ORDER_STATUS_SET = new Set(['paid', 'assembling', 'assembled', 'in_delivery', 'delivered']);
-r.post('/orders/:id/status', (req, res) => {
+r.post('/orders/:id/status', async (req, res) => {
   const id = +req.params.id;
   const status = String(req.body?.status || '');
   if (!ORDER_STATUS_SET.has(status)) {
@@ -376,6 +376,8 @@ r.post('/orders/:id/status', (req, res) => {
   if (!order) return res.status(404).json({ error: 'not found' });
   db.prepare(`UPDATE orders SET status=?, status_updated_at=datetime('now') WHERE id=?`)
     .run(status, id);
+  /* Не ждём результата — не хотим блокировать ответ админке */
+  import('../services/tgNotify.js').then(m => m.notifyCustomerStatus(id, status)).catch(() => {});
   res.json({ ok: true, id, status });
 });
 

@@ -141,6 +141,40 @@ export async function notifySyncDiff(diff) {
   }
 }
 
+/* Уведомить клиента о смене статуса заказа. Слём в его личку через того же бота.
+   Требует order.tg_user_id (сохраняется в мини-апе из initDataUnsafe.user.id). */
+const CUSTOMER_STATUS_TEXT = {
+  paid:        '💳 Заказ #{ID} оплачен. Флорист скоро возьмётся за букет.',
+  assembling:  '🌸 Флорист начал собирать ваш букет по заказу #{ID}',
+  assembled:   '🎁 Букет по заказу #{ID} собран. Скоро отправим в путь.',
+  in_delivery: '🚚 Курьер уже в пути с вашим букетом #{ID}',
+  delivered:   '💚 Букет доставлен. Спасибо, что выбрали ИВУ! (заказ #{ID})',
+  cancelled:   '❌ Заказ #{ID} отменён. Если это ошибка — свяжитесь с флористом.',
+};
+
+export async function notifyCustomerStatus(orderId, status) {
+  const cfg = getNotifyConfig();
+  if (!cfg.enabled || !cfg.bot_token) return { ok: false, reason: 'not_configured' };
+  const row = db.prepare(`SELECT tg_user_id FROM orders WHERE id=?`).get(orderId);
+  if (!row?.tg_user_id) return { ok: false, reason: 'no_tg_user' };
+  const template = CUSTOMER_STATUS_TEXT[status];
+  if (!template) return { ok: false, reason: 'no_template' };
+  const text = template.replace('{ID}', orderId);
+  try {
+    await axios.post(
+      `https://api.telegram.org/bot${cfg.bot_token}/sendMessage`,
+      { chat_id: row.tg_user_id, text, disable_web_page_preview: true },
+      { timeout: 10_000 }
+    );
+    return { ok: true };
+  } catch (e) {
+    /* Юзер мог не стартовать бота — тогда 403 "bot can't initiate conversation".
+       Молча логируем, не ломаем UPDATE статуса. */
+    console.error('[tg] customer notify failed:', e.response?.data?.description || e.message);
+    return { ok: false, reason: e.response?.data?.description || e.message };
+  }
+}
+
 /* Тестовое сообщение из админки — проверить что chat_id/токен живые */
 export async function notifyTest() {
   const cfg = getNotifyConfig();

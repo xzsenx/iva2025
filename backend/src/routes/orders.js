@@ -39,7 +39,7 @@ export const ORDER_STATUSES = ['pending', 'paid', 'assembling', 'assembled', 'in
 
 /** POST /api/orders — создать заказ + платёж в ЮKassa, вернуть confirmation_url */
 r.post('/', async (req, res) => {
-  const { name, phone, address, delivery, date, time, comment, items, total, email, gift, return_url_template } = req.body || {};
+  const { name, phone, address, delivery, date, time, comment, items, total, email, gift, return_url_template, tg_user_id } = req.body || {};
   if (!name || !phone || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'name, phone, items required' });
   }
@@ -52,12 +52,13 @@ r.post('/', async (req, res) => {
   const finalAddress = (isGift && askAddr) ? 'Уточним у получателя' : (address || '');
 
   /* 1. Сохраняем заказ локально (со статусом pending) */
+  const tgUid = tg_user_id ? String(tg_user_id).slice(0, 32) : null;
   const info = db.prepare(`
     INSERT INTO orders
       (customer_name, customer_phone, customer_address, delivery_type, delivery_date, delivery_time, comment, total_price, items_json, status, payment_status,
-       is_gift, recipient_name, recipient_phone, card_message, is_surprise, ask_recipient_address)
+       is_gift, recipient_name, recipient_phone, card_message, is_surprise, ask_recipient_address, tg_user_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending',
-       ?, ?, ?, ?, ?, ?)
+       ?, ?, ?, ?, ?, ?, ?)
   `).run(
     name, phone, finalAddress, delivery || 'delivery', date || '', time || '',
     comment || '', totalNum, JSON.stringify(items),
@@ -67,6 +68,7 @@ r.post('/', async (req, res) => {
     isGift ? (g.card_message || '') : null,
     isGift && g.is_surprise ? 1 : 0,
     askAddr,
+    tgUid,
   );
   const orderId = info.lastInsertRowid;
 

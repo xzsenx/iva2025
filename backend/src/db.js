@@ -158,6 +158,7 @@ safeAlter(`ALTER TABLE orders ADD COLUMN is_surprise INTEGER DEFAULT 0`);
 safeAlter(`ALTER TABLE orders ADD COLUMN ask_recipient_address INTEGER DEFAULT 0`);
 safeAlter(`ALTER TABLE orders ADD COLUMN photo_url TEXT`);
 safeAlter(`ALTER TABLE orders ADD COLUMN status_updated_at TEXT`);
+safeAlter(`ALTER TABLE orders ADD COLUMN tg_user_id TEXT`);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS analytics_events (

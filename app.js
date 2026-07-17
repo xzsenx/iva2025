@@ -310,8 +310,9 @@ const app = (() => {
       return `<div class="card__stock card__stock--out">Нет в наличии</div>`;
     }
     const qty = getCartQty(b.id);
-    const stockHTML = b.stock != null && b.stock <= 30
-      ? `<div class="card__stock card__stock--low">Можно собрать: ${b.stock}</div>` : "";
+    /* Клиенту не показываем внутренние лимиты «сколько можно собрать» —
+       только когда 0 (нет в наличии). Логика лимитов дальше работает как раньше. */
+    const stockHTML = "";
     if (qty > 0) {
       const maxReached = b.stock != null && qty >= b.stock;
       return `${stockHTML}
@@ -624,7 +625,7 @@ const app = (() => {
             const label = STATUS_LABELS[status] || 'Заказ в работе';
             orderBadge = `
               <div class="order-badge" onclick="app.showOrderStatus('${lastId}')" style="margin:0 0 20px;cursor:pointer">
-                <div class="order-badge__icon">📦</div>
+                <div class="order-badge__icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></div>
                 <div class="order-badge__body">
                   <div class="order-badge__title">Заказ #${lastId} · ${label}</div>
                   <div class="order-badge__sub">Открыть страницу заказа</div>
@@ -938,12 +939,24 @@ const app = (() => {
   /* ── Экран статуса заказа ── */
   /* SYNC: этот блок (ORDER_STEPS + showOrderStatus + poll + refreshOrderBadge)
      дублируется в /site/app.js — renderSuccess. При правках синхронизируй оба. */
+  const _svgAttrs = 'viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+  const ORDER_ICONS = {
+    /* SVG-иконки таймлайна вместо эмодзи — контроль цвета через currentColor */
+    card:   `<svg ${_svgAttrs}><rect x="2" y="6" width="20" height="13" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
+    flower: `<svg ${_svgAttrs}><circle cx="12" cy="10" r="2.2"/><path d="M12 7.8V5m0 9.2V17m2.2-4.8H17M7 12.2h2.8M13.6 8.4l1.6-1.6M8.8 15.2l1.6-1.6m0-5.2L8.8 6.8m6.4 8.4l-1.6-1.6M12 17c-2 2-4 2-5 1 0-2 2-4 5-4"/></svg>`,
+    gift:   `<svg ${_svgAttrs}><rect x="3" y="8" width="18" height="12" rx="1"/><path d="M12 8v12M3 12h18M7.5 8a2.5 2.5 0 010-5c1.5 0 3 1.5 4.5 5-1.5 0-3.5 0-4.5 0zm9 0a2.5 2.5 0 000-5c-1.5 0-3 1.5-4.5 5 1.5 0 3.5 0 4.5 0z"/></svg>`,
+    truck:  `<svg ${_svgAttrs}><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="18.5" r="2"/></svg>`,
+    heart:  `<svg ${_svgAttrs}><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 10-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg>`,
+    /* Заголовок / плейсхолдер / часы */
+    clock:  `<svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    bouquet:`<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="2.3"/><circle cx="16" cy="7" r="2.3"/><circle cx="12" cy="4.5" r="2.3"/><path d="M8 9.2L11 15M16 9.2L13 15M12 6.8v8.2M6 21c1-3 5-6 6-6s5 3 6 6"/></svg>`,
+  };
   const ORDER_STEPS = [
-    { key: 'paid',         label: 'Оплачен',  icon: '💳' },
-    { key: 'assembling',   label: 'Собираем', icon: '🌸' },
-    { key: 'assembled',    label: 'Собран',   icon: '🎁' },
-    { key: 'in_delivery',  label: 'В пути',   icon: '🚚' },
-    { key: 'delivered',    label: 'Доставлен',icon: '💚' },
+    { key: 'paid',        label: 'Оплачен',   icon: ORDER_ICONS.card   },
+    { key: 'assembling',  label: 'Собираем',  icon: ORDER_ICONS.flower },
+    { key: 'assembled',   label: 'Собран',    icon: ORDER_ICONS.gift   },
+    { key: 'in_delivery', label: 'В пути',    icon: ORDER_ICONS.truck  },
+    { key: 'delivered',   label: 'Доставлен', icon: ORDER_ICONS.heart  },
   ];
   const STEP_INDEX = { pending:-1, paid:0, assembling:1, assembled:2, in_delivery:3, delivered:4 };
   let _orderPollTimer = null;
@@ -976,7 +989,7 @@ const app = (() => {
     const photo = data.photo_url
       ? `<div class="order-photo"><img src="${data.photo_url}" alt=""></div>`
       : (currentIdx >= 1
-          ? `<div class="order-photo order-photo--wait">🌷<span>Флорист собирает букет — фото появится тут</span></div>`
+          ? `<div class="order-photo order-photo--wait">${ORDER_ICONS.bouquet}<span>Флорист собирает букет — фото появится тут</span></div>`
           : '');
     const florist = data.florist_phone
       ? `<a class="order-contact" href="tel:${data.florist_phone.replace(/[^\d+]/g,'')}">
@@ -988,7 +1001,7 @@ const app = (() => {
       ? { icon:'✕', title:'Платёж не прошёл', sub:'Заказ #' + id + ' не оплачен', color:'#c96a6a' }
       : paid
         ? { icon:'✓', title:'Заказ #' + id + ' оплачен', sub: data.customer_name ? 'Спасибо, ' + data.customer_name + '!' : 'Спасибо!', color:'#8fb08a' }
-        : { icon:'⏳', title:'Ждём оплату…', sub:'Как только пройдёт оплата, тут появится статус', color:'var(--cream-dim)' };
+        : { icon: ORDER_ICONS.clock, title:'Ждём оплату…', sub:'Как только пройдёт оплата, тут появится статус', color:'var(--cream-dim)' };
     const payCta = isWaitingPay ? `
       <div class="order-pay-cta">
         <div class="order-pay-cta__text">Если окно оплаты закрылось —<br>откройте его снова</div>
@@ -1012,7 +1025,7 @@ const app = (() => {
         ${data.is_gift && data.recipient_name ? `<div class="order-info__row"><span>Получатель</span><b>${data.recipient_name}</b></div>` : ''}
       </div>
       ${florist}
-      <p class="order-hint">Можно закрыть апку — статус придёт SMS.<br>Заказ #${id} · ссылка на трек: <span style="color:var(--pink)">${location.origin}/success.html?id=${id}</span></p>
+      <p class="order-hint">Можно закрыть апку — уведомления о статусе придут в Telegram.<br>Заказ #${id} · ссылка на трек: <span style="color:var(--pink)">${location.origin}/success.html?id=${id}</span></p>
     `;
   }
 
@@ -1082,7 +1095,7 @@ const app = (() => {
     badge.id = 'orderBadge';
     badge.className = 'order-badge';
     badge.innerHTML = `
-      <div class="order-badge__icon">📦</div>
+      <div class="order-badge__icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></div>
       <div class="order-badge__body">
         <div class="order-badge__title">Заказ #${lastId} · ${label}</div>
         <div class="order-badge__sub">Открыть страницу заказа</div>

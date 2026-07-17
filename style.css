@@ -106,6 +106,8 @@ html.is-tg:not(.is-tg-mobile) .header {
   gap: 8px;
 }
 .logo__icon { color: var(--pink); }
+.logo__mark { color: var(--pink); display: block; width: auto; height: 32px; }
+/* SVG mark использует currentColor — красим через color */
 .logo__text {
   font-family: var(--font-serif);
   font-size: 28px;
@@ -1737,8 +1739,15 @@ html.is-tg .checkout-form {
 .order-info__row b { text-align: right; font-weight: 500; color: var(--cream); }
 
 .order-contact { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; padding: 16px 20px; background: var(--bg-card); border: 1px solid rgba(201,164,160,.25); border-radius: 14px; margin-bottom: 20px; text-decoration: none; color: var(--cream); }
-.order-contact__label { font-size: 11px; color: var(--pink); letter-spacing: 1px; text-transform: uppercase; }
-.order-contact__value { font-size: 18px; font-weight: 600; font-family: 'Cormorant Garamond', serif; }
+.order-contact__label { font-size: 11px; color: var(--pink); letter-spacing: 1.2px; text-transform: uppercase; }
+.order-contact__value {
+  font-size: 26px;
+  font-weight: 600;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  letter-spacing: .5px;
+  margin-top: 2px;
+  font-feature-settings: "tnum" 1;
+}
 
 .order-hint { text-align: center; color: var(--cream-dim); font-size: 11px; padding: 0 20px; margin-top: 12px; line-height: 1.5; }
 
@@ -1760,7 +1769,8 @@ html.is-tg .checkout-form {
   border-radius: 12px; cursor: pointer;
   animation: orderFadeIn .4s ease both;
 }
-.order-badge__icon { font-size: 22px; }
+.order-badge__icon { color: #8fb08a; display: flex; align-items: center; }
+.order-badge__icon svg { display: block; }
 .order-badge__body { flex: 1; }
 .order-badge__title { font-size: 13px; font-weight: 600; color: var(--cream); }
 .order-badge__sub { font-size: 11px; color: var(--cream-dim); margin-top: 2px; }

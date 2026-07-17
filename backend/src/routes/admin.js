@@ -377,7 +377,9 @@ r.post('/orders/:id/status', async (req, res) => {
   db.prepare(`UPDATE orders SET status=?, status_updated_at=datetime('now') WHERE id=?`)
     .run(status, id);
   /* Не ждём результата — не хотим блокировать ответ админке */
-  import('../services/tgNotify.js').then(m => m.notifyCustomerStatus(id, status)).catch(() => {});
+  import('../services/tgNotify.js')
+    .then(m => m.notifyCustomerStatus(id, status))
+    .catch(e => console.warn('[tg] customer notify hook failed:', e.message));
   res.json({ ok: true, id, status });
 });
 

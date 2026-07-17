@@ -1185,27 +1185,10 @@ const app = (() => {
   }
 
   /* ── Analytics beacon ── */
-  const _mSession = (() => {
-    try {
-      let s = localStorage.getItem("iva_sid");
-      if (!s) { s = Date.now().toString(36) + Math.random().toString(36).slice(2, 10); localStorage.setItem("iva_sid", s); }
-      return s;
-    } catch { return ""; }
-  })();
-  function trackEvent(event, meta) {
-    try {
-      const body = JSON.stringify({
-        source: "miniapp", event,
-        path: window.location.pathname + window.location.search,
-        session_id: _mSession, meta: meta || undefined,
-      });
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(API_BASE + "/api/analytics/track", new Blob([body], { type: "application/json" }));
-      } else {
-        fetch(API_BASE + "/api/analytics/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true });
-      }
-    } catch {}
-  }
+  /* Трекер аналитики теперь общий, см. /shared/track.js.
+     HTML подключает его перед app.js. Тут alias под привычное имя trackEvent. */
+  window.IvaTrack?.init({ source: 'miniapp', apiBase: API_BASE });
+  function trackEvent(event, meta) { window.IvaTrack?.track(event, meta); }
 
   /* ── Init ── */
   async function init() {

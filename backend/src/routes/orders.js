@@ -4,31 +4,44 @@ import { createPayment, getPayment } from '../yookassa.js';
 import { createPosifloraOrderForLocal } from '../services/posifloraOrder.js';
 import { notifyOrder, notifyTest } from '../services/tgNotify.js';
 
-/* Идемпотентно шлём TG-уведомление о заказе. */
+/* Идемпотентно шлём TG-уведомление о заказе.
+   CAS: атомарно захватываем notified_at до вызова API — иначе webhook+polling могут
+   оба пройти проверку и послать дубль. */
 async function notifyOrderSafely(orderId) {
-  /* Не дублируем — если уже слали, столбец notified_at заполнен */
-  const row = db.prepare(`SELECT notified_at FROM orders WHERE id=?`).get(orderId);
-  if (row?.notified_at) return;
+  const claim = db.prepare(
+    `UPDATE orders SET notified_at = datetime('now') WHERE id=? AND notified_at IS NULL`
+  ).run(orderId);
+  if (claim.changes === 0) return; /* кто-то уже занял слот */
   try {
     const r = await notifyOrder(orderId);
-    if (r.ok) {
-      db.prepare(`UPDATE orders SET notified_at = datetime('now') WHERE id=?`).run(orderId);
+    if (!r.ok) {
+      /* Отдаём слот обратно, чтобы можно было повторить попытку */
+      db.prepare(`UPDATE orders SET notified_at = NULL WHERE id=?`).run(orderId);
+      console.warn('[tg] notify failed:', r.reason || 'unknown');
     }
   } catch (e) {
+    db.prepare(`UPDATE orders SET notified_at = NULL WHERE id=?`).run(orderId);
     console.error('[tg] notify error:', e.message);
   }
 }
 
-/* Идемпотентно отправить заказ в Posiflora. Безопасно вызывать несколько раз. */
+/* Идемпотентно отправить заказ в Posiflora. Безопасно вызывать несколько раз.
+   CAS: пометим 'pending' до вызова API, чтобы параллельные webhook+polling не создали дубль. */
 async function pushToPosifloraSafely(orderId) {
+  const claim = db.prepare(
+    `UPDATE orders SET posiflora_order_id='pending' WHERE id=? AND posiflora_order_id IS NULL`
+  ).run(orderId);
+  if (claim.changes === 0) return; /* уже пушится/запушено */
   try {
     const r = await createPosifloraOrderForLocal(orderId);
     if (r.alreadyExists) console.log('[iva] order', orderId, 'already in Posiflora:', r.posiflora_order_id);
     else console.log('[iva] order', orderId, '→ Posiflora:', r.posiflora_order_id);
+    /* posifloraOrder уже сам UPDATE'нет posiflora_order_id — 'pending' будет затёрт */
   } catch (e) {
     console.error('[iva] failed to push order', orderId, 'to Posiflora:', e.message);
-    db.prepare(`UPDATE orders SET status = COALESCE(status,'paid')
-                WHERE id=? AND posiflora_order_id IS NULL`).run(orderId);
+    /* Отдаём слот обратно — ретрай возможен вручную через POST /:id/push-to-posiflora */
+    db.prepare(`UPDATE orders SET posiflora_order_id=NULL WHERE id=? AND posiflora_order_id='pending'`).run(orderId);
+    db.prepare(`UPDATE orders SET status = COALESCE(status,'paid') WHERE id=?`).run(orderId);
   }
 }
 
@@ -214,7 +227,7 @@ r.get('/:id/status', async (req, res) => {
           notifyOrderSafely(row.id);
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[yookassa] status poll failed:', e.message); }
   }
   res.json(row);
 });
@@ -244,7 +257,7 @@ r.get('/:id/track', async (req, res) => {
           notifyOrderSafely(row.id);
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[yookassa] track poll failed:', e.message); }
   }
 
   let floristPhone = '+7 (930) 089-09-89';
@@ -252,7 +265,7 @@ r.get('/:id/track', async (req, res) => {
     const s = db.prepare(`SELECT value FROM app_settings WHERE key = 'contacts'`).get();
     const c = s ? JSON.parse(s.value) : {};
     if (c.florist_phone) floristPhone = c.florist_phone;
-  } catch {}
+  } catch (e) { console.warn('[iva] contacts read failed:', e.message); }
 
   /* Маскируем адрес чтобы случайно попавший в чужие руки id не сливал точный адрес.
      Показываем только первую строку до цифр. Для gift без адреса — заглушка. */
